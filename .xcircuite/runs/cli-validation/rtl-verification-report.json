@@ -1,0 +1,94 @@
+{
+  "analysis" : "lint",
+  "diagnostics" : [
+
+  ],
+  "generatedAt" : 805587743.543601,
+  "inputArtifacts" : [
+    {
+      "artifactID" : "rtl-input",
+      "byteCount" : 245,
+      "format" : "SYSTEM_VERILOG",
+      "kind" : "rtl",
+      "path" : "Tests/RTLVerificationEngineTests/Fixtures/positive.sv",
+      "sha256" : "0ff663044608e05d8e2f8bc12e46be46ed4f5890f504dfdd16148213dc87ae54"
+    }
+  ],
+  "payload" : {
+    "analysis" : "lint",
+    "appliedWaivers" : [
+
+    ],
+    "assumptions" : [
+
+    ],
+    "counterexampleArtifactIDs" : [
+
+    ],
+    "coverage" : {
+      "analyzedConstructs" : 51,
+      "asynchronousClockGroups" : [
+
+      ],
+      "clockDomains" : [
+        "clk"
+      ],
+      "constrainedClockDomains" : [
+
+      ],
+      "constraintExceptionCount" : 0,
+      "constraintExceptionKinds" : [
+
+      ],
+      "constraintModes" : [
+
+      ],
+      "language" : "SystemVerilog subset",
+      "limitations" : [
+
+      ],
+      "proofScope" : "lint",
+      "resetDomains" : [
+        "rst_n"
+      ],
+      "sourceArtifacts" : [
+        {
+          "byteCount" : 245,
+          "order" : 0,
+          "path" : "Tests/RTLVerificationEngineTests/Fixtures/positive.sv",
+          "sha256" : "0ff663044608e05d8e2f8bc12e46be46ed4f5890f504dfdd16148213dc87ae54"
+        }
+      ],
+      "totalConstructs" : 51,
+      "unsupportedConstructs" : [
+
+      ]
+    },
+    "findingCount" : 0,
+    "findings" : [
+
+    ],
+    "proofView" : "rtlToRtlStructural",
+    "qualification" : {
+      "blockers" : [
+        "independent_corpus_validation_required",
+        "oracle_correlation_required",
+        "process_qualification_required"
+      ],
+      "evidence" : [
+
+      ],
+      "implementationID" : "native-rtl-verification",
+      "implementationVersion" : "1.0.0",
+      "limitations" : [
+
+      ],
+      "schemaVersion" : 1,
+      "state" : "unassessed"
+    },
+    "reportVersion" : 1
+  },
+  "runID" : "cli-validation",
+  "schemaVersion" : 1,
+  "status" : "completed"
+}

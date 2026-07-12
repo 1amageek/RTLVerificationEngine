@@ -1,0 +1,33 @@
+import Foundation
+import TimingCore
+import XcircuitePackage
+
+public struct RTLVerificationConstraintLoader: Sendable {
+    public var reader: any RTLArtifactReading
+
+    public init(reader: any RTLArtifactReading) {
+        self.reader = reader
+    }
+
+    public func load(_ reference: TimingConstraintReference) throws -> RTLVerificationConstraintContext {
+        let data = try reader.read(reference.artifact)
+        let modeIDs = reference.modeIDs.isEmpty ? ["default"] : reference.modeIDs
+        do {
+            let sets = try modeIDs.map { try SDCParser().parse(data, modeID: $0) }
+            return RTLVerificationConstraintContext.combine(
+                sets,
+                sourceArtifact: RTLVerificationSourceArtifact(
+                    path: reference.artifact.path,
+                    sha256: XcircuiteHasher().sha256(data: data),
+                    byteCount: Int64(data.count),
+                    order: 0
+                )
+            )
+        } catch {
+            throw RTLVerificationExecutionError.constraintFailed(
+                path: reference.artifact.path,
+                reason: error.localizedDescription
+            )
+        }
+    }
+}

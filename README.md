@@ -1,0 +1,127 @@
+# RTLVerificationEngine
+
+Static RTL quality, clock/reset-domain analysis and formal equivalence contracts.
+
+## Status
+
+The package provides deterministic native implementations for the declared SystemVerilog subset, a source-set frontend with include resolution and provenance, a qualified-envelope external adapter, immutable JSON artifacts, a JSON CLI, retained fixtures, and an Xcircuite flow-stage adapter.
+
+Native formal equivalence is intentionally scoped to exact canonical structural equivalence for RTL-to-RTL and mapped execution graphs. Solver-backed temporal equivalence and process-specific qualification remain blocked until independent tool and process evidence is supplied.
+
+The delivery plan is milestone-based and recorded in [MILESTONES.md](MILESTONES.md). Execution status and qualification state are separate: a successful native execution does not imply corpus validation, oracle correlation, process qualification or release eligibility.
+
+## Verification status
+
+This repository is an implementation milestone, not a foundry signoff claim.
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Native package build | Passed | `swift build` |
+| SwiftPM contract suite | Passed | 27 tests in 3 suites |
+| Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` |
+| CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
+| Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
+| Independent oracle correlation | Pending | No independently retained oracle result is attached |
+| Process/PDK qualification | Pending | No PDK-scoped health and qualification record is attached |
+| Release eligibility | Blocked | Qualification and headless integration evidence remain incomplete |
+
+The focused Xcircuite RTL stage test is present, but the current workspace test graph is blocked by unrelated `DFTEngine` compile errors (`DFTFaultFamily`, `LogicDesignSnapshot`, and `searchGateLevel`). The RTL stage source parses and the Xcircuite library target builds successfully; this external test-target blocker is not treated as RTL verification evidence.
+
+## Scope and trust boundary
+
+```mermaid
+flowchart LR
+    Request["Typed request"] --> Frontend["RTL source-set frontend"]
+    Frontend --> IR["Canonical LogicIR + provenance"]
+    IR --> Native["Lint / CDC / RDC / structural formal"]
+    Native --> Envelope["Result envelope"]
+    Envelope --> Qualification["Corpus / oracle / process gates"]
+    Qualification --> Review["Xcircuite review / audit / resume"]
+```
+
+The native frontend supports a declared SystemVerilog subset with ordered multi-file inputs, object-like defines, conditional compilation, quoted includes, include-cycle diagnostics, source maps and SHA-256 source artifacts. It does not claim complete IEEE SystemVerilog preprocessing, elaboration or synthesis semantics. Unsupported constructs remain in coverage and block according to the request policy.
+
+Native formal proves only exact canonical structural equivalence for `rtlToRtlStructural` and the explicitly limited `rtlToMappedExecutionStructural` graph contract. The mapped view lowers a retained LogicIR snapshot into a LogicEngine document and compares it with a retained mapped document; it does not prove temporal execution behavior. Requests for synthesized or DFT proof views, or assumptions that the native backend cannot interpret, are blocked. A waiver preserves the original finding and records its scope, reason and approver.
+
+## Products
+
+| Product | Responsibility |
+|---|---|
+| `RTLLint` | Typed RTL diagnostics |
+| `CDCAnalysis` | Clock-domain crossing analysis |
+| `RDCAnalysis` | Reset-domain crossing analysis |
+| `FormalEquivalence` | RTL-to-netlist proof and counterexamples |
+| `RTLVerificationEngine` | Umbrella API |
+
+The package is intentionally independent of the Xcircuite runtime. The sibling `Xcircuite` package owns the flow-stage adapter and connects this library to `DesignFlowKernel`.
+
+## Contract
+
+Every executing product uses:
+
+- a `Codable`, `Hashable`, `Sendable` request conforming to `XcircuiteEngineRequest`;
+- `XcircuiteEngineResultEnvelope<Payload>` for status, diagnostics, artifacts and execution metadata;
+- protocol-first dependency injection;
+- immutable `XcircuiteFileReference` inputs and outputs;
+- explicit blocked, failed and cancelled states.
+
+Native implementations are `NativeRTLLintEngine`, `NativeCDCAnalyzer`, `NativeRDCAnalyzer` and `NativeFormalEquivalenceChecker`. They share `RTLVerificationEnvironment`, `RTLVerificationDesignLoader`, the canonical `LogicIR` model, and the result finalizer.
+
+Unsupported semantics are retained in `RTLVerificationCoverage` and block the result when they exceed the request policy. Findings are never deleted by waivers; a scoped waiver is recorded on the finding and in the payload.
+
+## CLI
+
+The deterministic JSON CLI verifies a project-relative RTL artifact and writes the report under `.xcircuite/runs/<run-id>/`:
+
+```bash
+swift run rtl-verify --analysis lint --project-root /path/to/project --rtl rtl/top.sv --top top --run-id rtl-lint-001
+```
+
+The CLI accepts repeated `--rtl` and repeated `--reference` options for multi-file implementation/reference source sets. Frontend controls include `--define NAME[=VALUE]`, `--include-dir <directory>`, `--language`, and `--max-unsupported`. CDC/RDC can load SDC with `--constraint <path>` and `--constraint-mode <mode>`; parsed clock groups and path exceptions are retained in coverage and are not treated as CDC/RDC safety waivers. Formal equivalence additionally requires at least one `--reference <path>` and accepts `--proof-view`, `--assumptions`, and the qualification policy options.
+
+The command emits one deterministic JSON envelope and persists the report at `.xcircuite/runs/<run-id>/rtl-verification-report.json`. A successful execution can still carry an `unassessed` qualification state; qualification blockers are retained in the same payload and are never converted into a signoff pass.
+
+The current frontend boundary is deliberately explicit:
+
+```mermaid
+flowchart LR
+    Sources["RTL source set"] --> PP["Defines / conditionals / includes"]
+    PP --> Map["Source map and SHA-256 artifacts"]
+    Map --> IR["Canonical LogicIR"]
+    IR --> Analysis["Lint / CDC / RDC / structural formal"]
+    Analysis --> Envelope["Result + coverage + blockers"]
+```
+
+The parser does not claim complete IEEE SystemVerilog elaboration. Unsupported directives and semantics are counted in coverage and become structured blockers when the request policy requires that boundary.
+
+For a formal run, repeat `--reference` to provide additional reference RTL/header inputs. Use `--reference` only for the reference source set; implementation inputs belong to repeated `--rtl` options.
+
+## Xcircuite integration
+
+Xcircuite runs each verification product as an independent gate. The RTL stage adapter persists the raw result, qualification report, review bundle and audit record, and reuses a completed or blocked result only when the request digest and audit identity match. Missing proof, insufficient solver qualification and unsupported semantics remain blocked rather than passed.
+
+The library does not depend on the Xcircuite runtime. Xcircuite owns the adapter to `DesignFlowKernel.FlowStageExecutor`, artifact persistence, qualification gates, repair loops and human approval.
+
+## Build
+
+```bash
+perl -e 'alarm 60; exec @ARGV' -- swift build
+```
+
+The package has local SwiftPM dependencies on `XcircuitePackage`, `LogicDesign`, `LogicEngine`, `TimingEngine` and `ToolQualification`. A standalone checkout therefore needs those sibling packages at the paths declared in `Package.swift`, or an equivalent package-path adjustment.
+
+## Test
+
+```bash
+perl -e 'alarm 60; exec @ARGV' -- xcodebuild test -quiet -scheme RTLVerificationEngine-Package -destination 'platform=macOS,arch=arm64' -parallel-testing-enabled NO -maximum-parallel-testing-workers 1
+```
+
+For SwiftPM-only checkouts, the equivalent package test command is:
+
+```bash
+perl -e 'alarm 60; exec @ARGV' -- swift test --filter RTLVerificationEngineTests
+```
+
+The test suite covers request/payload compatibility, native lint/CDC/RDC/formal behavior, mapped execution graph proof and mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations, oracle independence, process qualification state transitions and deterministic release blocking.
+
+See `DESIGN.md`, `INTERFACES.md`, `IMPLEMENTATION_PLAN.md`, `MILESTONES.md` and `GOAL_STATUS.md` before implementing a backend or interpreting a result as qualified.
