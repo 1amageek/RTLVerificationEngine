@@ -10,7 +10,7 @@ public protocol DomainExecuting: Sendable {
 }
 ```
 
-Requests carry a schema version, run ID, typed implementation/reference artifact sets, frontend policy and explicit proof/assumption scope. Payloads contain domain findings, coverage and qualification evidence. Diagnostics and artifacts belong to the shared envelope.
+Requests carry a schema version, run ID, typed implementation/reference artifact sets, frontend policy, explicit proof/assumption scope and an optional retained qualification input. Payloads contain domain findings, coverage and qualification evidence. Diagnostics and artifacts belong to the shared envelope. The CLI loads the same qualification input through `--qualification-input` so headless and library execution share one gate.
 
 ## Products
 

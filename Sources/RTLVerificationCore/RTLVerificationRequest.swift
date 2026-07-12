@@ -20,6 +20,7 @@ public struct RTLVerificationRequest: XcircuiteEngineRequest {
     public var frontend: RTLVerificationFrontendOptions
     public var proofView: RTLVerificationProofView
     public var assumptions: [RTLVerificationAssumption]
+    public var qualificationInput: RTLVerificationQualificationInput?
 
     private enum CodingKeys: String, CodingKey {
         case schemaVersion
@@ -35,6 +36,7 @@ public struct RTLVerificationRequest: XcircuiteEngineRequest {
         case frontend
         case proofView
         case assumptions
+        case qualificationInput
     }
 
     public init(
@@ -49,7 +51,8 @@ public struct RTLVerificationRequest: XcircuiteEngineRequest {
         waivers: [RTLVerificationWaiver] = [],
         frontend: RTLVerificationFrontendOptions = RTLVerificationFrontendOptions(),
         proofView: RTLVerificationProofView = .rtlToRtlStructural,
-        assumptions: [RTLVerificationAssumption] = []
+        assumptions: [RTLVerificationAssumption] = [],
+        qualificationInput: RTLVerificationQualificationInput? = nil
     ) {
         self.schemaVersion = Self.currentSchemaVersion
         self.runID = runID
@@ -64,6 +67,7 @@ public struct RTLVerificationRequest: XcircuiteEngineRequest {
         self.frontend = frontend
         self.proofView = proofView
         self.assumptions = assumptions
+        self.qualificationInput = qualificationInput
     }
 
     public init(from decoder: Decoder) throws {
@@ -89,7 +93,11 @@ public struct RTLVerificationRequest: XcircuiteEngineRequest {
             waivers: try container.decodeIfPresent([RTLVerificationWaiver].self, forKey: .waivers) ?? [],
             frontend: try container.decodeIfPresent(RTLVerificationFrontendOptions.self, forKey: .frontend) ?? RTLVerificationFrontendOptions(),
             proofView: try container.decodeIfPresent(RTLVerificationProofView.self, forKey: .proofView) ?? .rtlToRtlStructural,
-            assumptions: try container.decodeIfPresent([RTLVerificationAssumption].self, forKey: .assumptions) ?? []
+            assumptions: try container.decodeIfPresent([RTLVerificationAssumption].self, forKey: .assumptions) ?? [],
+            qualificationInput: try container.decodeIfPresent(
+                RTLVerificationQualificationInput.self,
+                forKey: .qualificationInput
+            )
         )
     }
 }

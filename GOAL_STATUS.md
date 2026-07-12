@@ -10,14 +10,14 @@
 | Public package products | Implemented for current slice | Package.swift |
 | Shared Xcircuite request/result contract | Implemented for current slice | Public Swift protocols, payloads and qualification gate |
 | Contract build | Passed | `swift build` |
-| Contract test | Passed | timeout-bounded SwiftPM test: 34 tests in 3 suites; mapped pass/mismatch, oracle evidence, freshness and timeout fixtures included |
+| Contract test | Passed | timeout-bounded SwiftPM test: 35 tests in 4 suites; qualification-input wiring, mapped pass/mismatch, oracle evidence, freshness and timeout fixtures included |
 | Domain implementation | Complete for native subset | Native lint, CDC, RDC and structural equivalence backends |
 | CLI implementation | Complete | `rtl-verify` deterministic JSON executable |
 | Fixture corpus | Contract-complete smoke corpus | Retained positive/negative/equivalence/source-set fixtures and deterministic expectation evaluator; independent corpus not attached |
 | Oracle correlation | Artifact contract hardened, external evidence pending | `RTLVerificationOracleEvidence` binds request digest, two digest-bearing result artifacts, matched correlation and independent provenance; no external retained comparison evidence |
 | Process qualification | Freshness contract hardened, process evidence pending | Process scope/record now requires a valid qualification window; no PDK-scoped qualification record |
 | Xcircuite stage adapter | Implementation complete, LogicEngine bridge verified | `RTLVerificationFlowStageExecutor` persists result/qualification/review/audit artifacts; `LogicEquivalenceFlowStageExecutor` consumes synthesis requests and emits acceptance evidence |
-| End-to-end flow evidence | Native LogicEngine synthesis → RTL mapped proof → acceptance verified | Retained Xcircuite evidence includes 4 LogicEngine adapter tests and 2 RTL stage/resume tests; latest focused rerun is blocked by unrelated `PhysicalDesignEngine` compile errors, while the Xcircuite target builds |
+| End-to-end flow evidence | Native LogicEngine synthesis → RTL mapped proof → acceptance verified | Retained Xcircuite evidence includes 5 LogicEngine adapter tests and 3 RTL stage/resume/qualification-gate tests; full workspace qualification remains open |
 | Release readiness | Blocked | M1, M5, M6, M7 and M8 evidence are incomplete |
 
 ## Function status
@@ -61,7 +61,7 @@ The package goal is complete only when every P0 function has a concrete backend,
 - No external independent reference-oracle correlation artifact has been retained; the artifact-bound evidence contract and rejection paths are tested.
 - No PDK/process-specific qualification record has been supplied; stale or missing freshness is rejected.
 - The external adapter is contract-complete but requires a qualified command descriptor.
-- The full Xcircuite test graph remains sensitive to unrelated workspace package changes; retained focused evidence covers the direct LogicEngine equivalence adapter path and RTL stage/resume, while the latest rerun is blocked by `PhysicalDesignEngine` helper resolution errors.
+- The full Xcircuite test graph remains sensitive to unrelated workspace package changes; retained focused evidence covers the direct LogicEngine equivalence adapter path and RTL stage/resume/qualification gates. The Xcircuite package is intentionally not committed with this repository's focused changes because its worktree contains unrelated in-progress changes.
 - The native frontend is a declared deterministic subset frontend with multi-file source sets, defines, conditionals, includes, include-cycle diagnostics and source provenance; complete IEEE SystemVerilog preprocessing/elaboration is not implemented.
 - Native CDC consumes SDC clock declarations for coverage and unconstrained-clock findings; RDC reset intent and full exception semantics remain incomplete.
 - Native formal is canonical RTL structural comparison plus the explicitly limited mapped LogicEngine graph comparison, not solver-backed temporal equivalence for synthesized or DFT views.

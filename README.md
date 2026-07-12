@@ -17,7 +17,7 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Gate | Status | Evidence |
 |---|---|---|
 | Native package build | Passed | `swift build` |
-| SwiftPM contract suite | Passed | 34 tests in 3 suites |
+| SwiftPM contract suite | Passed | 35 tests in 4 suites |
 | Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` |
 | CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
 | Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
@@ -25,7 +25,7 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Process/PDK qualification | Contract hardened | Process records enforce a validity window; no PDK-scoped health and qualification record is attached |
 | Release eligibility | Blocked | Qualification and headless integration evidence remain incomplete |
 
-The Xcircuite library target and the focused RTL/LogicEngine adapter tests have passed in retained integration evidence. The latest focused-test rerun is currently blocked by unrelated `PhysicalDesignEngine` compile errors (`routingLayer` and `segmentGeometry`); the current RTL adapter source parses and the Xcircuite library target builds successfully. This external blocker is not treated as RTL verification evidence.
+The Xcircuite library target and the focused RTL/LogicEngine adapter tests have passed in retained integration evidence. The RTL flow suite currently passes native artifact persistence, resume identity checks and qualification blocking for unqualified external tools. Full workspace qualification remains separate from this package evidence.
 
 ## Scope and trust boundary
 
@@ -77,7 +77,16 @@ The deterministic JSON CLI verifies a project-relative RTL artifact and writes t
 swift run rtl-verify --analysis lint --project-root /path/to/project --rtl rtl/top.sv --top top --run-id rtl-lint-001
 ```
 
-The CLI accepts repeated `--rtl` and repeated `--reference` options for multi-file implementation/reference source sets. Frontend controls include `--define NAME[=VALUE]`, `--include-dir <directory>`, `--language`, and `--max-unsupported`. CDC/RDC can load SDC with `--constraint <path>` and `--constraint-mode <mode>`; parsed clock groups and path exceptions are retained in coverage and are not treated as CDC/RDC safety waivers. Formal equivalence additionally requires at least one `--reference <path>` and accepts `--proof-view`, `--assumptions`, and the qualification policy options.
+The CLI accepts repeated `--rtl` and repeated `--reference` options for multi-file implementation/reference source sets. Frontend controls include `--define NAME[=VALUE]`, `--include-dir <directory>`, `--language`, and `--max-unsupported`. CDC/RDC can load SDC with `--constraint <path>` and `--constraint-mode <mode>`; parsed clock groups and path exceptions are retained in coverage and are not treated as CDC/RDC safety waivers. Formal equivalence additionally requires at least one `--reference <path>` and accepts `--proof-view`, `--assumptions`, and the qualification policy options. `--qualification-input <file>` loads a project package JSON artifact containing retained corpus evaluations, independent oracle correlation/evidence, process qualification freshness and optional release approval. The input is evaluated during finalization and can only advance the result when every required evidence gate is satisfied.
+
+```mermaid
+flowchart LR
+    CLI["rtl-verify"] --> Request["Typed request"]
+    Evidence[".xcircuite qualification-input.json"] --> Request
+    Request --> Execute["Native analysis"]
+    Execute --> Evaluate["Qualification evaluator"]
+    Evaluate --> Result["Result payload + blockers"]
+```
 
 The command emits one deterministic JSON envelope and persists the report at `.xcircuite/runs/<run-id>/rtl-verification-report.json`. A successful execution can still carry an `unassessed` qualification state; qualification blockers are retained in the same payload and are never converted into a signoff pass.
 

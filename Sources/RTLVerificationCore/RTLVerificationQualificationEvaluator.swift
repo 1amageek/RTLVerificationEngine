@@ -31,6 +31,8 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
             && expectedRequestDigest != nil
             && orderedOracle.allSatisfy { $0.matched && $0.independenceVerified }
         let processPassed = processQualification?.isQualified(at: checkedAt) == true
+        let releaseApprovalPassed = releaseApproval?.kind == .releaseApproval
+            && releaseApproval?.isAuditable == true
 
         var evidence: [RTLVerificationQualificationEvidence] = []
         for evaluation in orderedCorpus where evaluation.matched {
@@ -65,7 +67,7 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
                 checkedAt: checkedAt
             ))
         }
-        if let releaseApproval, releaseApproval.kind == .releaseApproval {
+        if let releaseApproval, releaseApprovalPassed {
             evidence.append(releaseApproval)
         }
 
@@ -98,8 +100,7 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         }
 
         let evidenceReadyForRelease = corpusPassed && oraclePassed && processPassed
-        if evidenceReadyForRelease,
-           releaseApproval?.kind != .releaseApproval {
+        if evidenceReadyForRelease, !releaseApprovalPassed {
             blockers.append("release_approval_required")
         }
 
@@ -110,7 +111,7 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
             state = .corpusChecked
         } else if !processPassed {
             state = .oracleCorrelated
-        } else if releaseApproval?.kind == .releaseApproval {
+        } else if releaseApprovalPassed {
             state = .releaseEligible
         } else {
             state = .processQualified

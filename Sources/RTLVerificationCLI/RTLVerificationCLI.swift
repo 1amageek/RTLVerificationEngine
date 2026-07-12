@@ -44,7 +44,7 @@ struct RTLVerificationCLI {
                 diagnostics: [XcircuiteEngineDiagnostic(
                     severity: .info,
                     code: "RTL_CLI_HELP",
-                message: "Use --analysis, --project-root, repeated --rtl/--reference, --top, --run-id, optional --constraint, frontend options, proof view, waivers and assumptions.",
+                message: "Use --analysis, --project-root, repeated --rtl/--reference, --top, --run-id, optional --constraint, frontend options, proof view, waivers, assumptions and --qualification-input.",
                 suggestedActions: ["run_rtl_verify"]
                 )],
                 metadata: XcircuiteEngineExecutionMetadata(
@@ -116,6 +116,13 @@ struct RTLVerificationCLI {
         let assumptions = try options.assumptionsPath.map {
             try packageStore.readJSON([RTLVerificationAssumption].self, named: $0, forProjectAt: options.projectRoot)
         } ?? []
+        let qualificationInput = try options.qualificationInputPath.map {
+            try packageStore.readJSON(
+                RTLVerificationQualificationInput.self,
+                named: $0,
+                forProjectAt: options.projectRoot
+            )
+        }
         let request = RTLVerificationRequest(
             runID: options.runID,
             inputs: rtlReferences + (constraintReference.map { [$0.artifact] } ?? []),
@@ -137,7 +144,8 @@ struct RTLVerificationCLI {
                 includeDirectories: options.includeDirectories
             ),
             proofView: options.proofView,
-            assumptions: assumptions
+            assumptions: assumptions,
+            qualificationInput: qualificationInput
         )
         let environment = RTLVerificationEnvironment(
             reader: FileSystemRTLArtifactReader(projectRoot: options.projectRoot),
@@ -171,6 +179,7 @@ struct RTLVerificationCLI {
         var constraintModes: [String] = []
         var waiversPath: String?
         var assumptionsPath: String?
+        var qualificationInputPath: String?
         var preprocessorDefines: [String: String] = [:]
         var includeDirectories: [String] = []
         var language = "systemVerilog"
@@ -206,6 +215,8 @@ struct RTLVerificationCLI {
                     waiversPath = try next(arguments, index: &index)
                 case "--assumptions":
                     assumptionsPath = try next(arguments, index: &index)
+                case "--qualification-input":
+                    qualificationInputPath = try next(arguments, index: &index)
                 case "--define":
                     let definition = try parseDefinition(next(arguments, index: &index))
                     preprocessorDefines[definition.name] = definition.value

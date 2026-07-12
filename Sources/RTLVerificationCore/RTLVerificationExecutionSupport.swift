@@ -134,13 +134,19 @@ public enum RTLVerificationExecutionSupport {
     ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
         let waiverResult = applyWaivers(analysisResult.findings, waivers: request.waivers)
         let findings = normalizeFindings(waiverResult.findings)
+        let completedAt = Date()
+        let qualification = makeQualification(
+            request: request,
+            analysisResult: analysisResult,
+            checkedAt: completedAt
+        )
         let status = status(
             requested: requestedStatus,
             findings: findings,
             coverage: analysisResult.coverage,
             policy: request.policy,
             proofStatus: analysisResult.proofStatus,
-            qualification: analysisResult.qualification
+            qualification: qualification
         )
         let payload: RTLVerificationPayload
         var artifacts: [XcircuiteFileReference] = []
@@ -164,7 +170,7 @@ public enum RTLVerificationExecutionSupport {
             proofStatus: analysisResult.proofStatus,
             counterexampleArtifactIDs: counterexampleArtifactIDs,
             appliedWaivers: waiverResult.applied,
-            qualification: analysisResult.qualification,
+            qualification: qualification,
             proofView: request.proofView,
             assumptions: request.assumptions
         )
@@ -179,7 +185,7 @@ public enum RTLVerificationExecutionSupport {
             ))
         }
         if status == .blocked,
-           !analysisResult.qualification.satisfies(request.policy.minimumQualification) {
+           !qualification.satisfies(request.policy.minimumQualification) {
             finalDiagnostics.append(XcircuiteEngineDiagnostic(
                 severity: .error,
                 code: "RTL_QUALIFICATION_INSUFFICIENT",
@@ -187,7 +193,6 @@ public enum RTLVerificationExecutionSupport {
                 suggestedActions: ["attach_qualification_evidence", "select_qualified_backend", "lower_policy_for_exploration"]
             ))
         }
-        let completedAt = Date()
         let metadata = XcircuiteEngineExecutionMetadata(
             engineID: request.analysis.stageID,
             implementationID: implementationID,
@@ -232,6 +237,27 @@ public enum RTLVerificationExecutionSupport {
     private static func uniqueReferences(_ references: [XcircuiteFileReference]) -> [XcircuiteFileReference] {
         var paths: Set<String> = []
         return references.filter { paths.insert($0.path).inserted }
+    }
+
+    private static func makeQualification(
+        request: RTLVerificationRequest,
+        analysisResult: RTLVerificationAnalysisResult,
+        checkedAt: Date
+    ) -> RTLVerificationQualificationReport {
+        guard let input = request.qualificationInput else {
+            return analysisResult.qualification
+        }
+        return RTLVerificationQualificationEvaluator().evaluate(
+            implementationID: analysisResult.qualification.implementationID,
+            implementationVersion: analysisResult.qualification.implementationVersion,
+            corpusEvaluations: input.corpusEvaluations,
+            oracleReports: input.oracleReports,
+            oracleEvidence: input.oracleEvidence,
+            processQualification: input.processQualification,
+            releaseApproval: input.releaseApproval,
+            expectedRequestDigest: input.expectedRequestDigest,
+            checkedAt: checkedAt
+        )
     }
 
     public static func blockedEnvelope(

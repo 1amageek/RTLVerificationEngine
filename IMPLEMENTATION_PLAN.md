@@ -22,7 +22,7 @@ The work is intentionally staged around trust boundaries. The first implementati
 - Native lint, CDC, RDC, RTL structural equivalence and mapped LogicEngine execution-graph equivalence backends.
 - Counterexample artifact persistence through the injected artifact writer.
 - Positive/negative retained fixtures, source-set formal fixtures, mapped graph pass/mismatch fixtures, corpus expectation evaluation and oracle-correlation tests.
-- Deterministic `rtl-verify` CLI with repeated RTL/reference inputs, SDC, frontend policy and qualification options.
+- Deterministic `rtl-verify` CLI with repeated RTL/reference inputs, SDC, frontend policy and `--qualification-input` artifact loading.
 - Xcircuite `RTLVerificationFlowStageExecutor` with input digest verification, review/audit persistence and resumable stage-result mapping.
 - Qualification state, evidence and minimum-policy gates are part of the public result contract. Native execution remains unassessed until independent evidence is attached.
 
