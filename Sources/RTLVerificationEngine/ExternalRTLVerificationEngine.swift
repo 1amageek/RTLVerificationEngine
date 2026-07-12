@@ -85,6 +85,12 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             guard envelope.payload.analysis == request.analysis else {
                 throw RTLVerificationExecutionError.invalidArtifact("External result analysis does not match the request.")
             }
+            guard envelope.payload.proofView == request.proofView else {
+                throw RTLVerificationExecutionError.invalidArtifact("External result proof view does not match the request.")
+            }
+            guard envelope.payload.assumptions == request.assumptions else {
+                throw RTLVerificationExecutionError.invalidArtifact("External result assumptions do not match the request.")
+            }
             guard envelope.payload.qualification.state <= descriptor.qualification.state else {
                 throw RTLVerificationExecutionError.invalidArtifact(
                     "External result qualification exceeds the descriptor qualification state."

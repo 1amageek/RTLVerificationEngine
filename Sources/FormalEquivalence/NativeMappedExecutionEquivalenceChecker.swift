@@ -304,18 +304,60 @@ private struct CanonicalDocument: Sendable, Hashable {
     let nodes: [CanonicalNode]
 
     init(document: LogicDesignDocument) {
+        let normalized = Self.normalize(document)
         topDesignName = document.topDesignName
         ports = document.ports
             .map(CanonicalPort.init)
             .sorted { $0.name < $1.name }
         signals = document.signals
+            .filter { signal in
+                !normalized.removedSignals.contains(signal.name)
+                    && normalized.referencedSignals.contains(signal.name)
+            }
             .map(CanonicalSignal.init)
             .sorted { $0.name < $1.name }
-        nodes = document.nodes
+        nodes = normalized.nodes
             .map(CanonicalNode.init)
             .sorted { lhs, rhs in
                 lhs.sortKey < rhs.sortKey
             }
+    }
+
+    private static func normalize(
+        _ document: LogicDesignDocument
+    ) -> (nodes: [LogicNode], removedSignals: Set<String>, referencedSignals: Set<String>) {
+        let portNames = Set(document.ports.map(\.name))
+        var nodes = document.nodes
+        var removedSignals: Set<String> = []
+        var changed = true
+        while changed {
+            changed = false
+            guard let bufferIndex = nodes.firstIndex(where: { node in
+                node.kind == .buffer
+                    && node.inputs.count == 1
+                    && node.outputs.count == 1
+                    && !portNames.contains(node.outputs[0])
+            }) else {
+                break
+            }
+            let buffer = nodes[bufferIndex]
+            let source = buffer.inputs[0]
+            let destination = buffer.outputs[0]
+            nodes.remove(at: bufferIndex)
+            for index in nodes.indices {
+                nodes[index].inputs = nodes[index].inputs.map { signal in
+                    signal == destination ? source : signal
+                }
+            }
+            removedSignals.insert(destination)
+            changed = true
+        }
+        var referencedSignals = Set(portNames)
+        for node in nodes {
+            referencedSignals.formUnion(node.inputs)
+            referencedSignals.formUnion(node.outputs)
+        }
+        return (nodes, removedSignals, referencedSignals)
     }
 }
 

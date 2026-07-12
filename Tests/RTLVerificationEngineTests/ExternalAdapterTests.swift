@@ -34,12 +34,113 @@ struct ExternalAdapterTests {
         #expect(result.diagnostics.first?.code == "RTL_EXTERNAL_TOOL_UNQUALIFIED")
     }
 
+    @Test("qualified external tools return a validated envelope")
+    func qualifiedToolReturnsEnvelope() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-qualified",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .lint
+        )
+        let output = makeEnvelope(request: request)
+        let engine = ExternalRTLVerificationEngine(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "qualified-tool",
+                executablePath: "/qualified/tool",
+                version: "1",
+                supportedAnalyses: [.lint],
+                qualified: true
+            ),
+            runner: StaticOutputRunner(output: try JSONEncoder().encode(output))
+        )
+
+        let result = try await engine.execute(request)
+
+        #expect(result.status == .completed)
+        #expect(result.metadata.implementationID == "qualified-tool")
+    }
+
+    @Test("external proof-view mismatches are rejected")
+    func externalProofViewMismatchIsRejected() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-proof-view-mismatch",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .formalEquivalence,
+            proofView: .rtlToSynthesized
+        )
+        var output = makeEnvelope(request: request)
+        output.payload.proofView = .rtlToRtlStructural
+        let encoded = try JSONEncoder().encode(output)
+        let engine = ExternalRTLVerificationEngine(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "qualified-formal-tool",
+                executablePath: "/qualified/formal-tool",
+                version: "1",
+                supportedAnalyses: [.formalEquivalence],
+                supportedProofViews: [.rtlToSynthesized],
+                qualified: true
+            ),
+            runner: StaticOutputRunner(output: encoded)
+        )
+
+        do {
+            _ = try await engine.execute(request)
+            Issue.record("A proof-view mismatch must be rejected.")
+        } catch let error as RTLVerificationExecutionError {
+            #expect(error == .invalidArtifact("External result proof view does not match the request."))
+        }
+    }
+
+    private func makeEnvelope(
+        request: RTLVerificationRequest
+    ) -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+        let now = Date(timeIntervalSince1970: 1)
+        return XcircuiteEngineResultEnvelope(
+            schemaVersion: RTLVerificationRequest.currentSchemaVersion,
+            runID: request.runID,
+            status: .completed,
+            metadata: XcircuiteEngineExecutionMetadata(
+                engineID: request.analysis.stageID,
+                implementationID: "qualified-tool",
+                implementationVersion: "1",
+                startedAt: now,
+                completedAt: now
+            ),
+            payload: RTLVerificationPayload(
+                findingCount: 0,
+                proofStatus: request.analysis == .formalEquivalence ? "proved" : nil,
+                analysis: request.analysis,
+                proofView: request.proofView,
+                assumptions: request.assumptions
+            )
+        )
+    }
+
     private struct NeverCalledRunner: RTLExternalToolProcessRunning {
         func run(executableURL: URL, arguments: [String], standardInput: Data) throws -> Data {
             throw RTLVerificationExecutionError.externalToolFailed(
                 tool: executableURL.path,
                 reason: "The runner must not be called for an unqualified tool."
             )
+        }
+    }
+
+    private struct StaticOutputRunner: RTLExternalToolProcessRunning {
+        let output: Data
+
+        func run(executableURL: URL, arguments: [String], standardInput: Data) throws -> Data {
+            output
         }
     }
 }

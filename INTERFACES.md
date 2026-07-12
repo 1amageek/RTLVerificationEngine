@@ -48,6 +48,24 @@ All native products consume `RTLVerificationParsedDesign`, whose design is the `
 
 `RTLVerificationQualificationEvaluator` is the deterministic qualification boundary. It advances state only when retained corpus evaluations, independent oracle correlations, process qualification and (for release) approval evidence satisfy their respective contracts.
 
+`RTLVerificationOracleCorrelationReport` is a comparison result, not qualification evidence by itself. `RTLVerificationOracleEvidence` must bind the report to the request digest, digest-bearing native and oracle result artifacts, and explicit independent provenance. `RTLVerificationOracleEvidenceValidator` rejects missing bindings or self-correlation. Process qualification records likewise require a complete process scope and a valid `qualifiedAt`/`expiresAt` window at evaluation time.
+
+The mapped execution proof view is intentionally explicit:
+
+```mermaid
+flowchart LR
+  SourceRef["source LogicDesignSnapshot / LogicDesignDocument"] --> Lower["NativeLogicDesignLowering when needed"]
+  Lower --> SourceGraph["canonical source execution graph"]
+  MappedRef["mapped LogicDesignDocument"] --> MappedGraph["canonical mapped execution graph"]
+  SourceGraph --> Compare["mapped execution structural comparator"]
+  MappedGraph --> Compare
+  Compare --> Report["proof report + counterexample"]
+```
+
+This view ignores mapping-only cell labels and node identifiers, but does not
+claim temporal sequential equivalence, analog behavior, or foundry/process
+qualification.
+
 
 ## Error contract
 

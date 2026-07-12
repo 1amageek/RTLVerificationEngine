@@ -8,16 +8,29 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         implementationVersion: String,
         corpusEvaluations: [RTLVerificationCorpusEvaluation],
         oracleReports: [RTLVerificationOracleCorrelationReport],
+        oracleEvidence: [RTLVerificationOracleEvidence] = [],
         processQualification: RTLVerificationProcessQualificationRecord?,
         releaseApproval: RTLVerificationQualificationEvidence? = nil,
+        expectedRequestDigest: String? = nil,
         checkedAt: Date = Date()
     ) -> RTLVerificationQualificationReport {
         let orderedCorpus = corpusEvaluations.sorted { $0.caseID < $1.caseID }
         let orderedOracle = oracleReports.sorted { $0.caseID < $1.caseID }
         let corpusPassed = !orderedCorpus.isEmpty && orderedCorpus.allSatisfy(\.matched)
+        let validOracleEvidence = orderedOracle.filter { report in
+            oracleEvidence.contains { evidence in
+                evidence.caseID == report.caseID
+                    && evidence.report == report
+                    && evidence.isAuditable
+                    && expectedRequestDigest != nil
+                    && evidence.requestDigest == expectedRequestDigest
+            }
+        }
         let oraclePassed = !orderedOracle.isEmpty
+            && validOracleEvidence.count == orderedOracle.count
+            && expectedRequestDigest != nil
             && orderedOracle.allSatisfy { $0.matched && $0.independenceVerified }
-        let processPassed = processQualification?.isQualified == true
+        let processPassed = processQualification?.isQualified(at: checkedAt) == true
 
         var evidence: [RTLVerificationQualificationEvidence] = []
         for evaluation in orderedCorpus where evaluation.matched {
@@ -30,14 +43,20 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
             ))
         }
         for report in orderedOracle {
-            if let oracleEvidence = report.qualificationEvidence(
+            if let oracleEvidenceItem = oracleEvidence.first(where: {
+                $0.caseID == report.caseID && $0.report == report && $0.isAuditable
+                    && expectedRequestDigest != nil
+                    && $0.requestDigest == expectedRequestDigest
+            }),
+               let qualificationEvidence = report.qualificationEvidence(
                 evidenceID: "oracle:\(report.caseID)",
+                artifactIDs: oracleEvidenceItem.artifactIDs,
                 scopeID: report.caseID
             ) {
-                evidence.append(oracleEvidence)
+                evidence.append(qualificationEvidence)
             }
         }
-        if let processQualification, processQualification.isQualified {
+        if let processQualification, processQualification.isQualified(at: checkedAt) {
             evidence.append(RTLVerificationQualificationEvidence(
                 evidenceID: "process:\(processQualification.qualificationID)",
                 kind: .processQualification,
@@ -58,6 +77,18 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         if !oraclePassed {
             blockers.append("oracle_correlation_required")
             blockers.append(contentsOf: orderedOracle.filter { !$0.matched || !$0.independenceVerified }.map { "oracle_mismatch:\($0.caseID)" })
+            blockers.append(contentsOf: orderedOracle.filter { report in
+                !oracleEvidence.contains { evidence in
+                    evidence.caseID == report.caseID
+                        && evidence.report == report
+                        && evidence.isAuditable
+                        && expectedRequestDigest != nil
+                        && evidence.requestDigest == expectedRequestDigest
+                }
+            }.map { "oracle_evidence_artifact_required:\($0.caseID)" })
+            if !orderedOracle.isEmpty, expectedRequestDigest == nil {
+                blockers.append("oracle_request_digest_required")
+            }
         }
         if !processPassed {
             blockers.append("process_qualification_required")
@@ -97,7 +128,8 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
             evidence: evidence.sorted { $0.evidenceID < $1.evidenceID },
             blockers: Array(Set(blockers)).sorted(),
             limitations: limitations,
-            processQualification: processQualification
+            processQualification: processQualification,
+            checkedAt: checkedAt
         )
     }
 }

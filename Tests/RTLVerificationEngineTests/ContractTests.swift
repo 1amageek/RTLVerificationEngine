@@ -394,13 +394,15 @@ struct ContractTests {
             oracleEvidenceIDs: ["oracle-1"],
             healthEvidenceIDs: ["health-1"],
             blockers: [],
-            qualifiedAt: Date(timeIntervalSince1970: 1)
+            qualifiedAt: Date(timeIntervalSince1970: 1),
+            expiresAt: Date(timeIntervalSince1970: 2)
         )
         let releaseReport = RTLVerificationQualificationReport(
             state: .releaseEligible,
             blockers: [],
             limitations: [],
-            processQualification: qualifiedRecord
+            processQualification: qualifiedRecord,
+            checkedAt: Date(timeIntervalSince1970: 1)
         )
         #expect(releaseReport.isReleaseEligible)
         #expect(releaseReport.satisfies(.releaseEligible))
@@ -442,7 +444,8 @@ struct ContractTests {
             oracleEvidenceIDs: ["oracle:lint-positive"],
             healthEvidenceIDs: ["health:lint"],
             blockers: [],
-            qualifiedAt: Date(timeIntervalSince1970: 1)
+            qualifiedAt: Date(timeIntervalSince1970: 1),
+            expiresAt: Date(timeIntervalSince1970: 2)
         )
         let approval = RTLVerificationQualificationEvidence(
             evidenceID: "approval-1",
@@ -450,14 +453,35 @@ struct ContractTests {
             summary: "Approved by verification owner.",
             checkedAt: Date(timeIntervalSince1970: 1)
         )
+        let oracleEvidence = RTLVerificationOracleEvidence(
+            evidenceID: "oracle:lint-positive",
+            caseID: "lint-positive",
+            requestDigest: "request-digest",
+            nativeArtifact: makeJSONReference(
+                path: "native-lint-positive.json",
+                kind: .report,
+                data: Data("native".utf8)
+            ),
+            oracleArtifact: makeJSONReference(
+                path: "oracle-lint-positive.json",
+                kind: .report,
+                data: Data("oracle".utf8)
+            ),
+            report: oracle,
+            oracleProvenance: "retained-independent-oracle",
+            recordedAt: Date(timeIntervalSince1970: 1)
+        )
+        #expect(oracleEvidence.isAuditable)
 
         let report = RTLVerificationQualificationEvaluator().evaluate(
             implementationID: "native",
             implementationVersion: "1",
             corpusEvaluations: [corpus],
             oracleReports: [oracle],
+            oracleEvidence: [oracleEvidence],
             processQualification: process,
             releaseApproval: approval,
+            expectedRequestDigest: "request-digest",
             checkedAt: Date(timeIntervalSince1970: 1)
         )
 
@@ -470,6 +494,126 @@ struct ContractTests {
             "oracle:lint-positive",
             "process:process-1"
         ])
+    }
+
+    @Test("qualification rejects an expired process record")
+    func expiredProcessQualificationIsRejected() {
+        let scope = RTLVerificationProcessQualificationScope(
+            implementationID: "native",
+            binaryDigest: "binary",
+            algorithmVersion: "1",
+            processProfileID: "profile",
+            pdkID: "pdk",
+            pdkDigest: "pdk-digest",
+            deckDigest: "deck-digest",
+            analyses: [.lint]
+        )
+        let record = RTLVerificationProcessQualificationRecord(
+            qualificationID: "expired-process",
+            scope: scope,
+            status: .qualified,
+            corpusEvidenceIDs: ["corpus"],
+            oracleEvidenceIDs: ["oracle"],
+            healthEvidenceIDs: ["health"],
+            qualifiedAt: Date(timeIntervalSince1970: 1),
+            expiresAt: Date(timeIntervalSince1970: 2)
+        )
+
+        #expect(record.isQualified(at: Date(timeIntervalSince1970: 1.5)))
+        #expect(!record.isQualified(at: Date(timeIntervalSince1970: 2)))
+        #expect(!record.isFresh(at: Date(timeIntervalSince1970: 3)))
+    }
+
+    @Test("oracle evidence requires digest-bound artifacts")
+    func oracleEvidenceRequiresDigestBoundArtifacts() throws {
+        let report = RTLVerificationOracleCorrelationReport(
+            caseID: "oracle-case",
+            nativeImplementationID: "native",
+            oracleImplementationID: "oracle",
+            nativeImplementationVersion: "1",
+            oracleImplementationVersion: "1",
+            independenceVerified: true,
+            matched: true
+        )
+        let evidence = RTLVerificationOracleEvidence(
+            evidenceID: "oracle-evidence",
+            caseID: "oracle-case",
+            requestDigest: "request-digest",
+            nativeArtifact: XcircuiteFileReference(
+                path: "native.json",
+                kind: .report,
+                format: .json
+            ),
+            oracleArtifact: makeJSONReference(
+                path: "oracle.json",
+                kind: .report,
+                data: Data("oracle".utf8)
+            ),
+            report: report,
+            oracleProvenance: "retained-independent-oracle"
+        )
+
+        #expect(!evidence.isAuditable)
+        #expect(throws: RTLVerificationOracleEvidenceValidationError.notAuditable) {
+            try RTLVerificationOracleEvidenceValidator().validate(evidence)
+        }
+    }
+
+    @Test("oracle qualification requires the expected request digest")
+    func oracleQualificationRequiresRequestDigest() {
+        let report = RTLVerificationOracleCorrelationReport(
+            caseID: "oracle-case",
+            nativeImplementationID: "native",
+            oracleImplementationID: "oracle",
+            nativeImplementationVersion: "1",
+            oracleImplementationVersion: "1",
+            independenceVerified: true,
+            matched: true
+        )
+        let evidence = RTLVerificationOracleEvidence(
+            evidenceID: "oracle-evidence",
+            caseID: "oracle-case",
+            requestDigest: "request-digest",
+            nativeArtifact: makeJSONReference(
+                path: "native.json",
+                kind: .report,
+                data: Data("native".utf8)
+            ),
+            oracleArtifact: makeJSONReference(
+                path: "oracle.json",
+                kind: .report,
+                data: Data("oracle".utf8)
+            ),
+            report: report,
+            oracleProvenance: "retained-independent-oracle"
+        )
+
+        let qualification = RTLVerificationQualificationEvaluator().evaluate(
+            implementationID: "native",
+            implementationVersion: "1",
+            corpusEvaluations: [RTLVerificationCorpusEvaluation(
+                caseID: "oracle-case",
+                matched: true,
+                observedStatus: .completed,
+                observedFindingCodes: [],
+                mismatches: []
+            )],
+            oracleReports: [report],
+            oracleEvidence: [evidence],
+            processQualification: nil
+        )
+
+        #expect(qualification.blockers.contains("oracle_request_digest_required"))
+        #expect(!qualification.blockers.isEmpty)
+        #expect(throws: RTLVerificationOracleEvidenceValidationError.requestDigestMismatch(
+            expected: "other-request-digest",
+            observed: "request-digest"
+        )) {
+            try RTLVerificationOracleEvidenceValidator().validate(
+                evidence,
+                expectedRequestDigest: "other-request-digest"
+            )
+        }
     }
 
     @Test("qualification evaluator retains missing evidence as blockers")

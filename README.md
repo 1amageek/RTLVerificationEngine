@@ -17,15 +17,15 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Gate | Status | Evidence |
 |---|---|---|
 | Native package build | Passed | `swift build` |
-| SwiftPM contract suite | Passed | 27 tests in 3 suites |
+| SwiftPM contract suite | Passed | 32 tests in 3 suites |
 | Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` |
 | CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
 | Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
-| Independent oracle correlation | Pending | No independently retained oracle result is attached |
-| Process/PDK qualification | Pending | No PDK-scoped health and qualification record is attached |
+| Independent oracle correlation | Contract hardened | Artifact-bound oracle evidence is validated; no external independently retained oracle result is attached |
+| Process/PDK qualification | Contract hardened | Process records enforce a validity window; no PDK-scoped health and qualification record is attached |
 | Release eligibility | Blocked | Qualification and headless integration evidence remain incomplete |
 
-The focused Xcircuite RTL stage test is present, but the current workspace test graph is blocked by unrelated `DFTEngine` compile errors (`DFTFaultFamily`, `LogicDesignSnapshot`, and `searchGateLevel`). The RTL stage source parses and the Xcircuite library target builds successfully; this external test-target blocker is not treated as RTL verification evidence.
+The Xcircuite library target and the focused RTL/LogicEngine adapter tests have passed in retained integration evidence. The latest focused-test rerun is currently blocked by unrelated `PhysicalDesignEngine` compile errors (`routingLayer` and `segmentGeometry`); the current RTL adapter source parses and the Xcircuite library target builds successfully. This external blocker is not treated as RTL verification evidence.
 
 ## Scope and trust boundary
 
@@ -67,7 +67,7 @@ Every executing product uses:
 
 Native implementations are `NativeRTLLintEngine`, `NativeCDCAnalyzer`, `NativeRDCAnalyzer` and `NativeFormalEquivalenceChecker`. They share `RTLVerificationEnvironment`, `RTLVerificationDesignLoader`, the canonical `LogicIR` model, and the result finalizer.
 
-Unsupported semantics are retained in `RTLVerificationCoverage` and block the result when they exceed the request policy. Findings are never deleted by waivers; a scoped waiver is recorded on the finding and in the payload.
+Unsupported semantics are retained in `RTLVerificationCoverage` and block the result when they exceed the request policy. Findings are never deleted by waivers; a scoped waiver is recorded on the finding and in the payload. Oracle correlation is not qualification evidence until `RTLVerificationOracleEvidence` binds the matched report to a request digest, two digest-bearing result artifacts and independent provenance. Process qualification is not current until its scope, evidence IDs, qualification timestamp and expiration timestamp are valid at evaluation time.
 
 ## CLI
 
@@ -122,6 +122,6 @@ For SwiftPM-only checkouts, the equivalent package test command is:
 perl -e 'alarm 60; exec @ARGV' -- swift test --filter RTLVerificationEngineTests
 ```
 
-The test suite covers request/payload compatibility, native lint/CDC/RDC/formal behavior, mapped execution graph proof and mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations, oracle independence, process qualification state transitions and deterministic release blocking.
+The test suite covers request/payload compatibility, native lint/CDC/RDC/formal behavior, mapped execution graph proof and mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations, digest-bound oracle evidence, oracle independence, process qualification freshness, qualified external-tool envelopes, proof-view validation and deterministic release blocking.
 
 See `DESIGN.md`, `INTERFACES.md`, `IMPLEMENTATION_PLAN.md`, `MILESTONES.md` and `GOAL_STATUS.md` before implementing a backend or interpreting a result as qualified.

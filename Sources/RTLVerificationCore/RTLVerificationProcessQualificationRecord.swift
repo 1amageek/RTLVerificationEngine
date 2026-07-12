@@ -12,6 +12,7 @@ public struct RTLVerificationProcessQualificationRecord: Sendable, Hashable, Cod
     public var healthEvidenceIDs: [String]
     public var blockers: [String]
     public var qualifiedAt: Date?
+    public var expiresAt: Date?
 
     public init(
         qualificationID: String,
@@ -22,6 +23,7 @@ public struct RTLVerificationProcessQualificationRecord: Sendable, Hashable, Cod
         healthEvidenceIDs: [String] = [],
         blockers: [String] = [],
         qualifiedAt: Date? = nil,
+        expiresAt: Date? = nil,
         schemaVersion: Int = RTLVerificationProcessQualificationRecord.currentSchemaVersion
     ) {
         self.schemaVersion = schemaVersion
@@ -33,22 +35,34 @@ public struct RTLVerificationProcessQualificationRecord: Sendable, Hashable, Cod
         self.healthEvidenceIDs = healthEvidenceIDs.sorted()
         self.blockers = blockers.sorted()
         self.qualifiedAt = qualifiedAt
+        self.expiresAt = expiresAt
     }
 
     public var isQualified: Bool {
+        isQualified(at: Date())
+    }
+
+    public func isQualified(at date: Date) -> Bool {
         status == .qualified
             && scope.isComplete
             && !corpusEvidenceIDs.isEmpty
             && !oracleEvidenceIDs.isEmpty
             && !healthEvidenceIDs.isEmpty
             && blockers.isEmpty
+            && isFresh(at: date)
+    }
+
+    public func isFresh(at date: Date) -> Bool {
+        guard let qualifiedAt, let expiresAt else { return false }
+        return qualifiedAt <= date && date < expiresAt
     }
 
     public func qualified(
         at date: Date,
         corpusEvidenceIDs: [String],
         oracleEvidenceIDs: [String],
-        healthEvidenceIDs: [String]
+        healthEvidenceIDs: [String],
+        expiresAt: Date? = nil
     ) -> RTLVerificationProcessQualificationRecord {
         RTLVerificationProcessQualificationRecord(
             qualificationID: qualificationID,
@@ -59,6 +73,7 @@ public struct RTLVerificationProcessQualificationRecord: Sendable, Hashable, Cod
             healthEvidenceIDs: healthEvidenceIDs,
             blockers: [],
             qualifiedAt: date,
+            expiresAt: expiresAt,
             schemaVersion: schemaVersion
         )
     }

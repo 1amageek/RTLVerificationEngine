@@ -11,6 +11,7 @@ public struct RTLVerificationQualificationReport: Sendable, Hashable, Codable {
     public var blockers: [String]
     public var limitations: [String]
     public var processQualification: RTLVerificationProcessQualificationRecord?
+    public var checkedAt: Date?
 
     public init(
         implementationID: String = "native-rtl-verification",
@@ -24,6 +25,7 @@ public struct RTLVerificationQualificationReport: Sendable, Hashable, Codable {
         ],
         limitations: [String] = [],
         processQualification: RTLVerificationProcessQualificationRecord? = nil,
+        checkedAt: Date? = nil,
         schemaVersion: Int = RTLVerificationQualificationReport.currentSchemaVersion
     ) {
         self.schemaVersion = schemaVersion
@@ -34,10 +36,13 @@ public struct RTLVerificationQualificationReport: Sendable, Hashable, Codable {
         self.blockers = blockers
         self.limitations = limitations
         self.processQualification = processQualification
+        self.checkedAt = checkedAt
     }
 
     public var isReleaseEligible: Bool {
-        state == .releaseEligible && blockers.isEmpty && processQualification?.isQualified == true
+        state == .releaseEligible
+            && blockers.isEmpty
+            && processQualification?.isQualified(at: checkedAt ?? Date()) == true
     }
 
     public func satisfies(_ requiredState: RTLVerificationQualificationState) -> Bool {
@@ -47,7 +52,7 @@ public struct RTLVerificationQualificationReport: Sendable, Hashable, Codable {
         }
         guard blockers.isEmpty else { return false }
         if requiredState >= .processQualified,
-           processQualification?.isQualified != true {
+           processQualification?.isQualified(at: checkedAt ?? Date()) != true {
             return false
         }
         return requiredState < .releaseEligible || isReleaseEligible
@@ -58,7 +63,8 @@ public struct RTLVerificationQualificationReport: Sendable, Hashable, Codable {
         evidence: [RTLVerificationQualificationEvidence],
         blockers: [String],
         limitations: [String],
-        processQualification: RTLVerificationProcessQualificationRecord? = nil
+        processQualification: RTLVerificationProcessQualificationRecord? = nil,
+        checkedAt: Date? = nil
     ) -> RTLVerificationQualificationReport {
         RTLVerificationQualificationReport(
             implementationID: implementationID,
@@ -68,6 +74,7 @@ public struct RTLVerificationQualificationReport: Sendable, Hashable, Codable {
             blockers: blockers,
             limitations: limitations,
             processQualification: processQualification,
+            checkedAt: checkedAt,
             schemaVersion: schemaVersion
         )
     }
