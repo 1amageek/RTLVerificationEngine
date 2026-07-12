@@ -460,12 +460,14 @@ struct ContractTests {
             nativeArtifact: makeJSONReference(
                 path: "native-lint-positive.json",
                 kind: .report,
-                data: Data("native".utf8)
+                data: Data("native".utf8),
+                artifactID: "native-lint-positive"
             ),
             oracleArtifact: makeJSONReference(
                 path: "oracle-lint-positive.json",
                 kind: .report,
-                data: Data("oracle".utf8)
+                data: Data("oracle".utf8),
+                artifactID: "oracle-lint-positive"
             ),
             report: oracle,
             oracleProvenance: "retained-independent-oracle",
@@ -547,7 +549,8 @@ struct ContractTests {
             oracleArtifact: makeJSONReference(
                 path: "oracle.json",
                 kind: .report,
-                data: Data("oracle".utf8)
+                data: Data("oracle".utf8),
+                artifactID: "oracle-result"
             ),
             report: report,
             oracleProvenance: "retained-independent-oracle"
@@ -577,12 +580,14 @@ struct ContractTests {
             nativeArtifact: makeJSONReference(
                 path: "native.json",
                 kind: .report,
-                data: Data("native".utf8)
+                data: Data("native".utf8),
+                artifactID: "native-result"
             ),
             oracleArtifact: makeJSONReference(
                 path: "oracle.json",
                 kind: .report,
-                data: Data("oracle".utf8)
+                data: Data("oracle".utf8),
+                artifactID: "oracle-result"
             ),
             report: report,
             oracleProvenance: "retained-independent-oracle"
@@ -830,7 +835,10 @@ struct ContractTests {
 
         #expect(report.matched)
         #expect(report.independenceVerified)
-        #expect(report.qualificationEvidence(evidenceID: "oracle-correlation-1") != nil)
+        #expect(report.qualificationEvidence(
+            evidenceID: "oracle-correlation-1",
+            artifactIDs: ["native-result", "oracle-result"]
+        ) != nil)
 
         var selfOracle = native
         selfOracle.metadata.implementationVersion = "self-oracle"
@@ -947,9 +955,11 @@ struct ContractTests {
     private func makeJSONReference(
         path: String,
         kind: XcircuiteFileKind,
-        data: Data
+        data: Data,
+        artifactID: String? = nil
     ) -> XcircuiteFileReference {
         XcircuiteFileReference(
+            artifactID: artifactID,
             path: path,
             kind: kind,
             format: .json,

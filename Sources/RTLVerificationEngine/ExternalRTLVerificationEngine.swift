@@ -56,16 +56,35 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                 actions: ["attach_qualification_evidence", "select_qualified_backend"]
             )
         }
+        guard descriptor.timeoutSeconds.isFinite, descriptor.timeoutSeconds > 0 else {
+            return blockedEnvelope(
+                request: request,
+                code: "RTL_EXTERNAL_TIMEOUT_INVALID",
+                message: "The external tool timeout must be a finite value greater than zero.",
+                actions: ["correct_tool_timeout", "select_external_backend"]
+            )
+        }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let input = try encoder.encode(request)
         let output: Data
         do {
-            output = try runner.run(
-                executableURL: URL(fileURLWithPath: descriptor.executablePath),
-                arguments: additionalArguments + ["--analysis", request.analysis.rawValue],
-                standardInput: input
-            )
+            let executableURL = URL(fileURLWithPath: descriptor.executablePath)
+            let arguments = additionalArguments + ["--analysis", request.analysis.rawValue]
+            if let timedRunner = runner as? any RTLExternalToolProcessRunningWithTimeout {
+                output = try timedRunner.run(
+                    executableURL: executableURL,
+                    arguments: arguments,
+                    standardInput: input,
+                    timeout: descriptor.timeoutSeconds
+                )
+            } else {
+                output = try runner.run(
+                    executableURL: executableURL,
+                    arguments: arguments,
+                    standardInput: input
+                )
+            }
         } catch let error as RTLVerificationExecutionError {
             return blockedEnvelope(
                 request: request,

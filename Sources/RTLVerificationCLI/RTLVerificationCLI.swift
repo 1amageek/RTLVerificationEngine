@@ -80,7 +80,7 @@ struct RTLVerificationCLI {
         let referenceReferences = try options.referencePaths.enumerated().map { index, referencePath in
             try packageStore.fileReference(
                 forProjectRelativePath: referencePath,
-                artifactID: index == 0 ? "rtl-reference" : "rtl-reference-(index)",
+                artifactID: index == 0 ? "rtl-reference" : "rtl-reference-\(index)",
                 kind: .rtl,
                 format: format(for: referencePath),
                 inProjectAt: options.projectRoot

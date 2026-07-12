@@ -50,6 +50,8 @@ All native products consume `RTLVerificationParsedDesign`, whose design is the `
 
 `RTLVerificationOracleCorrelationReport` is a comparison result, not qualification evidence by itself. `RTLVerificationOracleEvidence` must bind the report to the request digest, digest-bearing native and oracle result artifacts, and explicit independent provenance. `RTLVerificationOracleEvidenceValidator` rejects missing bindings or self-correlation. Process qualification records likewise require a complete process scope and a valid `qualifiedAt`/`expiresAt` window at evaluation time.
 
+External process descriptors carry a finite `timeoutSeconds` value. Runners that conform to `RTLExternalToolProcessRunningWithTimeout` receive that deadline; the Foundation runner terminates a process that exceeds it and returns a typed external-tool failure. Legacy runners remain supported through the original protocol method.
+
 The mapped execution proof view is intentionally explicit:
 
 ```mermaid

@@ -31,6 +31,7 @@ The work is intentionally staged around trust boundaries. The first implementati
 - Execute and retain native/external results against an independently retained reference oracle; the typed correlator, artifact-bound oracle evidence record and independence guard are implemented, but external evidence is not supplied.
 - Record process-specific qualification evidence for every supported PDK and solver configuration; the process scope/record now enforces freshness and the ToolQualification bridge is implemented, but no PDK evidence is supplied.
 - Add those evidence records to ToolQualification before release eligibility is granted.
+- Enforce bounded external process execution and retain timeout failures as structured diagnostics.
 - Extend the declared frontend boundary toward complete SystemVerilog preprocessing/elaboration and publish the language coverage matrix.
 - Project SDC clocks and timing exceptions into CDC/RDC analysis instead of treating `constraints` as an unused request field.
 - Add proof-view identity, assumptions and trace semantics for RTL-to-synthesized and synthesized-to-DFT equivalence.

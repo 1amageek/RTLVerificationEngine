@@ -102,6 +102,68 @@ struct ExternalAdapterTests {
         }
     }
 
+    @Test("external adapter forwards the configured process timeout")
+    func externalTimeoutIsForwarded() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-timeout",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .lint
+        )
+        let output = try JSONEncoder().encode(makeEnvelope(request: request))
+        let engine = ExternalRTLVerificationEngine(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "timed-tool",
+                executablePath: "/qualified/timed-tool",
+                version: "1",
+                supportedAnalyses: [.lint],
+                qualified: true,
+                timeoutSeconds: 0.25
+            ),
+            runner: TimeoutAssertingRunner(expectedTimeout: 0.25, output: output)
+        )
+
+        let result = try await engine.execute(request)
+
+        #expect(result.status == .completed)
+    }
+
+    @Test("invalid external timeouts are blocked before execution")
+    func invalidExternalTimeoutBlocks() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-invalid-timeout",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .lint
+        )
+        let engine = ExternalRTLVerificationEngine(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "invalid-timeout-tool",
+                executablePath: "/invalid/timeout-tool",
+                version: "1",
+                supportedAnalyses: [.lint],
+                qualified: true,
+                timeoutSeconds: 0
+            ),
+            runner: NeverCalledRunner()
+        )
+
+        let result = try await engine.execute(request)
+
+        #expect(result.status == .blocked)
+        #expect(result.diagnostics.first?.code == "RTL_EXTERNAL_TIMEOUT_INVALID")
+    }
+
     private func makeEnvelope(
         request: RTLVerificationRequest
     ) -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
@@ -138,6 +200,30 @@ struct ExternalAdapterTests {
 
     private struct StaticOutputRunner: RTLExternalToolProcessRunning {
         let output: Data
+
+        func run(executableURL: URL, arguments: [String], standardInput: Data) throws -> Data {
+            output
+        }
+    }
+
+    private struct TimeoutAssertingRunner: RTLExternalToolProcessRunningWithTimeout {
+        let expectedTimeout: TimeInterval
+        let output: Data
+
+        func run(
+            executableURL: URL,
+            arguments: [String],
+            standardInput: Data,
+            timeout: TimeInterval
+        ) throws -> Data {
+            guard timeout == expectedTimeout else {
+                throw RTLVerificationExecutionError.externalToolFailed(
+                    tool: executableURL.path,
+                    reason: "The configured timeout was not forwarded."
+                )
+            }
+            return output
+        }
 
         func run(executableURL: URL, arguments: [String], standardInput: Data) throws -> Data {
             output

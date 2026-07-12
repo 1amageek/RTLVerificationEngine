@@ -9,6 +9,7 @@ public struct RTLExternalToolDescriptor: Sendable, Hashable, Codable {
     public var qualified: Bool
     public var qualification: RTLVerificationQualificationReport
     public var limitations: [String]
+    public var timeoutSeconds: TimeInterval
 
     private enum CodingKeys: String, CodingKey {
         case toolID
@@ -19,6 +20,7 @@ public struct RTLExternalToolDescriptor: Sendable, Hashable, Codable {
         case qualified
         case qualification
         case limitations
+        case timeoutSeconds
     }
 
     public init(
@@ -29,7 +31,8 @@ public struct RTLExternalToolDescriptor: Sendable, Hashable, Codable {
         supportedProofViews: [RTLVerificationProofView] = RTLVerificationProofView.allCases,
         qualified: Bool = false,
         qualification: RTLVerificationQualificationReport = RTLVerificationQualificationReport(),
-        limitations: [String] = []
+        limitations: [String] = [],
+        timeoutSeconds: TimeInterval = 60
     ) {
         self.toolID = toolID
         self.executablePath = executablePath
@@ -39,6 +42,7 @@ public struct RTLExternalToolDescriptor: Sendable, Hashable, Codable {
         self.qualified = qualified
         self.qualification = qualification
         self.limitations = limitations
+        self.timeoutSeconds = timeoutSeconds
     }
 
     public init(from decoder: Decoder) throws {
@@ -57,7 +61,8 @@ public struct RTLExternalToolDescriptor: Sendable, Hashable, Codable {
                 RTLVerificationQualificationReport.self,
                 forKey: .qualification
             ) ?? RTLVerificationQualificationReport(),
-            limitations: try container.decodeIfPresent([String].self, forKey: .limitations) ?? []
+            limitations: try container.decodeIfPresent([String].self, forKey: .limitations) ?? [],
+            timeoutSeconds: try container.decodeIfPresent(Double.self, forKey: .timeoutSeconds) ?? 60
         )
     }
 }

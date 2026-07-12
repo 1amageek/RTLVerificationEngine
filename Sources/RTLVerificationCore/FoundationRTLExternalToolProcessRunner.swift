@@ -1,6 +1,6 @@
 import Foundation
 
-public struct FoundationRTLExternalToolProcessRunner: RTLExternalToolProcessRunning {
+public struct FoundationRTLExternalToolProcessRunner: RTLExternalToolProcessRunningWithTimeout {
     public init() {}
 
     public func run(
@@ -8,6 +8,26 @@ public struct FoundationRTLExternalToolProcessRunner: RTLExternalToolProcessRunn
         arguments: [String],
         standardInput: Data
     ) throws -> Data {
+        try run(
+            executableURL: executableURL,
+            arguments: arguments,
+            standardInput: standardInput,
+            timeout: 60
+        )
+    }
+
+    public func run(
+        executableURL: URL,
+        arguments: [String],
+        standardInput: Data,
+        timeout: TimeInterval
+    ) throws -> Data {
+        guard timeout.isFinite, timeout > 0 else {
+            throw RTLVerificationExecutionError.externalToolFailed(
+                tool: executableURL.path,
+                reason: "External tool timeout must be a finite value greater than zero."
+            )
+        }
         let process = Process()
         let input = Pipe()
         let output = Pipe()
@@ -27,6 +47,18 @@ public struct FoundationRTLExternalToolProcessRunner: RTLExternalToolProcessRunn
         }
         input.fileHandleForWriting.write(standardInput)
         input.fileHandleForWriting.closeFile()
+        let deadline = Date().addingTimeInterval(timeout)
+        while process.isRunning, Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+        }
+        guard !process.isRunning else {
+            process.terminate()
+            process.waitUntilExit()
+            throw RTLVerificationExecutionError.externalToolFailed(
+                tool: executableURL.path,
+                reason: "The external tool exceeded the configured timeout of \(timeout) seconds."
+            )
+        }
         process.waitUntilExit()
         let outputData = output.fileHandleForReading.readDataToEndOfFile()
         let errorData = errorOutput.fileHandleForReading.readDataToEndOfFile()

@@ -3,7 +3,7 @@
   "diagnostics" : [
 
   ],
-  "generatedAt" : 805588945.180011,
+  "generatedAt" : 805589050.038328,
   "inputArtifacts" : [
     {
       "artifactID" : "rtl-input",
@@ -12,6 +12,14 @@
       "kind" : "rtl",
       "path" : "Tests/RTLVerificationEngineTests/Fixtures/positive.sv",
       "sha256" : "0ff663044608e05d8e2f8bc12e46be46ed4f5890f504dfdd16148213dc87ae54"
+    },
+    {
+      "artifactID" : "rtl-reference-1",
+      "byteCount" : 69,
+      "format" : "SYSTEM_VERILOG",
+      "kind" : "rtl",
+      "path" : "Tests/RTLVerificationEngineTests/Fixtures/equivalence-reference.sv",
+      "sha256" : "a0c4087e212c033d537ac25b3c6e854a2b2492a6fafb2c8455e92b49d5c6ed81"
     }
   ],
   "payload" : {
