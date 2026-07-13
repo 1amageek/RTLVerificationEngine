@@ -10,7 +10,7 @@
 | Public package products | Implemented for current slice | Package.swift |
 | Shared Xcircuite request/result contract | Implemented for current slice | Public Swift protocols, payloads and qualification gate |
 | Contract build | Passed | `swift build` |
-| Contract test | Passed | timeout-bounded SwiftPM test: 50 tests in 6 suites; qualification-input health evidence binding, mapped pass/mismatch, typed counterexample differences, persisted corpus runs, oracle evidence artifacts, versioned lint rule catalog, canonical frontend parameters/case statements, hierarchy flattening, conditional elsif selection, process evidence binding, order-independent CDC domains, RDC clock-domain blockers, top policy, freshness, scope binding and timeout fixtures included |
+| Contract test | Passed | timeout-bounded SwiftPM test: 51 tests in 6 suites; qualification-input health evidence binding, mapped pass/mismatch, typed counterexample differences, persisted corpus runs, oracle evidence artifacts, versioned lint rule catalog, canonical frontend parameters/case statements, hierarchy flattening, conditional elsif selection, process evidence binding, order-independent CDC domains, RDC clock-domain blockers, top policy, freshness, scope binding, external descriptor identity and timeout fixtures included |
 | Domain implementation | Complete for native subset | Native lint, CDC, RDC and structural equivalence backends |
 | CLI implementation | Complete | `rtl-verify` deterministic JSON executable |
 | Fixture corpus | Contract-complete smoke corpus | Retained positive/negative/equivalence/source-set fixtures, deterministic expectation evaluator and persisted corpus runner; independent corpus not attached |

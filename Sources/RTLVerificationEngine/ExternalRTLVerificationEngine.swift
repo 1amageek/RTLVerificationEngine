@@ -101,6 +101,21 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             guard envelope.runID == request.runID else {
                 throw RTLVerificationExecutionError.invalidArtifact("External result run ID does not match the request.")
             }
+            guard envelope.metadata.implementationID == descriptor.toolID else {
+                throw RTLVerificationExecutionError.invalidArtifact(
+                    "External result implementation ID does not match the tool descriptor."
+                )
+            }
+            guard envelope.metadata.implementationVersion == descriptor.version else {
+                throw RTLVerificationExecutionError.invalidArtifact(
+                    "External result implementation version does not match the tool descriptor."
+                )
+            }
+            guard envelope.metadata.engineID == request.analysis.stageID else {
+                throw RTLVerificationExecutionError.invalidArtifact(
+                    "External result engine ID does not match the requested analysis."
+                )
+            }
             guard envelope.payload.analysis == request.analysis else {
                 throw RTLVerificationExecutionError.invalidArtifact("External result analysis does not match the request.")
             }
@@ -113,6 +128,16 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             guard envelope.payload.qualification.state <= descriptor.qualification.state else {
                 throw RTLVerificationExecutionError.invalidArtifact(
                     "External result qualification exceeds the descriptor qualification state."
+                )
+            }
+            guard envelope.payload.qualification.implementationID == descriptor.toolID else {
+                throw RTLVerificationExecutionError.invalidArtifact(
+                    "External result qualification implementation ID does not match the tool descriptor."
+                )
+            }
+            guard envelope.payload.qualification.implementationVersion == descriptor.version else {
+                throw RTLVerificationExecutionError.invalidArtifact(
+                    "External result qualification implementation version does not match the tool descriptor."
                 )
             }
             if request.analysis == .formalEquivalence,

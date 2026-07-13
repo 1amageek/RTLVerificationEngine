@@ -17,7 +17,7 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Gate | Status | Evidence |
 |---|---|---|
 | Native package build | Passed | `swift build` |
-| SwiftPM contract suite | Passed | 50 tests in 6 suites |
+| SwiftPM contract suite | Passed | 51 tests in 6 suites |
 | Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` |
 | CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
 | Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
@@ -133,6 +133,6 @@ For SwiftPM-only checkouts, the equivalent package test command is:
 perl -e 'alarm 60; exec @ARGV' -- swift test --filter RTLVerificationEngineTests
 ```
 
-The test suite covers request/payload compatibility, the versioned repair-oriented lint rule catalog, canonical RTL frontend parameters/case statements, connected hierarchy flattening, conditional `elsif` selection, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution and RDC clock-domain blockers, mapped execution graph proof and mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, digest-bound oracle evidence artifacts, oracle independence and mismatch retention, process qualification freshness and scope binding, qualified external-tool envelopes, proof-view validation, process timeout forwarding and deterministic release blocking.
+The test suite covers request/payload compatibility, the versioned repair-oriented lint rule catalog, canonical RTL frontend parameters/case statements, connected hierarchy flattening, conditional `elsif` selection, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution and RDC clock-domain blockers, mapped execution graph proof and typed mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, digest-bound oracle evidence artifacts, oracle independence and mismatch retention, process qualification health/freshness/scope binding, qualified external-tool envelopes with descriptor identity binding, proof-view validation, process timeout forwarding and deterministic release blocking.
 
 See `DESIGN.md`, `INTERFACES.md`, `IMPLEMENTATION_PLAN.md`, `MILESTONES.md` and `GOAL_STATUS.md` before implementing a backend or interpreting a result as qualified.

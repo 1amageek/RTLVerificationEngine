@@ -79,7 +79,10 @@ struct ExternalAdapterTests {
             analysis: .formalEquivalence,
             proofView: .rtlToSynthesized
         )
-        var output = makeEnvelope(request: request)
+        var output = makeEnvelope(
+            request: request,
+            implementationID: "qualified-formal-tool"
+        )
         output.payload.proofView = .rtlToRtlStructural
         let encoded = try JSONEncoder().encode(output)
         let engine = ExternalRTLVerificationEngine(
@@ -102,6 +105,40 @@ struct ExternalAdapterTests {
         }
     }
 
+    @Test("external result identity is bound to the descriptor")
+    func externalResultIdentityMismatchIsRejected() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-identity-mismatch",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .lint
+        )
+        var output = makeEnvelope(request: request)
+        output.metadata.implementationID = "other-tool"
+        let engine = ExternalRTLVerificationEngine(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "qualified-tool",
+                executablePath: "/qualified/tool",
+                version: "1",
+                supportedAnalyses: [.lint],
+                qualified: true
+            ),
+            runner: StaticOutputRunner(output: try JSONEncoder().encode(output))
+        )
+
+        do {
+            _ = try await engine.execute(request)
+            Issue.record("An external result from another implementation must be rejected.")
+        } catch let error as RTLVerificationExecutionError {
+            #expect(error == .invalidArtifact("External result implementation ID does not match the tool descriptor."))
+        }
+    }
+
     @Test("external adapter forwards the configured process timeout")
     func externalTimeoutIsForwarded() async throws {
         let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
@@ -115,7 +152,10 @@ struct ExternalAdapterTests {
             ),
             analysis: .lint
         )
-        let output = try JSONEncoder().encode(makeEnvelope(request: request))
+        let output = try JSONEncoder().encode(makeEnvelope(
+            request: request,
+            implementationID: "timed-tool"
+        ))
         let engine = ExternalRTLVerificationEngine(
             descriptor: RTLExternalToolDescriptor(
                 toolID: "timed-tool",
@@ -165,7 +205,9 @@ struct ExternalAdapterTests {
     }
 
     private func makeEnvelope(
-        request: RTLVerificationRequest
+        request: RTLVerificationRequest,
+        implementationID: String = "qualified-tool",
+        implementationVersion: String = "1"
     ) -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
         let now = Date(timeIntervalSince1970: 1)
         return XcircuiteEngineResultEnvelope(
@@ -174,8 +216,8 @@ struct ExternalAdapterTests {
             status: .completed,
             metadata: XcircuiteEngineExecutionMetadata(
                 engineID: request.analysis.stageID,
-                implementationID: "qualified-tool",
-                implementationVersion: "1",
+                implementationID: implementationID,
+                implementationVersion: implementationVersion,
                 startedAt: now,
                 completedAt: now
             ),
@@ -183,6 +225,12 @@ struct ExternalAdapterTests {
                 findingCount: 0,
                 proofStatus: request.analysis == .formalEquivalence ? "proved" : nil,
                 analysis: request.analysis,
+                qualification: RTLVerificationQualificationReport(
+                    implementationID: implementationID,
+                    implementationVersion: implementationVersion,
+                    state: .unassessed,
+                    blockers: []
+                ),
                 proofView: request.proofView,
                 assumptions: request.assumptions
             )
