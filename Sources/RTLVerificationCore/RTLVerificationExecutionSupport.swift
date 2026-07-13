@@ -88,9 +88,10 @@ public enum RTLVerificationExecutionSupport {
         qualification: RTLVerificationQualificationReport,
         proofView: RTLVerificationProofView,
         assumptions: [RTLVerificationAssumption]
-    ) -> RTLVerificationPayload {
+    ) throws -> RTLVerificationPayload {
         RTLVerificationPayload(
             findingCount: findings.count,
+            requestDigest: try RTLVerificationRequestDigest.make(request),
             proofStatus: proofStatus,
             analysis: request.analysis,
             findings: findings,
@@ -163,7 +164,7 @@ public enum RTLVerificationExecutionSupport {
             counterexampleArtifactIDs.append(artifactID)
         }
 
-        payload = makePayload(
+        payload = try makePayload(
             request: request,
             findings: findings,
             coverage: analysisResult.coverage,

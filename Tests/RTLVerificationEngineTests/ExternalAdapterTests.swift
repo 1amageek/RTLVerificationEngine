@@ -47,7 +47,7 @@ struct ExternalAdapterTests {
             ),
             analysis: .lint
         )
-        let output = makeEnvelope(request: request)
+        let output = try makeEnvelope(request: request)
         let engine = ExternalRTLVerificationEngine(
             descriptor: RTLExternalToolDescriptor(
                 toolID: "qualified-tool",
@@ -79,7 +79,7 @@ struct ExternalAdapterTests {
             analysis: .formalEquivalence,
             proofView: .rtlToSynthesized
         )
-        var output = makeEnvelope(
+        var output = try makeEnvelope(
             request: request,
             implementationID: "qualified-formal-tool"
         )
@@ -118,7 +118,7 @@ struct ExternalAdapterTests {
             ),
             analysis: .lint
         )
-        var output = makeEnvelope(request: request)
+        var output = try makeEnvelope(request: request)
         output.metadata.implementationID = "other-tool"
         let engine = ExternalRTLVerificationEngine(
             descriptor: RTLExternalToolDescriptor(
@@ -152,7 +152,7 @@ struct ExternalAdapterTests {
             ),
             analysis: .lint
         )
-        let output = try JSONEncoder().encode(makeEnvelope(
+        let output = try JSONEncoder().encode(try makeEnvelope(
             request: request,
             implementationID: "timed-tool"
         ))
@@ -208,7 +208,7 @@ struct ExternalAdapterTests {
         request: RTLVerificationRequest,
         implementationID: String = "qualified-tool",
         implementationVersion: String = "1"
-    ) -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
         let now = Date(timeIntervalSince1970: 1)
         return XcircuiteEngineResultEnvelope(
             schemaVersion: RTLVerificationRequest.currentSchemaVersion,
@@ -223,6 +223,7 @@ struct ExternalAdapterTests {
             ),
             payload: RTLVerificationPayload(
                 findingCount: 0,
+                requestDigest: try RTLVerificationRequestDigest.make(request),
                 proofStatus: request.analysis == .formalEquivalence ? "proved" : nil,
                 analysis: request.analysis,
                 qualification: RTLVerificationQualificationReport(
@@ -235,6 +236,40 @@ struct ExternalAdapterTests {
                 assumptions: request.assumptions
             )
         )
+    }
+
+    @Test("external results must bind to the exact request digest")
+    func externalRequestDigestMismatchIsRejected() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-request-digest-mismatch",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .lint
+        )
+        var output = try makeEnvelope(request: request)
+        output.payload.requestDigest = "wrong-request-digest"
+        let engine = ExternalRTLVerificationEngine(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "qualified-tool",
+                executablePath: "/qualified/tool",
+                version: "1",
+                supportedAnalyses: [.lint],
+                qualified: true
+            ),
+            runner: StaticOutputRunner(output: try JSONEncoder().encode(output))
+        )
+
+        do {
+            _ = try await engine.execute(request)
+            Issue.record("An external result for another request must be rejected.")
+        } catch let error as RTLVerificationExecutionError {
+            #expect(error == .invalidArtifact("External result request digest does not match the request."))
+        }
     }
 
     private struct NeverCalledRunner: RTLExternalToolProcessRunning {

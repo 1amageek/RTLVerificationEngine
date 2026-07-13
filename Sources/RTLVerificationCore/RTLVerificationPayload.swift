@@ -2,6 +2,7 @@ import Foundation
 import XcircuitePackage
 
 public struct RTLVerificationPayload: Sendable, Hashable, Codable {
+    public var requestDigest: String?
     public var analysis: RTLVerificationAnalysis
     public var findingCount: Int
     public var proofStatus: String?
@@ -15,6 +16,7 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
     public var assumptions: [RTLVerificationAssumption]
 
     private enum CodingKeys: String, CodingKey {
+        case requestDigest
         case analysis
         case findingCount
         case proofStatus
@@ -30,6 +32,7 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
 
     public init(
         findingCount: Int,
+        requestDigest: String? = nil,
         proofStatus: String? = nil,
         analysis: RTLVerificationAnalysis = .lint,
         findings: [RTLVerificationFinding] = [],
@@ -41,6 +44,7 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
         proofView: RTLVerificationProofView = .rtlToRtlStructural,
         assumptions: [RTLVerificationAssumption] = []
     ) {
+        self.requestDigest = requestDigest
         self.analysis = analysis
         self.findingCount = findingCount
         self.proofStatus = proofStatus
@@ -58,6 +62,7 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             findingCount: try container.decode(Int.self, forKey: .findingCount),
+            requestDigest: try container.decodeIfPresent(String.self, forKey: .requestDigest),
             proofStatus: try container.decodeIfPresent(String.self, forKey: .proofStatus),
             analysis: try container.decodeIfPresent(RTLVerificationAnalysis.self, forKey: .analysis) ?? .lint,
             findings: try container.decodeIfPresent([RTLVerificationFinding].self, forKey: .findings) ?? [],

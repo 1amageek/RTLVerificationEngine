@@ -25,7 +25,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
         _ request: RTLVerificationRequest
     ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
         guard descriptor.supportedAnalyses.contains(request.analysis) else {
-            return blockedEnvelope(
+            return try blockedEnvelope(
                 request: request,
                 code: "RTL_EXTERNAL_ANALYSIS_UNSUPPORTED",
                 message: "External tool \(descriptor.toolID) does not declare support for \(request.analysis.rawValue).",
@@ -33,7 +33,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             )
         }
         guard descriptor.supportedProofViews.contains(request.proofView) else {
-            return blockedEnvelope(
+            return try blockedEnvelope(
                 request: request,
                 code: "RTL_EXTERNAL_PROOF_VIEW_UNSUPPORTED",
                 message: "External tool \(descriptor.toolID) does not declare support for proof view \(request.proofView.rawValue).",
@@ -41,7 +41,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             )
         }
         guard descriptor.qualified else {
-            return blockedEnvelope(
+            return try blockedEnvelope(
                 request: request,
                 code: "RTL_EXTERNAL_TOOL_UNQUALIFIED",
                 message: "The external tool is not process-qualified.",
@@ -49,7 +49,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             )
         }
         guard descriptor.qualification.satisfies(request.policy.minimumQualification) else {
-            return blockedEnvelope(
+            return try blockedEnvelope(
                 request: request,
                 code: "RTL_EXTERNAL_QUALIFICATION_INSUFFICIENT",
                 message: "The external tool qualification state does not satisfy the requested verification policy.",
@@ -57,16 +57,15 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             )
         }
         guard descriptor.timeoutSeconds.isFinite, descriptor.timeoutSeconds > 0 else {
-            return blockedEnvelope(
+            return try blockedEnvelope(
                 request: request,
                 code: "RTL_EXTERNAL_TIMEOUT_INVALID",
                 message: "The external tool timeout must be a finite value greater than zero.",
                 actions: ["correct_tool_timeout", "select_external_backend"]
             )
         }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        let input = try encoder.encode(request)
+        let input = try RTLVerificationRequestDigest.encode(request)
+        let requestDigest = XcircuiteHasher().sha256(data: input)
         let output: Data
         do {
             let executableURL = URL(fileURLWithPath: descriptor.executablePath)
@@ -86,7 +85,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                 )
             }
         } catch let error as RTLVerificationExecutionError {
-            return blockedEnvelope(
+            return try blockedEnvelope(
                 request: request,
                 code: "RTL_EXTERNAL_TOOL_FAILED",
                 message: error.localizedDescription,
@@ -100,6 +99,11 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             )
             guard envelope.runID == request.runID else {
                 throw RTLVerificationExecutionError.invalidArtifact("External result run ID does not match the request.")
+            }
+            guard envelope.payload.requestDigest == requestDigest else {
+                throw RTLVerificationExecutionError.invalidArtifact(
+                    "External result request digest does not match the request."
+                )
             }
             guard envelope.metadata.implementationID == descriptor.toolID else {
                 throw RTLVerificationExecutionError.invalidArtifact(
@@ -167,7 +171,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
         code: String,
         message: String,
         actions: [String]
-    ) -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
         let now = Date()
         let diagnostic = XcircuiteEngineDiagnostic(
             severity: .error,
@@ -177,6 +181,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
         )
         let payload = RTLVerificationPayload(
             findingCount: 0,
+            requestDigest: try RTLVerificationRequestDigest.make(request),
             proofStatus: request.analysis == .formalEquivalence ? "unproven" : nil,
             analysis: request.analysis,
             coverage: RTLVerificationCoverage(
