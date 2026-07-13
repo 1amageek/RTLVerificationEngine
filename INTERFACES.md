@@ -50,7 +50,7 @@ Umbrella API.
 | `NativeCDCAnalyzer` | sequential clock inference, order-independent source-domain crossings, asynchronous crossings, synchronizer pattern recognition, reconvergence |
 | `NativeRDCAnalyzer` | reset inference, reset domain mapping, missing/multiple reset events, reset crossings |
 | `NativeFormalEquivalenceChecker` | exact RTL-to-RTL and mapped execution structural equivalence with machine-readable counterexamples |
-| `ExternalRTLVerificationEngine` | same envelope contract for a process-qualified external command |
+| `ExternalRTLVerificationEngine` | same envelope contract for a process-qualified external command with exact request-digest binding |
 
 All native products consume `RTLVerificationParsedDesign`, whose design is the `LogicIR.RTLDesign` canonical state. `SystemVerilogRTLParser` adapts `SystemVerilogFrontend`, expands constant generate blocks and flattens connected top-level hierarchy through `RTLHierarchyElaborator`. It supports ordered implementation and reference source sets, object-like defines, conditional compilation, quoted includes, source maps, parameters, declarations, continuous assignments, sequential/combinational/latch processes, conditionals, case statements, instances, ranges, hierarchy and generate blocks in its declared subset. Unsupported directives and hierarchy forms remain in coverage or typed blocked diagnostics.
 
@@ -58,7 +58,7 @@ All native products consume `RTLVerificationParsedDesign`, whose design is the `
 
 `RTLVerificationOracleCorrelationReport` is a comparison result, not qualification evidence by itself. `RTLVerificationOracleEvidence` must bind the report to the request digest, digest-bearing native and oracle result artifacts, and explicit independent provenance. `RTLVerificationOracleEvidenceValidator` rejects missing bindings or self-correlation. Process qualification records likewise require a complete process scope, implementation-bound health evidence and a valid `qualifiedAt`/`expiresAt` window at evaluation time.
 
-External process descriptors carry a finite `timeoutSeconds` value. Runners that conform to `RTLExternalToolProcessRunningWithTimeout` receive that deadline; the Foundation runner terminates a process that exceeds it and returns a typed external-tool failure. Legacy runners remain supported through the original protocol method.
+External process descriptors carry a finite `timeoutSeconds` value. Runners that conform to `RTLExternalToolProcessRunningWithTimeout` receive that deadline; the Foundation runner terminates a process that exceeds it and returns a typed external-tool failure. Legacy runners remain supported through the original protocol method. `RTLVerificationRequestDigest` defines the canonical sorted-key request encoding and SHA-256 digest. The external command receives that same canonical JSON on standard input, and its payload must echo the digest; a missing or mismatched digest is an invalid artifact even when run ID, engine ID and descriptor identity match.
 
 The mapped execution proof view is intentionally explicit:
 
