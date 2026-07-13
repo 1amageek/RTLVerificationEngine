@@ -17,7 +17,7 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Gate | Status | Evidence |
 |---|---|---|
 | Native package build | Passed | `swift build` |
-| SwiftPM contract suite | Passed | 46 tests in 6 suites |
+| SwiftPM contract suite | Passed | 47 tests in 6 suites |
 | Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` |
 | CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
 | Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
@@ -39,7 +39,7 @@ flowchart LR
     Qualification --> Review["Xcircuite review / audit / resume"]
 ```
 
-The native frontend adapts the canonical `SystemVerilogFrontend` into the verification contract. It supports the declared SystemVerilog subset with ordered multi-file inputs, object-like defines, conditional compilation, quoted includes, include-cycle diagnostics, source maps, parameters, case statements, connected hierarchy flattening, generate blocks and SHA-256 source artifacts. It does not claim complete IEEE SystemVerilog preprocessing, elaboration or synthesis semantics. Unsupported constructs remain in coverage and block according to the request policy.
+The native frontend adapts the canonical `SystemVerilogFrontend` into the verification contract. It supports the declared SystemVerilog subset with ordered multi-file inputs, object-like defines, `ifdef`/`ifndef`/`elsif`/`else` conditional compilation, quoted includes, include-cycle diagnostics, source maps, parameters, case statements, connected hierarchy flattening, generate blocks and SHA-256 source artifacts. It does not claim complete IEEE SystemVerilog preprocessing, elaboration or synthesis semantics. Unsupported constructs remain in coverage and block according to the request policy.
 
 Native formal proves only exact canonical structural equivalence for `rtlToRtlStructural` and the explicitly limited `rtlToMappedExecutionStructural` graph contract. The mapped view lowers a retained LogicIR snapshot into a LogicEngine document and compares it with a retained mapped document; it does not prove temporal execution behavior. Requests for synthesized or DFT proof views, or assumptions that the native backend cannot interpret, are blocked. A waiver preserves the original finding and records its scope, reason and approver.
 
@@ -131,6 +131,6 @@ For SwiftPM-only checkouts, the equivalent package test command is:
 perl -e 'alarm 60; exec @ARGV' -- swift test --filter RTLVerificationEngineTests
 ```
 
-The test suite covers request/payload compatibility, the versioned repair-oriented lint rule catalog, canonical RTL frontend parameters/case statements and connected hierarchy flattening, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution, mapped execution graph proof and mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, digest-bound oracle evidence artifacts, oracle independence and mismatch retention, process qualification freshness and scope binding, qualified external-tool envelopes, proof-view validation, process timeout forwarding and deterministic release blocking.
+The test suite covers request/payload compatibility, the versioned repair-oriented lint rule catalog, canonical RTL frontend parameters/case statements, connected hierarchy flattening, conditional `elsif` selection, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution, mapped execution graph proof and mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, digest-bound oracle evidence artifacts, oracle independence and mismatch retention, process qualification freshness and scope binding, qualified external-tool envelopes, proof-view validation, process timeout forwarding and deterministic release blocking.
 
 See `DESIGN.md`, `INTERFACES.md`, `IMPLEMENTATION_PLAN.md`, `MILESTONES.md` and `GOAL_STATUS.md` before implementing a backend or interpreting a result as qualified.

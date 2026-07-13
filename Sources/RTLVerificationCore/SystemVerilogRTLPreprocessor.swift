@@ -34,11 +34,12 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
 
     private struct ConditionalFrame: Sendable {
         var parentActive: Bool
-        var conditionValue: Bool
+        var branchTaken: Bool
+        var currentBranchActive: Bool
         var inElse: Bool
 
         var active: Bool {
-            parentActive && (inElse ? !conditionValue : conditionValue)
+            parentActive && currentBranchActive
         }
     }
 
@@ -110,9 +111,33 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
                     let defined = state.defines[String(key)] != nil
                     state.frames.append(ConditionalFrame(
                         parentActive: parentActive,
-                        conditionValue: name == "ifdef" ? defined : !defined,
+                        branchTaken: name == "ifdef" ? defined : !defined,
+                        currentBranchActive: name == "ifdef" ? defined : !defined,
                         inElse: false
                     ))
+                    append("", path: path, state: &state)
+                case "elsif":
+                    guard let index = state.frames.indices.last else {
+                        throw RTLVerificationExecutionError.parserFailed(
+                            path: path,
+                            reason: "Preprocessor `elsif` has no matching conditional."
+                        )
+                    }
+                    guard !state.frames[index].inElse else {
+                        throw RTLVerificationExecutionError.parserFailed(
+                            path: path,
+                            reason: "Preprocessor `elsif` cannot follow `else`."
+                        )
+                    }
+                    guard let key = directive.dropFirst().first else {
+                        throw RTLVerificationExecutionError.parserFailed(
+                            path: path,
+                            reason: "Preprocessor directive `elsif` requires a macro name."
+                        )
+                    }
+                    let condition = state.defines[String(key)] != nil
+                    state.frames[index].currentBranchActive = !state.frames[index].branchTaken && condition
+                    state.frames[index].branchTaken = state.frames[index].branchTaken || condition
                     append("", path: path, state: &state)
                 case "else":
                     guard let index = state.frames.indices.last else {
@@ -128,6 +153,7 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
                         )
                     }
                     state.frames[index].inElse = true
+                    state.frames[index].currentBranchActive = !state.frames[index].branchTaken
                     append("", path: path, state: &state)
                 case "endif":
                     guard !state.frames.isEmpty else {

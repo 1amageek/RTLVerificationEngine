@@ -830,6 +830,29 @@ struct ContractTests {
         #expect(envelope.payload.coverage.sourceArtifacts.first?.sha256.isEmpty == false)
     }
 
+    @Test("frontend selects the first matching elsif branch", .timeLimit(.minutes(1)))
+    func frontendSupportsElsif() async throws {
+        let source = """
+        `ifdef FIRST
+        module first(input logic a, output logic q); assign q = a; endmodule
+        `elsif SECOND
+        module second(input logic a, output logic q); assign q = a; endmodule
+        `else
+        module fallback(input logic a, output logic q); assign q = a; endmodule
+        `endif
+        """
+        let reference = makeReference(path: "elsif.sv", format: .systemVerilog)
+        let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
+        var request = makeRequest(reference: reference, analysis: .lint)
+        request.design.topDesignName = "second"
+        request.frontend = RTLVerificationFrontendOptions(preprocessorDefines: ["SECOND": "1"])
+
+        let envelope = try await NativeRTLLintEngine(reader: reader).execute(request)
+
+        #expect(envelope.status == .completed)
+        #expect(envelope.payload.coverage.unsupportedConstructs.isEmpty)
+    }
+
     @Test("unsupported include directives block the default frontend policy", .timeLimit(.minutes(1)))
     func frontendBlocksUnsupportedInclude() async throws {
         let source = """

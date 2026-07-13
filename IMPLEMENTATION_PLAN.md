@@ -19,7 +19,7 @@ The work is intentionally staged around trust boundaries. The first implementati
 - Shared typed request, payload, finding, waiver, coverage, report and capability contracts.
 - Versioned native lint rule catalog with stable finding codes, severity and repair actions.
 - Canonical `SystemVerilogFrontend` adapter into `LogicIR.RTLDesign`, with deterministic source-set preprocessing, generate expansion, connected hierarchy flattening and provenance mapping.
-- Multi-file implementation and reference source sets with deterministic defines, conditional compilation, include resolution, include-cycle diagnostics and source provenance.
+- Multi-file implementation and reference source sets with deterministic defines, `ifdef`/`ifndef`/`elsif`/`else` conditional compilation, include resolution, include-cycle diagnostics and source provenance.
 - Native lint, CDC, RDC, RTL structural equivalence and mapped LogicEngine execution-graph equivalence backends.
 - Counterexample artifact persistence through the injected artifact writer.
 - Positive/negative retained fixtures, source-set formal fixtures, mapped graph pass/mismatch fixtures, corpus expectation evaluation and oracle-correlation tests.
