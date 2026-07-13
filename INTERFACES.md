@@ -16,6 +16,8 @@ Requests carry a schema version, run ID, typed implementation/reference artifact
 
 `RTLVerificationOracleEvidenceBuilder` persists native and independent-oracle result envelopes plus an evidence JSON artifact, correlates their typed payloads, and returns `RTLVerificationOracleEvidenceBuildResult`. A mismatched correlation is retained as a non-auditable result so qualification remains blocked while the failure is reviewable.
 
+`RTLVerificationLintRuleCatalog` is the versioned repair contract for native lint findings. Each rule declares a stable code, severity, description and suggested actions; a catalog entry does not waive the finding or advance qualification.
+
 ## Products
 
 ### RTLLint

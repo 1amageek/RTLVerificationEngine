@@ -28,6 +28,48 @@ public enum RTLVerificationLintRuleCatalog {
 
     public static let rules: [Rule] = [
         Rule(
+            code: "LOGIC_TOP_MISSING",
+            severity: .error,
+            title: "Top module missing",
+            description: "The canonical design does not identify a top module.",
+            suggestedActions: ["select_top_module"]
+        ),
+        Rule(
+            code: "LOGIC_TOP_UNRESOLVED",
+            severity: .error,
+            title: "Top module unresolved",
+            description: "The selected top module is not defined in the design.",
+            suggestedActions: ["add_module_definition", "select_existing_top"]
+        ),
+        Rule(
+            code: "LOGIC_DUPLICATE_MODULE",
+            severity: .error,
+            title: "Duplicate module",
+            description: "Module names must be unique in a canonical design.",
+            suggestedActions: ["rename_duplicate_module"]
+        ),
+        Rule(
+            code: "LOGIC_DUPLICATE_SYMBOL",
+            severity: .error,
+            title: "Duplicate symbol",
+            description: "A module contains duplicate port, signal or memory declarations.",
+            suggestedActions: ["rename_duplicate_symbol"]
+        ),
+        Rule(
+            code: "LOGIC_INSTANCE_UNRESOLVED",
+            severity: .error,
+            title: "Instance type unresolved",
+            description: "An instance references a module that is not defined in the source set.",
+            suggestedActions: ["add_referenced_module", "correct_instance_type"]
+        ),
+        Rule(
+            code: "LOGIC_REFERENCE_UNRESOLVED",
+            severity: .error,
+            title: "Signal reference unresolved",
+            description: "An expression references an undefined signal, port or memory.",
+            suggestedActions: ["declare_signal", "correct_reference"]
+        ),
+        Rule(
             code: "RTL_WIDTH_MISMATCH",
             severity: .error,
             title: "Assignment width mismatch",
