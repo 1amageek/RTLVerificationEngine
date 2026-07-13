@@ -114,6 +114,7 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
             tokens: tokens,
             path: sources[0].path,
             topModuleName: topModuleName,
+            requireTopModule: options.requireTopModule,
             linePaths: linePaths,
             sourceFiles: sourceFiles
         )
@@ -265,6 +266,7 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
         var index: Int = 0
         let path: String
         let topModuleName: String
+        let requireTopModule: Bool
         let linePaths: [String]
         let sourceFiles: [LogicSourceFile]
         var unsupportedConstructs: [String] = []
@@ -273,12 +275,14 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
             tokens: [Token],
             path: String,
             topModuleName: String,
+            requireTopModule: Bool,
             linePaths: [String] = [],
             sourceFiles: [LogicSourceFile] = []
         ) {
             self.tokens = tokens
             self.path = path
             self.topModuleName = topModuleName
+            self.requireTopModule = requireTopModule
             self.linePaths = linePaths
             self.sourceFiles = sourceFiles
         }
@@ -312,7 +316,18 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
                 )
             }
 
+            guard !requireTopModule || !topModuleName.isEmpty else {
+                throw RTLVerificationExecutionError.invalidRequest(
+                    "A top module name is required by the frontend policy."
+                )
+            }
             let selectedTop = topModuleName.isEmpty ? modules[0].name : topModuleName
+            guard modules.contains(where: { $0.name == selectedTop }) else {
+                throw RTLVerificationExecutionError.parserFailed(
+                    path: path,
+                    reason: "Top module \(selectedTop) was not found in the RTL source set."
+                )
+            }
             let resolvedSourceFiles = sourceFiles.isEmpty ? [LogicSourceFile(
                 path: path,
                 sha256: XcircuiteHasher().sha256(data: data),

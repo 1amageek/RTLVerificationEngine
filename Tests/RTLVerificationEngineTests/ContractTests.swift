@@ -19,6 +19,32 @@ struct ContractTests {
         #expect(RTLVerificationEngineAPI.contractVersion == 1)
     }
 
+    @Test("frontend rejects an unknown requested top module")
+    func frontendRejectsUnknownTopModule() {
+        let source = Data("module top; endmodule".utf8)
+
+        #expect(throws: RTLVerificationExecutionError.self) {
+            try SystemVerilogRTLParser().parse(
+                data: source,
+                path: "top.sv",
+                topModuleName: "missing"
+            )
+        }
+    }
+
+    @Test("frontend policy can select the first module when top selection is optional")
+    func frontendCanSelectFirstModuleWhenOptional() throws {
+        let source = Data("module first; endmodule\nmodule second; endmodule".utf8)
+        let parsed = try SystemVerilogRTLParser().parse(
+            data: source,
+            path: "top.sv",
+            topModuleName: "",
+            options: RTLVerificationFrontendOptions(requireTopModule: false)
+        )
+
+        #expect(parsed.design.topModuleName == "first")
+    }
+
     @Test("request and payload round trip")
     func requestAndPayloadRoundTrip() throws {
         let reference = XcircuiteFileReference(
