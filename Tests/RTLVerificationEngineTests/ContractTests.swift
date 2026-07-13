@@ -119,6 +119,40 @@ struct ContractTests {
         #expect(parsed.design.modules.first?.signals.contains { $0.name == "u_leaf__y" } == true)
     }
 
+    @Test("canonical frontend resolves parameterized hierarchy widths")
+    func canonicalFrontendResolvesParameterizedHierarchyWidths() throws {
+        let source = Data("""
+        module leaf #(parameter WIDTH = 1) (
+            input logic [WIDTH-1:0] a,
+            output logic [WIDTH-1:0] y
+        );
+            assign y = a;
+        endmodule
+        module top(input logic [3:0] a, output logic [3:0] y);
+            leaf #(.WIDTH(4)) u_leaf(.a(a), .y(y));
+        endmodule
+        """.utf8)
+
+        let parsed = try SystemVerilogRTLParser().parse(
+            data: source,
+            path: "parameterized-hierarchy.sv",
+            topModuleName: "top"
+        )
+
+        let module = try #require(parsed.design.modules.first)
+        #expect(parsed.design.modules.count == 1)
+        #expect(module.instances.isEmpty)
+        #expect(module.ports.first(where: { $0.name == "y" })?.range?.width == 4)
+        #expect(module.signals.first(where: { $0.name == "u_leaf__y" })?.range?.width == 4)
+        #expect(module.assignments.contains {
+            if case .identifier(let target) = $0.target {
+                return target == "u_leaf__y"
+            }
+            return false
+        } == true)
+        #expect(parsed.unsupportedConstructs.isEmpty)
+    }
+
     @Test("request and payload round trip")
     func requestAndPayloadRoundTrip() throws {
         let reference = XcircuiteFileReference(

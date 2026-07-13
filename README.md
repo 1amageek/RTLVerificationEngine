@@ -17,7 +17,7 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Gate | Status | Evidence |
 |---|---|---|
 | Native package build | Passed | `swift build` |
-| SwiftPM contract suite | Passed | 51 tests in 6 suites |
+| SwiftPM contract suite | Passed | 52 tests in 6 suites |
 | Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` |
 | CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
 | Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
@@ -25,7 +25,7 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Process/PDK qualification | Contract hardened | Process records enforce a validity window and bind corpus, oracle and auditable health evidence IDs; no PDK-scoped qualification record is attached |
 | Release eligibility | Blocked | Qualification and headless integration evidence remain incomplete |
 
-The Xcircuite library target and the focused RTL/LogicEngine adapter tests have passed in retained integration evidence. The RTL flow suite currently passes native artifact persistence, resume identity checks and qualification blocking for unqualified external tools. Full workspace qualification remains separate from this package evidence.
+The Xcircuite library target and the focused RTL/LogicEngine adapter tests have passed in retained integration evidence. The current serial Xcircuite regression also passes 534 tests in 58 suites, including the RTL stage, LogicEngine bridge, review/resume, PDK corpus and end-to-end flow contracts. A parallel run in the shared workspace is not signoff evidence because unrelated concurrent SwiftPM processes can interfere; full workspace qualification remains separate from this package evidence.
 
 ## Scope and trust boundary
 
