@@ -1,7 +1,7 @@
 import Foundation
+import CircuiteFoundation
 import LogicIR
 import RTLVerificationCore
-import XcircuitePackage
 
 public struct NativeRTLLintEngine: RTLLintExecuting {
     public var environment: RTLVerificationEnvironment
@@ -20,10 +20,10 @@ public struct NativeRTLLintEngine: RTLLintExecuting {
 
     public func execute(
         _ request: RTLVerificationRequest
-    ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) async throws -> RTLVerificationResult {
         let startedAt = Date()
         guard request.analysis == .lint else {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -31,7 +31,7 @@ public struct NativeRTLLintEngine: RTLLintExecuting {
             )
         }
         if Task.isCancelled {
-            return try await cancelledEnvelope(request: request, startedAt: startedAt)
+            return try await cancelledResult(request: request, startedAt: startedAt)
         }
 
         do {
@@ -59,7 +59,7 @@ public struct NativeRTLLintEngine: RTLLintExecuting {
                 )
             )
         } catch let error as RTLVerificationExecutionError {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -73,7 +73,7 @@ public struct NativeRTLLintEngine: RTLLintExecuting {
         let validator = LogicDesignValidator()
         for diagnostic in validator.validate(design).diagnostics {
             findings.append(RTLVerificationFinding(
-                severity: diagnostic.severity,
+                severity: Self.severity(from: diagnostic.severity),
                 code: diagnostic.code,
                 message: diagnostic.message,
                 entity: diagnostic.entity,
@@ -137,6 +137,14 @@ public struct NativeRTLLintEngine: RTLLintExecuting {
         return findings
     }
 
+    private static func severity(from severity: DiagnosticSeverity) -> RTLDiagnosticSeverity {
+        switch severity {
+        case .information: return .info
+        case .warning: return .warning
+        case .error: return .error
+        }
+    }
+
     private func combinationalLoopFindings(module: RTLModule) -> [RTLVerificationFinding] {
         var graph: [String: Set<String>] = [:]
         for assignment in module.assignments {
@@ -177,16 +185,16 @@ public struct NativeRTLLintEngine: RTLLintExecuting {
         Array(Set(design.modules.flatMap { $0.processes.flatMap { RTLVerificationAnalysisHelpers.resetNames(for: $0) } })).sorted()
     }
 
-    private func cancelledEnvelope(
+    private func cancelledResult(
         request: RTLVerificationRequest,
         startedAt: Date
-    ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) async throws -> RTLVerificationResult {
         try await RTLVerificationExecutionSupport.finalize(
             request: request,
             environment: environment,
             startedAt: startedAt,
             requestedStatus: .cancelled,
-            diagnostics: [XcircuiteEngineDiagnostic(
+            diagnostics: [RTLDiagnostic(
                 severity: .warning,
                 code: "RTL_EXECUTION_CANCELLED",
                 message: "RTL lint execution was cancelled before analysis started.",

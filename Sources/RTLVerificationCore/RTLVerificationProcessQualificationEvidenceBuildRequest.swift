@@ -1,5 +1,4 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationProcessQualificationEvidenceBuildRequest: Sendable, Hashable, Codable {
     public static let currentSchemaVersion = 1
@@ -11,7 +10,7 @@ public struct RTLVerificationProcessQualificationEvidenceBuildRequest: Sendable,
     public var corpusEvidence: [RTLVerificationQualificationEvidence]
     public var oracleEvidence: [RTLVerificationOracleEvidence]
     public var healthEvidence: [RTLVerificationQualificationEvidence]
-    public var artifacts: [XcircuiteFileReference]
+    public var artifacts: [RTLArtifactReference]
     public var provenance: String
     public var qualifiedAt: Date
     public var expiresAt: Date
@@ -23,7 +22,7 @@ public struct RTLVerificationProcessQualificationEvidenceBuildRequest: Sendable,
         corpusEvidence: [RTLVerificationQualificationEvidence],
         oracleEvidence: [RTLVerificationOracleEvidence],
         healthEvidence: [RTLVerificationQualificationEvidence],
-        artifacts: [XcircuiteFileReference],
+        artifacts: [RTLArtifactReference],
         provenance: String,
         qualifiedAt: Date,
         expiresAt: Date,

@@ -1,12 +1,11 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationCorpusEvaluator: RTLVerificationCorpusEvaluating {
     public init() {}
 
     public func evaluate(
         _ corpusCase: RTLVerificationCorpusCase,
-        result: XcircuiteEngineResultEnvelope<RTLVerificationPayload>
+        result: RTLVerificationResult
     ) -> RTLVerificationCorpusEvaluation {
         let expectation = corpusCase.expectation
         var mismatches: [RTLVerificationCorpusMismatch] = []

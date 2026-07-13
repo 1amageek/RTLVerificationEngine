@@ -1,34 +1,49 @@
+import CircuiteFoundation
 import Foundation
-import XcircuitePackage
 
 public struct FileSystemRTLArtifactReader: RTLArtifactReading {
     public var projectRoot: URL
-    private var verifier: XcircuiteFileReferenceVerifier
+    private var verifier: LocalArtifactVerifier
 
     public init(projectRoot: URL) {
         self.projectRoot = projectRoot
-        self.verifier = XcircuiteFileReferenceVerifier()
+        self.verifier = LocalArtifactVerifier()
     }
 
-    public func read(_ reference: XcircuiteFileReference) throws -> Data {
-        let integrity = verifier.verify(reference, projectRoot: projectRoot)
-        guard integrity.status == .verified else {
+    public func read(_ reference: RTLArtifactReference) throws -> Data {
+        let integrity = verifier.verify(reference, relativeTo: projectRoot)
+        guard integrity.isVerified else {
             throw RTLVerificationExecutionError.artifactReadFailed(
                 path: reference.path,
-                reason: integrity.message
+                reason: integrity.issues.map { String(describing: $0) }.joined(separator: "; ")
             )
         }
-        guard let url = verifier.resolvedURL(for: reference, projectRoot: projectRoot) else {
+        let url = try reference.locator.location.resolvedFileURL(relativeTo: projectRoot)
+        do {
+            return try Data(contentsOf: url)
+        } catch {
             throw RTLVerificationExecutionError.artifactReadFailed(
                 path: reference.path,
-                reason: "The artifact path is not project-relative."
+                reason: error.localizedDescription
+            )
+        }
+    }
+
+    public func read(_ locator: ArtifactLocator) throws -> Data {
+        let url: URL
+        do {
+            url = try locator.location.resolvedFileURL(relativeTo: projectRoot)
+        } catch {
+            throw RTLVerificationExecutionError.artifactReadFailed(
+                path: locator.path,
+                reason: error.localizedDescription
             )
         }
         do {
             return try Data(contentsOf: url)
         } catch {
             throw RTLVerificationExecutionError.artifactReadFailed(
-                path: reference.path,
+                path: locator.path,
                 reason: error.localizedDescription
             )
         }

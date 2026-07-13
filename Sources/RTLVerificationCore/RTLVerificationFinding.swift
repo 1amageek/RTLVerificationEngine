@@ -1,8 +1,7 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationFinding: Sendable, Hashable, Codable {
-    public var severity: XcircuiteEngineDiagnosticSeverity
+    public var severity: RTLDiagnosticSeverity
     public var code: String
     public var message: String
     public var entity: String?
@@ -12,7 +11,7 @@ public struct RTLVerificationFinding: Sendable, Hashable, Codable {
     public var waiverID: String?
 
     public init(
-        severity: XcircuiteEngineDiagnosticSeverity,
+        severity: RTLDiagnosticSeverity,
         code: String,
         message: String,
         entity: String? = nil,
@@ -31,8 +30,8 @@ public struct RTLVerificationFinding: Sendable, Hashable, Codable {
         self.waiverID = waiverID
     }
 
-    public var engineDiagnostic: XcircuiteEngineDiagnostic {
-        XcircuiteEngineDiagnostic(
+    public var engineDiagnostic: RTLDiagnostic {
+        RTLDiagnostic(
             severity: waived ? .warning : severity,
             code: code,
             message: message,

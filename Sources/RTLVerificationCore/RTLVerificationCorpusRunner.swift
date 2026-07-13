@@ -1,5 +1,4 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationCorpusRunner: RTLVerificationCorpusRunning {
     public let engine: any RTLVerificationExecuting
@@ -38,7 +37,7 @@ public struct RTLVerificationCorpusRunner: RTLVerificationCorpusRunning {
         }
 
         var evaluations: [RTLVerificationCorpusEvaluation] = []
-        var resultArtifacts: [String: XcircuiteFileReference] = [:]
+        var resultArtifacts: [String: RTLArtifactReference] = [:]
         for corpusCase in corpus.sorted(by: { $0.caseID < $1.caseID }) {
             var request = corpusCase.request
             request.runID = "\(runID)-\(corpusCase.caseID)"

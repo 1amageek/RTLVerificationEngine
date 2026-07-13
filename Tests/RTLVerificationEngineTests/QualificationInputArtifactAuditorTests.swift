@@ -1,7 +1,6 @@
 import Foundation
 import Testing
 import RTLVerificationCore
-import XcircuitePackage
 
 @Suite("RTL qualification input artifact auditor")
 struct QualificationInputArtifactAuditorTests {
@@ -68,15 +67,15 @@ struct QualificationInputArtifactAuditorTests {
         path: String,
         artifactID: String,
         contents: Data
-    ) throws -> XcircuiteFileReference {
+    ) throws -> RTLArtifactReference {
         let url = root.appending(path: path)
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
         try contents.write(to: url)
-        let hasher = XcircuiteHasher()
-        return XcircuiteFileReference(
+        let hasher = SHA256ContentDigester()
+        return makeTestArtifactReference(
             artifactID: artifactID,
             path: path,
             kind: .report,
@@ -87,7 +86,7 @@ struct QualificationInputArtifactAuditorTests {
     }
 
     private func makeProcessEvidence(
-        artifact: XcircuiteFileReference
+        artifact: RTLArtifactReference
     ) -> RTLVerificationProcessQualificationEvidence {
         let recordedAt = Date(timeIntervalSince1970: 1_000)
         let qualification = RTLVerificationProcessQualificationRecord(

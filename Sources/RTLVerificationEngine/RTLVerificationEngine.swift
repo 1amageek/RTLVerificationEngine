@@ -4,7 +4,6 @@ import Foundation
 import RDCAnalysis
 import RTLLint
 import RTLVerificationCore
-import XcircuitePackage
 
 public struct RTLVerificationEngine: RTLVerificationExecuting {
     public var lintEngine: any RTLLintExecuting
@@ -35,7 +34,7 @@ public struct RTLVerificationEngine: RTLVerificationExecuting {
 
     public func execute(
         _ request: RTLVerificationRequest
-    ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) async throws -> RTLVerificationResult {
         switch request.analysis {
         case .lint:
             return try await lintEngine.execute(request)

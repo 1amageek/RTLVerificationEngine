@@ -1,19 +1,18 @@
 import Foundation
-import XcircuitePackage
 
 public enum RTLVerificationLintRuleCatalog {
     public static let schemaVersion = 1
 
     public struct Rule: Sendable, Hashable, Codable {
         public var code: String
-        public var severity: XcircuiteEngineDiagnosticSeverity
+        public var severity: RTLDiagnosticSeverity
         public var title: String
         public var description: String
         public var suggestedActions: [String]
 
         public init(
             code: String,
-            severity: XcircuiteEngineDiagnosticSeverity,
+            severity: RTLDiagnosticSeverity,
             title: String,
             description: String,
             suggestedActions: [String]

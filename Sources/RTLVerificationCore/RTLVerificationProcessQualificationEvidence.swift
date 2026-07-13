@@ -1,5 +1,4 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, Codable {
     public static let currentSchemaVersion = 1
@@ -9,7 +8,7 @@ public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, C
     public var qualificationID: String
     public var qualification: RTLVerificationProcessQualificationRecord
     public var artifactIDs: [String]
-    public var artifacts: [XcircuiteFileReference]
+    public var artifacts: [RTLArtifactReference]
     public var provenance: String
     public var recordedAt: Date
 
@@ -18,7 +17,7 @@ public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, C
         qualificationID: String,
         qualification: RTLVerificationProcessQualificationRecord,
         artifactIDs: [String],
-        artifacts: [XcircuiteFileReference] = [],
+        artifacts: [RTLArtifactReference] = [],
         provenance: String,
         recordedAt: Date = Date(),
         schemaVersion: Int = RTLVerificationProcessQualificationEvidence.currentSchemaVersion
@@ -47,7 +46,7 @@ public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, C
             && qualification.isQualified(at: recordedAt)
     }
 
-    private static func isDigestBound(_ artifact: XcircuiteFileReference) -> Bool {
+    private static func isDigestBound(_ artifact: RTLArtifactReference) -> Bool {
         guard let artifactID = artifact.artifactID,
               !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !artifact.path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -56,8 +55,7 @@ public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, C
               let sha256 = artifact.sha256,
               sha256.count == 64,
               sha256.allSatisfy(\.isHexDigit),
-              let byteCount = artifact.byteCount,
-              byteCount >= 0 else {
+              artifact.byteCount >= 0 else {
             return false
         }
         return true
@@ -85,7 +83,7 @@ public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, C
         )
         self.artifactIDs = try container.decode([String].self, forKey: .artifactIDs)
         self.artifacts = try container.decodeIfPresent(
-            [XcircuiteFileReference].self,
+            [RTLArtifactReference].self,
             forKey: .artifacts
         ) ?? []
         self.provenance = try container.decode(String.self, forKey: .provenance)

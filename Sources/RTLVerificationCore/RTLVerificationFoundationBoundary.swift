@@ -1,6 +1,5 @@
 import Foundation
 @_exported import CircuiteFoundation
-import XcircuitePackage
 
 /// Errors raised when the legacy RTL result cannot be represented by the
 /// Foundation evidence boundary without losing integrity or diagnostic data.
@@ -35,9 +34,8 @@ public enum RTLVerificationFoundationBoundaryError: Error, Sendable, Equatable, 
 
 /// Foundation evidence projection for an RTL verification execution.
 ///
-/// The domain payload and the Xcircuite result envelope remain available to
-/// RTL-specific callers. This value exposes only the cross-domain evidence
-/// and diagnostic surfaces and deliberately carries no qualification verdict.
+/// This value exposes only the cross-domain evidence and diagnostic surfaces
+/// and deliberately carries no qualification verdict.
 public struct RTLVerificationFoundationEvidence: Sendable, Hashable, Codable, ArtifactProducing,
     EvidenceProviding, DiagnosticReporting
 {
@@ -47,78 +45,18 @@ public struct RTLVerificationFoundationEvidence: Sendable, Hashable, Codable, Ar
     public var artifacts: [ArtifactReference] { evidence.artifacts }
 
     public init(
-        envelope: XcircuiteEngineResultEnvelope<RTLVerificationPayload>,
+        result: RTLVerificationResult,
         provenance: ExecutionProvenance
     ) throws {
-        let producer = try ProducerIdentity(
-            kind: .engine,
-            identifier: envelope.metadata.implementationID,
-            version: envelope.metadata.implementationVersion
-        )
         self.evidence = EvidenceManifest(
             provenance: provenance,
-            artifacts: try envelope.artifacts.map {
-                try Self.makeArtifactReference($0, producer: producer)
-            }
+            artifacts: result.artifacts
         )
-        self.diagnostics = try envelope.diagnostics.map(Self.makeDiagnostic)
-    }
-
-    private static func makeArtifactReference(
-        _ reference: XcircuiteFileReference,
-        producer: ProducerIdentity
-    ) throws -> ArtifactReference {
-        guard let sha256 = reference.sha256, !sha256.isEmpty else {
-            throw RTLVerificationFoundationBoundaryError.missingDigest(reference.path)
-        }
-        guard let byteCount = reference.byteCount else {
-            throw RTLVerificationFoundationBoundaryError.missingByteCount(reference.path)
-        }
-        guard byteCount >= 0 else {
-            throw RTLVerificationFoundationBoundaryError.invalidByteCount(reference.path)
-        }
-
-        let location: ArtifactLocation
-        do {
-            if reference.path.hasPrefix("/") {
-                location = try ArtifactLocation(fileURL: URL(fileURLWithPath: reference.path))
-            } else {
-                location = try ArtifactLocation(workspaceRelativePath: reference.path)
-            }
-        } catch {
-            throw RTLVerificationFoundationBoundaryError.invalidArtifactLocation(reference.path)
-        }
-
-        let artifactID: ArtifactID
-        do {
-            artifactID = try ArtifactID(
-                rawValue: reference.artifactID ?? "sha256-\(sha256.lowercased())"
-            )
-        } catch {
-            throw RTLVerificationFoundationBoundaryError.invalidArtifactID(
-                reference.artifactID ?? reference.path
-            )
-        }
-
-        return ArtifactReference(
-            id: artifactID,
-            locator: ArtifactLocator(
-                location: location,
-                kind: try ArtifactKind(rawValue: reference.kind.rawValue.lowercased()),
-                format: try ArtifactFormat(
-                    rawValue: reference.format.rawValue
-                        .lowercased()
-                        .replacingOccurrences(of: "_", with: "-")
-                )
-            ),
-            digest: try ContentDigest(algorithm: .sha256, hexadecimalValue: sha256),
-            byteCount: UInt64(byteCount),
-            producer: producer
-        )
+        self.diagnostics = try result.diagnostics.map(Self.makeDiagnostic)
     }
 
     private static func makeDiagnostic(
-        _ diagnostic: XcircuiteEngineDiagnostic
+        _ diagnostic: RTLDiagnostic
     ) throws -> DesignDiagnostic {
         let code: DiagnosticCode
         do {

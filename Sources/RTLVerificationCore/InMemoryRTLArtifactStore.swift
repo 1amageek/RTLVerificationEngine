@@ -1,5 +1,5 @@
+import CircuiteFoundation
 import Foundation
-import XcircuitePackage
 
 public actor InMemoryRTLArtifactStore: RTLArtifactWriting {
     private var artifacts: [String: Data] = [:]
@@ -10,21 +10,23 @@ public actor InMemoryRTLArtifactStore: RTLArtifactWriting {
         _ data: Data,
         artifactID: String,
         runID: String
-    ) async throws -> XcircuiteFileReference {
+    ) async throws -> RTLArtifactReference {
         let path = ".xcircuite/runs/\(runID)/\(artifactID).json"
         artifacts[path] = data
-        return XcircuiteFileReference(
-            artifactID: artifactID,
-            path: path,
-            kind: .report,
-            format: .json,
-            sha256: XcircuiteHasher().sha256(data: data),
-            byteCount: Int64(data.count),
-            producedByRunID: runID
+        return ArtifactReference(
+            id: try ArtifactID(rawValue: artifactID),
+            locator: ArtifactLocator(
+                location: try ArtifactLocation(workspaceRelativePath: path),
+                role: .output,
+                kind: .report,
+                format: .json
+            ),
+            digest: try SHA256ContentDigester().digest(data: data),
+            byteCount: UInt64(data.count)
         )
     }
 
-    public func data(for reference: XcircuiteFileReference) -> Data? {
+    public func data(for reference: RTLArtifactReference) -> Data? {
         artifacts[reference.path]
     }
 }

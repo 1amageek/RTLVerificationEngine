@@ -1,6 +1,5 @@
 import Foundation
 import RTLVerificationCore
-import XcircuitePackage
 
 public struct ExternalRTLVerificationOracleExecutor: RTLVerificationOracleExecuting, Sendable {
     public var engine: ExternalRTLVerificationEngine
@@ -23,8 +22,8 @@ public struct ExternalRTLVerificationOracleExecutor: RTLVerificationOracleExecut
 
     public func execute(
         _ request: RTLVerificationRequest,
-        native: XcircuiteEngineResultEnvelope<RTLVerificationPayload>
-    ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+        native: RTLVerificationResult
+    ) async throws -> RTLVerificationResult {
         let oracle = try await engine.execute(request)
         guard let nativeRequestDigest = native.payload.requestDigest else {
             throw RTLVerificationExecutionError.invalidArtifact(

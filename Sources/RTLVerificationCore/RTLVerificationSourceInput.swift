@@ -1,11 +1,10 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationSourceInput: Sendable, Hashable {
-    public var reference: XcircuiteFileReference
+    public var reference: RTLArtifactReference
     public var data: Data
 
-    public init(reference: XcircuiteFileReference, data: Data) {
+    public init(reference: RTLArtifactReference, data: Data) {
         self.reference = reference
         self.data = data
     }

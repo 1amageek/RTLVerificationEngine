@@ -1,5 +1,4 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationReviewArtifact: Sendable, Hashable, Codable {
     public static let currentSchemaVersion = 1
@@ -8,9 +7,9 @@ public struct RTLVerificationReviewArtifact: Sendable, Hashable, Codable {
     public var stageID: String
     public var runID: String
     public var analysis: RTLVerificationAnalysis
-    public var status: XcircuiteEngineExecutionStatus
+    public var status: RTLExecutionStatus
     public var findings: [RTLVerificationFinding]
-    public var diagnostics: [XcircuiteEngineDiagnostic]
+    public var diagnostics: [RTLDiagnostic]
     public var appliedWaivers: [RTLVerificationWaiver]
     public var qualification: RTLVerificationQualificationReport
     public var approvalRequired: Bool
@@ -21,9 +20,9 @@ public struct RTLVerificationReviewArtifact: Sendable, Hashable, Codable {
         stageID: String,
         runID: String,
         analysis: RTLVerificationAnalysis,
-        status: XcircuiteEngineExecutionStatus,
+        status: RTLExecutionStatus,
         findings: [RTLVerificationFinding],
-        diagnostics: [XcircuiteEngineDiagnostic],
+        diagnostics: [RTLDiagnostic],
         appliedWaivers: [RTLVerificationWaiver],
         qualification: RTLVerificationQualificationReport,
         approvalRequired: Bool,

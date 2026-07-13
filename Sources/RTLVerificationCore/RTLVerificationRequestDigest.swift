@@ -1,5 +1,4 @@
 import Foundation
-import XcircuitePackage
 
 public enum RTLVerificationRequestDigest {
     public static func encode(_ request: RTLVerificationRequest) throws -> Data {
@@ -14,6 +13,6 @@ public enum RTLVerificationRequestDigest {
     }
 
     public static func make(_ request: RTLVerificationRequest) throws -> String {
-        XcircuiteHasher().sha256(data: try encode(request))
+        RTLHasher().sha256(data: try encode(request))
     }
 }

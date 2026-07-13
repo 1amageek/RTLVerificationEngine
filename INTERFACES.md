@@ -6,17 +6,17 @@
 public protocol DomainExecuting: CircuiteFoundation.Engine {
     func execute(
         _ request: DomainRequest
-    ) async throws -> XcircuiteEngineResultEnvelope<DomainPayload>
+    ) async throws -> DomainResult
 }
 ```
 
 `RTLVerificationExecuting` is the concrete RTL protocol that refines the
-Foundation `Engine` contract. `RTLVerificationFoundationEvidence` projects a
-completed RTL envelope into Foundation evidence and diagnostics. The
-project/run fields in `XcircuitePackage` remain compatibility input/output
-models until their lifecycle owners complete the separate migration.
+Foundation `Engine` contract. `RTLVerificationResult` is the RTL-owned result
+type; its artifact references are Foundation `ArtifactReference` values and
+its diagnostics are typed domain diagnostics with a Foundation evidence
+projection.
 
-Requests carry a schema version, run ID, typed implementation/reference artifact sets, frontend policy, explicit proof/assumption scope and an optional retained qualification input. Payloads contain domain findings, coverage and qualification evidence. Diagnostics and artifacts belong to the shared envelope. The CLI loads the same qualification input through `--qualification-input` so headless and library execution share one gate.
+Requests carry a schema version, run ID, typed implementation/reference artifact sets, frontend policy, explicit proof/assumption scope and an optional retained qualification input. Payloads contain domain findings, coverage and qualification evidence. Diagnostics and artifacts belong to `RTLVerificationResult`. The CLI loads the same qualification input through `--qualification-input` so headless and library execution share one gate.
 
 `RTLVerificationCorpusRunner` executes a deterministic, uniquely identified set of corpus cases through the same engine protocol, persists each result envelope and writes a digest-bound aggregate `RTLVerificationCorpusRun` under the supplied run ID. A corpus run is matched only when every case expectation is satisfied; execution errors are thrown rather than converted into qualification evidence.
 
@@ -25,7 +25,7 @@ Requests carry a schema version, run ID, typed implementation/reference artifact
 `RTLVerificationLintRuleCatalog` is the versioned repair contract for native lint findings. Each rule declares a stable code, severity, description and suggested actions; a catalog entry does not waive the finding or advance qualification.
 
 `RTLVerificationQualificationEvaluator` also verifies that a process qualification record names the retained `corpus:<caseID>` and `oracle:<caseID>` evidence required by the current evaluation. The record must be accompanied by a matching `RTLVerificationProcessQualificationEvidence` artifact that retains the record, digest-bound artifact references, artifact IDs, provenance and timestamp. `RTLVerificationProcessQualificationEvidenceBuilder` is the typed construction boundary: it rejects missing or unreferenced artifacts, invalid digests/byte counts, incomplete PDK scope, stale windows, request-digest drift, non-independent oracle evidence and implementation-mismatched health evidence. Health evidence must be auditable, use `kind=healthCheck`, and carry the implementation ID/version evaluated by the current request. Non-empty but unrelated or identity-mismatched evidence IDs produce structured process blockers.
-`RTLVerificationQualificationInputArtifactAuditor` is the runtime boundary for those retained references. It validates process and oracle evidence auditable contracts, then reads every manifest/result reference through `RTLArtifactReading`; filesystem readers therefore re-check project-relative path, existence, byte count and SHA-256 before qualification input reaches an execution engine. Integrity failures are typed and must remain blocked in the Xcircuite adapter.
+`RTLVerificationQualificationInputArtifactAuditor` is the runtime boundary for those retained references. It validates process and oracle evidence auditable contracts, then reads every manifest/result reference through `RTLArtifactReading`; filesystem readers therefore re-check project-relative path, existence, byte count and SHA-256 before qualification input reaches an execution engine. Integrity failures are typed and must remain blocked in the flow integration.
 
 ## Products
 
@@ -92,18 +92,10 @@ qualification.
 - Preserve cancellation as `cancelled`.
 - Do not swallow parser, process or persistence failures.
 
-## Xcircuite adapter
+## Flow integration
 
-The adapter must:
-
-1. resolve project-relative references through XcircuitePackage;
-2. verify input digests;
-3. evaluate ToolQualification requirements;
-4. invoke the injected engine protocol;
-5. persist every returned artifact;
-6. map diagnostics and status to FlowStageResult;
-7. attach design, PDK and tool provenance;
-8. persist qualification, review and audit artifacts;
-9. resume only when the persisted audit identity and request digest match.
-
-`Xcircuite` provides `RTLVerificationFlowStageExecutor`, which resolves `XcircuiteFlowInputReference`, verifies digest-bearing file references, invokes the injected or native engine, persists the envelope plus qualification/review/audit artifacts, and maps the result to `FlowStageResult` and a gate.
+The owning flow package resolves project-relative locators, verifies
+Foundation artifact integrity, evaluates ToolQualification requirements,
+invokes the injected `RTLVerificationExecuting` protocol and persists the
+returned `RTLVerificationResult`. Review, approval and resume remain flow
+responsibilities; this package has no dependency on project storage.

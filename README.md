@@ -4,7 +4,7 @@ Static RTL quality, clock/reset-domain analysis and formal equivalence contracts
 
 ## Status
 
-The package provides deterministic native implementations for the declared SystemVerilog subset, a canonical `SystemVerilogFrontend` adapter with include resolution, object-like and function-like macro expansion, hierarchy elaboration and provenance, a versioned lint rule catalog with repair actions, qualified-envelope external and independent-oracle adapters bound to the exact request digest, immutable JSON artifacts, a JSON CLI, persisted retained-corpus, oracle-evidence and process-qualification artifacts, a typed process-qualification evidence builder with a digest-bound artifact manifest, a runtime qualification-input artifact auditor, retained fixtures, and an Xcircuite flow-stage adapter.
+The package provides deterministic native implementations for the declared SystemVerilog subset, a canonical `SystemVerilogFrontend` integration with include resolution, object-like and function-like macro expansion, hierarchy elaboration and provenance, a versioned lint rule catalog with repair actions, qualified external and independent-oracle executors bound to the exact request digest, immutable Foundation artifacts, a JSON CLI, persisted retained-corpus, oracle-evidence and process-qualification artifacts, a typed process-qualification evidence builder with a digest-bound artifact manifest, and a runtime qualification-input artifact auditor.
 
 Native formal equivalence is intentionally scoped to exact canonical structural equivalence for RTL-to-RTL and mapped execution graphs. Mismatch artifacts retain both the legacy human-readable messages and typed difference records containing the difference kind, affected entity and canonical implementation/reference values. The external proof contract requires a digest-bound proof artifact for solver-backed results, but does not claim that an actual temporal solver has been qualified. Process-specific qualification remains blocked until independent tool and process evidence is supplied.
 
@@ -34,7 +34,7 @@ flowchart LR
     Request["Typed request"] --> Frontend["RTL source-set frontend"]
     Frontend --> IR["Canonical LogicIR + provenance"]
     IR --> Native["Lint / CDC / RDC / structural formal"]
-    Native --> Envelope["Result envelope"]
+    Native --> Result["RTLVerificationResult"]
     Envelope --> Qualification["Corpus / oracle / process gates"]
     Qualification --> Review["Xcircuite review / audit / resume"]
 ```
@@ -66,29 +66,28 @@ and external implementations share the Foundation execution seam. The
 `EvidenceProviding` and `DiagnosticReporting` without turning qualification
 or release policy into a Foundation concern.
 
-The existing `XcircuiteEngineResultEnvelope` and project/run references remain
-the compatibility contract for the current `.xcircuite` flow. Replacing those
-lifecycle-owned models is a separate migration milestone; this boundary does
-not duplicate or reinterpret flow policy.
+Project/run lifecycle is owned by `DesignFlowKernel`; this package emits only
+domain results, Foundation artifact evidence and diagnostics. Concrete
+`.xcircuite` persistence is supplied by `Xcircuite` through injected protocols.
 
 ```mermaid
 flowchart LR
-    Engine["RTLVerificationExecuting\nFoundation.Engine"] --> Legacy["RTL result envelope\ncompatibility contract"]
-    Legacy --> Evidence["RTLVerificationFoundationEvidence"]
+    Engine["RTLVerificationExecuting\nFoundation.Engine"] --> Result["RTLVerificationResult"]
+    Result --> Evidence["RTLVerificationFoundationEvidence"]
     Evidence --> Shared["EvidenceManifest +\nDesignDiagnostic"]
     Shared --> Flow["Flow / human review / agent"]
 ```
 
-The package is intentionally independent of the Xcircuite runtime. The sibling `Xcircuite` package owns the flow-stage adapter and connects this library to `DesignFlowKernel`.
+The package is intentionally independent of project storage and flow state. The owning flow package connects this library to `DesignFlowKernel` through the Foundation `Engine` protocol.
 
 ## Contract
 
 Every executing product uses:
 
-- a `Codable`, `Hashable`, `Sendable` request conforming to `XcircuiteEngineRequest`;
-- `XcircuiteEngineResultEnvelope<Payload>` for status, diagnostics, artifacts and execution metadata;
+- a `Codable`, `Hashable`, `Sendable` request conforming to the RTL domain request contract;
+- `RTLVerificationResult` for status, diagnostics, artifacts and execution provenance;
 - protocol-first dependency injection;
-- immutable `XcircuiteFileReference` inputs and outputs;
+- immutable `CircuiteFoundation.ArtifactReference` inputs and outputs;
 - explicit blocked, failed and cancelled states.
 
 Native implementations are `NativeRTLLintEngine`, `NativeCDCAnalyzer`, `NativeRDCAnalyzer` and `NativeFormalEquivalenceChecker`. They share `RTLVerificationEnvironment`, `RTLVerificationDesignLoader`, the canonical `LogicIR` model, and the result finalizer.
@@ -114,7 +113,7 @@ flowchart LR
     Evaluate --> Result["Result payload + blockers"]
 ```
 
-The command emits one deterministic JSON envelope and persists the report at `.xcircuite/runs/<run-id>/rtl-verification-report.json`. A successful execution can still carry an `unassessed` qualification state; qualification blockers are retained in the same payload and are never converted into a signoff pass.
+The command emits one deterministic `RTLVerificationResult` JSON document and persists the report at `.xcircuite/runs/<run-id>/rtl-verification-report.json`. A successful execution can still carry an `unassessed` qualification state; qualification blockers are retained in the same payload and are never converted into a signoff pass.
 
 The current frontend boundary is deliberately explicit:
 
@@ -135,7 +134,7 @@ For a formal run, repeat `--reference` to provide additional reference RTL/heade
 
 Xcircuite runs each verification product as an independent gate. The RTL stage adapter persists the raw result, qualification report, review bundle and audit record, and reuses a completed or blocked result only when the request digest and audit identity match. Missing proof, insufficient solver qualification and unsupported semantics remain blocked rather than passed. A solver-backed external proof must retain an artifact produced by the same run, with a SHA-256 digest and byte count, before it can be considered a completed proof envelope.
 
-The library does not depend on the Xcircuite runtime. Xcircuite owns the adapter to `DesignFlowKernel.FlowStageExecutor`, artifact persistence, qualification gates, repair loops and human approval.
+The library does not depend on the Xcircuite runtime. Flow ownership supplies artifact persistence, qualification gates, repair loops and human approval.
 
 ## Build
 
@@ -143,7 +142,7 @@ The library does not depend on the Xcircuite runtime. Xcircuite owns the adapter
 perl -e 'alarm 60; exec @ARGV' -- swift build
 ```
 
-The package has local SwiftPM dependencies on `XcircuitePackage`, `LogicDesign`, `LogicEngine`, `TimingEngine` and `ToolQualification`. A standalone checkout therefore needs those sibling packages at the paths declared in `Package.swift`, or an equivalent package-path adjustment.
+The package has local SwiftPM dependencies on `LogicDesign`, `LogicEngine`, `TimingEngine` and `ToolQualification`. A standalone checkout therefore needs those sibling packages at the paths declared in `Package.swift`, or an equivalent package-path adjustment.
 
 ## Test
 

@@ -1,12 +1,11 @@
 import Foundation
-import XcircuitePackage
 
 public protocol RTLVerificationOracleEvidenceBuilding: Sendable {
     func build(
         caseID: String,
         requestDigest: String,
-        native: XcircuiteEngineResultEnvelope<RTLVerificationPayload>,
-        oracle: XcircuiteEngineResultEnvelope<RTLVerificationPayload>,
+        native: RTLVerificationResult,
+        oracle: RTLVerificationResult,
         oracleProvenance: String,
         runID: String
     ) async throws -> RTLVerificationOracleEvidenceBuildResult

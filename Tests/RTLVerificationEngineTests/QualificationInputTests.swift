@@ -3,19 +3,18 @@ import LogicIR
 import Testing
 import RTLVerificationCore
 import RTLLint
-import XcircuitePackage
 
 @Suite("RTL verification qualification input")
 struct QualificationInputTests {
     @Test("qualification input is applied to the native result", .timeLimit(.minutes(1)))
     func qualificationInputIsApplied() async throws {
         let source = "module top(input logic a, output logic q); assign q = a; endmodule"
-        let rtl = XcircuiteFileReference(
+        let rtl = makeTestArtifactReference(
             artifactID: "rtl-input",
             path: "top.sv",
             kind: .rtl,
             format: .systemVerilog,
-            sha256: XcircuiteHasher().sha256(data: Data(source.utf8)),
+            sha256: SHA256ContentDigester().sha256(data: Data(source.utf8)),
             byteCount: Int64(source.utf8.count)
         )
         let reader = InMemoryRTLArtifactReader(artifacts: [rtl.path: Data(source.utf8)])
@@ -116,7 +115,7 @@ struct QualificationInputTests {
             runID: "qualification-input",
             inputs: [rtl],
             design: LogicDesignReference(
-                artifact: rtl,
+                artifact: rtl.locator,
                 topDesignName: "top",
                 designDigest: rtl.sha256 ?? ""
             ),
@@ -149,13 +148,13 @@ struct QualificationInputTests {
         ))
     }
 
-    private func jsonReference(artifactID: String, path: String, data: Data) -> XcircuiteFileReference {
-        XcircuiteFileReference(
+    private func jsonReference(artifactID: String, path: String, data: Data) -> RTLArtifactReference {
+        makeTestArtifactReference(
             artifactID: artifactID,
             path: path,
             kind: .report,
             format: .json,
-            sha256: XcircuiteHasher().sha256(data: data),
+            sha256: SHA256ContentDigester().sha256(data: data),
             byteCount: Int64(data.count)
         )
     }

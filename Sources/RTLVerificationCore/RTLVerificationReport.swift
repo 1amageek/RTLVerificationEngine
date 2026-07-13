@@ -1,24 +1,23 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationReport: Sendable, Hashable, Codable {
     public var schemaVersion: Int
     public var runID: String
     public var analysis: RTLVerificationAnalysis
-    public var status: XcircuiteEngineExecutionStatus
-    public var diagnostics: [XcircuiteEngineDiagnostic]
+    public var status: RTLExecutionStatus
+    public var diagnostics: [RTLDiagnostic]
     public var payload: RTLVerificationPayload
-    public var inputArtifacts: [XcircuiteFileReference]
+    public var inputArtifacts: [RTLArtifactReference]
     public var generatedAt: Date
 
     public init(
         schemaVersion: Int = 1,
         runID: String,
         analysis: RTLVerificationAnalysis,
-        status: XcircuiteEngineExecutionStatus,
-        diagnostics: [XcircuiteEngineDiagnostic],
+        status: RTLExecutionStatus,
+        diagnostics: [RTLDiagnostic],
         payload: RTLVerificationPayload,
-        inputArtifacts: [XcircuiteFileReference],
+        inputArtifacts: [RTLArtifactReference],
         generatedAt: Date
     ) {
         self.schemaVersion = schemaVersion

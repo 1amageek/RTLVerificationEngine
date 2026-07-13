@@ -1,8 +1,6 @@
-import CircuiteFoundation
 import Foundation
 import RTLVerificationCore
 import Testing
-import XcircuitePackage
 
 @Suite
 struct FoundationBoundaryTests {
@@ -15,8 +13,8 @@ struct FoundationBoundaryTests {
     @Test
     func resultProjectsDigestBoundArtifactsAndDiagnostics() throws {
         let data = Data("rtl report".utf8)
-        let digest = XcircuiteHasher().sha256(data: data)
-        let artifact = XcircuiteFileReference(
+        let digest = SHA256ContentDigester().sha256(data: data)
+        let artifact = makeTestArtifactReference(
             artifactID: "rtl-report",
             path: "reports/rtl.json",
             kind: .report,
@@ -24,12 +22,12 @@ struct FoundationBoundaryTests {
             sha256: digest,
             byteCount: Int64(data.count)
         )
-        let envelope = XcircuiteEngineResultEnvelope(
+        let envelope = RTLVerificationResult(
             schemaVersion: 1,
             runID: "run-1",
             status: .blocked,
             diagnostics: [
-                XcircuiteEngineDiagnostic(
+                RTLDiagnostic(
                     severity: .error,
                     code: "RTL_UNSUPPORTED_SEMANTICS",
                     message: "Unsupported RTL construct.",
@@ -37,7 +35,7 @@ struct FoundationBoundaryTests {
                 )
             ],
             artifacts: [artifact],
-            metadata: XcircuiteEngineExecutionMetadata(
+            metadata: RTLExecutionMetadata(
                 engineID: "rtl.lint",
                 implementationID: "native-rtl-verification",
                 implementationVersion: "1.0.0",
@@ -57,7 +55,7 @@ struct FoundationBoundaryTests {
         )
 
         let projection = try RTLVerificationFoundationEvidence(
-            envelope: envelope,
+            result: envelope,
             provenance: provenance
         )
 
@@ -69,20 +67,20 @@ struct FoundationBoundaryTests {
     }
 
     @Test
-    func resultRejectsArtifactsWithoutIntegrityMetadata() throws {
-        let envelope = XcircuiteEngineResultEnvelope(
+    func resultAcceptsCanonicalArtifactIntegrityMetadata() throws {
+        let envelope = RTLVerificationResult(
             schemaVersion: 1,
             runID: "run-1",
             status: .completed,
             artifacts: [
-                XcircuiteFileReference(
+                makeTestArtifactReference(
                     artifactID: "rtl-report",
                     path: "reports/rtl.json",
                     kind: .report,
                     format: .json
                 )
             ],
-            metadata: XcircuiteEngineExecutionMetadata(
+            metadata: RTLExecutionMetadata(
                 engineID: "rtl.lint",
                 implementationID: "native-rtl-verification",
                 implementationVersion: "1.0.0",
@@ -101,18 +99,18 @@ struct FoundationBoundaryTests {
             completedAt: Date(timeIntervalSinceReferenceDate: 1)
         )
 
-        #expect(throws: RTLVerificationFoundationBoundaryError.self) {
-            try RTLVerificationFoundationEvidence(
-                envelope: envelope,
-                provenance: provenance
-            )
-        }
+        let projection = try RTLVerificationFoundationEvidence(
+            result: envelope,
+            provenance: provenance
+        )
+        #expect(projection.artifacts.count == 1)
+        #expect(projection.artifacts[0].digest.algorithm == .sha256)
     }
 
     private struct MockRTLVerificationEngine: RTLVerificationExecuting {
         func execute(
             _ request: RTLVerificationRequest
-        ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+        ) async throws -> RTLVerificationResult {
             fatalError("The protocol conformance is compile-time evidence only.")
         }
     }

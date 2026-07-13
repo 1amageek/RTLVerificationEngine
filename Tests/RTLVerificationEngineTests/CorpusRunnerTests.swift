@@ -4,7 +4,6 @@ import RTLLint
 import Testing
 import RTLVerificationCore
 import RTLVerificationEngine
-import XcircuitePackage
 
 @Suite("RTL verification corpus runner")
 struct CorpusRunnerTests {
@@ -12,23 +11,23 @@ struct CorpusRunnerTests {
     func runnerPersistsResultsAndSummary() async throws {
         let source = "module top(input logic a, output logic q); assign q = a; endmodule"
         let data = Data(source.utf8)
-        let input = XcircuiteFileReference(
+        let input = makeTestArtifactReference(
             artifactID: "rtl-input",
             path: "top.sv",
             kind: .rtl,
             format: .systemVerilog,
-            sha256: XcircuiteHasher().sha256(data: data),
+            sha256: SHA256ContentDigester().sha256(data: data),
             byteCount: Int64(data.count)
         )
-        let reader = InMemoryRTLArtifactReader(artifacts: [input.path: data])
+        let reader = InMemoryRTLArtifactReader(artifacts: [input.locator.path: data])
         let writer = InMemoryRTLArtifactStore()
         let request = RTLVerificationRequest(
             runID: "unused",
             inputs: [input],
             design: LogicDesignReference(
-                artifact: input,
+                artifact: input.locator,
                 topDesignName: "top",
-                designDigest: input.sha256 ?? ""
+                designDigest: input.digest.hexadecimalValue
             ),
             analysis: .lint
         )
@@ -56,7 +55,7 @@ struct CorpusRunnerTests {
 
     @Test("runner rejects duplicate case IDs before execution")
     func runnerRejectsDuplicateCaseIDs() async throws {
-        let input = XcircuiteFileReference(
+        let input = makeTestArtifactReference(
             artifactID: "rtl-input",
             path: "top.sv",
             kind: .rtl,
@@ -65,7 +64,7 @@ struct CorpusRunnerTests {
         let request = RTLVerificationRequest(
             runID: "unused",
             inputs: [input],
-            design: LogicDesignReference(artifact: input, topDesignName: "top", designDigest: "digest")
+            design: LogicDesignReference(artifact: input.locator, topDesignName: "top", designDigest: "digest")
         )
         let corpusCase = RTLVerificationCorpusCase(
             caseID: "duplicate",
@@ -85,11 +84,8 @@ struct CorpusRunnerTests {
     }
 }
 
-private extension XcircuiteFileReference {
+private extension RTLArtifactReference {
     var isDigestBound: Bool {
-        guard let sha256, !sha256.isEmpty, let byteCount, byteCount >= 0 else {
-            return false
-        }
-        return !path.isEmpty
+        !digest.hexadecimalValue.isEmpty && !locator.path.isEmpty
     }
 }

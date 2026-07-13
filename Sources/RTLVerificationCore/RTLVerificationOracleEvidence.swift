@@ -1,5 +1,4 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
     public static let currentSchemaVersion = 1
@@ -10,8 +9,8 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
     public var requestDigest: String
     public var nativePayloadRequestDigest: String?
     public var oraclePayloadRequestDigest: String?
-    public var nativeArtifact: XcircuiteFileReference
-    public var oracleArtifact: XcircuiteFileReference
+    public var nativeArtifact: RTLArtifactReference
+    public var oracleArtifact: RTLArtifactReference
     public var report: RTLVerificationOracleCorrelationReport
     public var oracleProvenance: String
     public var recordedAt: Date
@@ -22,8 +21,8 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
         requestDigest: String,
         nativePayloadRequestDigest: String? = nil,
         oraclePayloadRequestDigest: String? = nil,
-        nativeArtifact: XcircuiteFileReference,
-        oracleArtifact: XcircuiteFileReference,
+        nativeArtifact: RTLArtifactReference,
+        oracleArtifact: RTLArtifactReference,
         report: RTLVerificationOracleCorrelationReport,
         oracleProvenance: String,
         recordedAt: Date = Date(),
@@ -62,10 +61,11 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
     }
 }
 
-private extension XcircuiteFileReference {
+private extension RTLArtifactReference {
     var isDigestBound: Bool {
-        guard let sha256, !sha256.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              let byteCount, byteCount >= 0 else {
+        guard let sha256,
+              !sha256.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              byteCount >= 0 else {
             return false
         }
         return !path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

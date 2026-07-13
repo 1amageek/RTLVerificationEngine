@@ -15,7 +15,6 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../CircuiteFoundation"),
-        .package(path: "../XcircuitePackage"),
         .package(path: "../LogicDesign"),
         .package(path: "../TimingEngine"),
         .package(path: "../ToolQualification"),
@@ -26,7 +25,6 @@ let package = Package(
             name: "RTLVerificationCore",
             dependencies: [
                 .product(name: "CircuiteFoundation", package: "CircuiteFoundation"),
-                .product(name: "XcircuitePackage", package: "XcircuitePackage"),
                 .product(name: "LogicIR", package: "LogicDesign"),
                 .product(name: "SystemVerilogFrontend", package: "LogicDesign"),
                 .product(name: "TimingCore", package: "TimingEngine")
@@ -34,20 +32,19 @@ let package = Package(
         ),
         .target(
             name: "RTLLint",
-            dependencies: [.product(name: "XcircuitePackage", package: "XcircuitePackage"), "RTLVerificationCore"]
+            dependencies: ["RTLVerificationCore"]
         ),
         .target(
             name: "CDCAnalysis",
-            dependencies: [.product(name: "XcircuitePackage", package: "XcircuitePackage"), "RTLVerificationCore"]
+            dependencies: ["RTLVerificationCore"]
         ),
         .target(
             name: "RDCAnalysis",
-            dependencies: [.product(name: "XcircuitePackage", package: "XcircuitePackage"), "RTLVerificationCore"]
+            dependencies: ["RTLVerificationCore"]
         ),
         .target(
             name: "FormalEquivalence",
             dependencies: [
-                .product(name: "XcircuitePackage", package: "XcircuitePackage"),
                 "RTLVerificationCore",
                 .product(name: "LogicEngineCore", package: "LogicEngine"),
                 .product(name: "LogicLowering", package: "LogicEngine"),
@@ -60,7 +57,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "RTLVerificationCLI",
-            dependencies: ["RTLVerificationEngine", "RTLVerificationCore", .product(name: "XcircuitePackage", package: "XcircuitePackage"), .product(name: "LogicIR", package: "LogicDesign")]
+            dependencies: ["RTLVerificationEngine", "RTLVerificationCore", .product(name: "LogicIR", package: "LogicDesign")]
         ),
         .testTarget(
             name: "RTLVerificationEngineTests",

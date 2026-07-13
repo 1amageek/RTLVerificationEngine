@@ -1,7 +1,6 @@
 import Foundation
 import LogicIR
 import RTLVerificationCore
-import XcircuitePackage
 
 public struct NativeCDCAnalyzer: CDCAnalyzing {
     public var environment: RTLVerificationEnvironment
@@ -20,10 +19,10 @@ public struct NativeCDCAnalyzer: CDCAnalyzing {
 
     public func execute(
         _ request: RTLVerificationRequest
-    ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) async throws -> RTLVerificationResult {
         let startedAt = Date()
         guard request.analysis == .cdc else {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -58,8 +57,8 @@ public struct NativeCDCAnalyzer: CDCAnalyzing {
                 constraintExceptionKinds: constraintContext.exceptionKinds,
                 asynchronousClockGroups: constraintContext.asynchronousClockGroups
             )
-            let requestedStatus: XcircuiteEngineExecutionStatus = analysis.hasUnresolvedClock ? .blocked : .completed
-            let diagnostics = analysis.hasUnresolvedClock ? [XcircuiteEngineDiagnostic(
+            let requestedStatus: RTLExecutionStatus = analysis.hasUnresolvedClock ? .blocked : .completed
+            let diagnostics = analysis.hasUnresolvedClock ? [RTLDiagnostic(
                 severity: .error,
                 code: "CDC_CLOCK_DOMAIN_UNRESOLVED",
                 message: "At least one sequential process has no resolvable clock domain.",
@@ -74,7 +73,7 @@ public struct NativeCDCAnalyzer: CDCAnalyzing {
                 analysisResult: RTLVerificationAnalysisResult(findings: analysis.findings, coverage: coverage)
             )
         } catch let error as RTLVerificationExecutionError {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,

@@ -1,7 +1,6 @@
 import Foundation
 import Testing
 import RTLVerificationCore
-import XcircuitePackage
 
 @Suite("RTL verification oracle evidence builder")
 struct OracleEvidenceBuilderTests {
@@ -80,7 +79,7 @@ struct OracleEvidenceBuilderTests {
         implementationID: String,
         implementationVersion: String,
         findingCode: String? = nil
-    ) -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) -> RTLVerificationResult {
         let now = Date(timeIntervalSince1970: 1)
         let finding = findingCode.map {
             RTLVerificationFinding(
@@ -89,11 +88,11 @@ struct OracleEvidenceBuilderTests {
                 message: "Finding"
             )
         }
-        return XcircuiteEngineResultEnvelope(
+        return RTLVerificationResult(
             schemaVersion: 1,
             runID: "oracle-run",
             status: .completed,
-            metadata: XcircuiteEngineExecutionMetadata(
+            metadata: RTLExecutionMetadata(
                 engineID: "rtl.test",
                 implementationID: implementationID,
                 implementationVersion: implementationVersion,

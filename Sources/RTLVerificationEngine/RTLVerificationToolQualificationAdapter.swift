@@ -1,7 +1,6 @@
 import Foundation
 import RTLVerificationCore
 import ToolQualification
-import XcircuitePackage
 
 public struct RTLVerificationToolQualificationAdapter: Sendable {
     public init() {}

@@ -1,6 +1,5 @@
 import Foundation
 import LogicIR
-import XcircuitePackage
 
 public enum RTLVerificationExecutionSupport {
     public static let implementationID = "native-rtl-verification"
@@ -8,8 +7,8 @@ public enum RTLVerificationExecutionSupport {
 
     public static func makeDiagnostic(
         _ error: RTLVerificationExecutionError,
-        status: XcircuiteEngineExecutionStatus
-    ) -> XcircuiteEngineDiagnostic {
+        status: RTLExecutionStatus
+    ) -> RTLDiagnostic {
         let code: String
         let actions: [String]
         switch error {
@@ -35,7 +34,7 @@ public enum RTLVerificationExecutionSupport {
             code = "RTL_EXTERNAL_TOOL_FAILED"
             actions = ["inspect_external_tool_log", "verify_tool_qualification", "retry_run"]
         }
-        return XcircuiteEngineDiagnostic(
+        return RTLDiagnostic(
             severity: status == .blocked ? .error : .error,
             code: code,
             message: error.localizedDescription,
@@ -62,13 +61,13 @@ public enum RTLVerificationExecutionSupport {
     }
 
     public static func status(
-        requested: XcircuiteEngineExecutionStatus,
+        requested: RTLExecutionStatus,
         findings: [RTLVerificationFinding],
         coverage: RTLVerificationCoverage,
         policy: RTLVerificationPolicy,
         proofStatus: String? = nil,
         qualification: RTLVerificationQualificationReport = RTLVerificationQualificationReport()
-    ) -> XcircuiteEngineExecutionStatus {
+    ) -> RTLExecutionStatus {
         guard requested == .completed else { return requested }
         if policy.requiredProof, let proofStatus, proofStatus != "proved" { return .blocked }
         guard coverage.unsupportedConstructs.count <= policy.maximumUnsupportedConstructs else { return .blocked }
@@ -129,10 +128,10 @@ public enum RTLVerificationExecutionSupport {
         request: RTLVerificationRequest,
         environment: RTLVerificationEnvironment,
         startedAt: Date,
-        requestedStatus: XcircuiteEngineExecutionStatus,
-        diagnostics: [XcircuiteEngineDiagnostic],
+        requestedStatus: RTLExecutionStatus,
+        diagnostics: [RTLDiagnostic],
         analysisResult: RTLVerificationAnalysisResult
-    ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) async throws -> RTLVerificationResult {
         let waiverResult = applyWaivers(analysisResult.findings, waivers: request.waivers)
         let findings = normalizeFindings(waiverResult.findings)
         let completedAt = Date()
@@ -150,7 +149,7 @@ public enum RTLVerificationExecutionSupport {
             qualification: qualification
         )
         let payload: RTLVerificationPayload
-        var artifacts: [XcircuiteFileReference] = []
+        var artifacts: [RTLArtifactReference] = []
         var counterexampleArtifactIDs: [String] = []
 
         if let counterexampleData = analysisResult.counterexampleData,
@@ -178,7 +177,7 @@ public enum RTLVerificationExecutionSupport {
         var finalDiagnostics = diagnostics + findings.map(\.engineDiagnostic)
         if status == .blocked,
            analysisResult.coverage.unsupportedConstructs.count > request.policy.maximumUnsupportedConstructs {
-            finalDiagnostics.append(XcircuiteEngineDiagnostic(
+            finalDiagnostics.append(RTLDiagnostic(
                 severity: .error,
                 code: "RTL_UNSUPPORTED_SEMANTICS",
                 message: "The requested analysis is blocked because the declared semantic coverage is insufficient.",
@@ -187,14 +186,14 @@ public enum RTLVerificationExecutionSupport {
         }
         if status == .blocked,
            !qualification.satisfies(request.policy.minimumQualification) {
-            finalDiagnostics.append(XcircuiteEngineDiagnostic(
+            finalDiagnostics.append(RTLDiagnostic(
                 severity: .error,
                 code: "RTL_QUALIFICATION_INSUFFICIENT",
                 message: "The backend qualification state does not satisfy the requested verification policy.",
                 suggestedActions: ["attach_qualification_evidence", "select_qualified_backend", "lower_policy_for_exploration"]
             ))
         }
-        let metadata = XcircuiteEngineExecutionMetadata(
+        let metadata = RTLExecutionMetadata(
             engineID: request.analysis.stageID,
             implementationID: implementationID,
             implementationVersion: implementationVersion,
@@ -208,12 +207,7 @@ public enum RTLVerificationExecutionSupport {
             status: status,
             diagnostics: finalDiagnostics,
             payload: payload,
-            inputArtifacts: uniqueReferences(
-                [request.design.artifact]
-                    + request.inputs
-                    + (request.referenceDesign.map { [$0.artifact] } ?? [])
-                    + request.referenceInputs
-            ),
+            inputArtifacts: uniqueReferences(request.inputs + request.referenceInputs),
             generatedAt: completedAt
         )
         let reportData = try encodeReport(report)
@@ -224,7 +218,7 @@ public enum RTLVerificationExecutionSupport {
         )
         artifacts.append(reportReference)
 
-        return XcircuiteEngineResultEnvelope(
+        return RTLVerificationResult(
             schemaVersion: RTLVerificationRequest.currentSchemaVersion,
             runID: request.runID,
             status: status,
@@ -235,7 +229,7 @@ public enum RTLVerificationExecutionSupport {
         )
     }
 
-    private static func uniqueReferences(_ references: [XcircuiteFileReference]) -> [XcircuiteFileReference] {
+    private static func uniqueReferences(_ references: [RTLArtifactReference]) -> [RTLArtifactReference] {
         var paths: Set<String> = []
         return references.filter { paths.insert($0.path).inserted }
     }
@@ -266,12 +260,12 @@ public enum RTLVerificationExecutionSupport {
         )
     }
 
-    public static func blockedEnvelope(
+    public static func blockedResult(
         request: RTLVerificationRequest,
         environment: RTLVerificationEnvironment,
         startedAt: Date,
         error: RTLVerificationExecutionError
-    ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) async throws -> RTLVerificationResult {
         let diagnostic = makeDiagnostic(error, status: .blocked)
         return try await finalize(
             request: request,

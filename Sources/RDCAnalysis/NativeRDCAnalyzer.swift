@@ -1,7 +1,6 @@
 import Foundation
 import LogicIR
 import RTLVerificationCore
-import XcircuitePackage
 
 public struct NativeRDCAnalyzer: RDCAnalyzing {
     public var environment: RTLVerificationEnvironment
@@ -20,10 +19,10 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
 
     public func execute(
         _ request: RTLVerificationRequest
-    ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) async throws -> RTLVerificationResult {
         let startedAt = Date()
         guard request.analysis == .rdc else {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -59,12 +58,12 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
                 constraintExceptionKinds: constraintContext.exceptionKinds,
                 asynchronousClockGroups: constraintContext.asynchronousClockGroups
             )
-            let requestedStatus: XcircuiteEngineExecutionStatus = analysis.resetDomains.isEmpty || analysis.hasUnresolvedClock
+            let requestedStatus: RTLExecutionStatus = analysis.resetDomains.isEmpty || analysis.hasUnresolvedClock
                 ? .blocked
                 : .completed
-            var diagnostics: [XcircuiteEngineDiagnostic] = []
+            var diagnostics: [RTLDiagnostic] = []
             if analysis.resetDomains.isEmpty {
-                diagnostics.append(XcircuiteEngineDiagnostic(
+                diagnostics.append(RTLDiagnostic(
                     severity: .error,
                     code: "RDC_RESET_DOMAIN_UNRESOLVED",
                     message: "No reset domain could be inferred from the sequential RTL.",
@@ -72,7 +71,7 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
                 ))
             }
             if analysis.hasUnresolvedClock {
-                diagnostics.append(XcircuiteEngineDiagnostic(
+                diagnostics.append(RTLDiagnostic(
                     severity: .error,
                     code: "RDC_CLOCK_DOMAIN_UNRESOLVED",
                     message: "At least one sequential reset process has no resolvable clock domain.",
@@ -88,7 +87,7 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
                 analysisResult: RTLVerificationAnalysisResult(findings: analysis.findings, coverage: coverage)
             )
         } catch let error as RTLVerificationExecutionError {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,

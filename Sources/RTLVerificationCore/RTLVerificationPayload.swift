@@ -1,5 +1,4 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationPayload: Sendable, Hashable, Codable {
     public var requestDigest: String?

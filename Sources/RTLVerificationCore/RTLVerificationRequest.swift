@@ -1,19 +1,18 @@
 import Foundation
-import XcircuitePackage
 import LogicIR
 import TimingCore
 
-public struct RTLVerificationRequest: XcircuiteEngineRequest {
+public struct RTLVerificationRequest: RTLExecutionRequest {
     public static let currentSchemaVersion = 1
 
     public var schemaVersion: Int
     public var runID: String
-    public var inputs: [XcircuiteFileReference]
+    public var inputs: [RTLArtifactReference]
 
     public var design: LogicDesignReference
     public var referenceDesign: LogicDesignReference?
-    public var referenceInputs: [XcircuiteFileReference]
-    public var constraints: TimingConstraintReference?
+    public var referenceInputs: [RTLArtifactReference]
+    public var constraints: RTLConstraintReference?
     public var analysis: RTLVerificationAnalysis
     public var policy: RTLVerificationPolicy
     public var waivers: [RTLVerificationWaiver]
@@ -41,11 +40,11 @@ public struct RTLVerificationRequest: XcircuiteEngineRequest {
 
     public init(
         runID: String,
-        inputs: [XcircuiteFileReference],
+        inputs: [RTLArtifactReference],
         design: LogicDesignReference,
         referenceDesign: LogicDesignReference? = nil,
-        referenceInputs: [XcircuiteFileReference] = [],
-        constraints: TimingConstraintReference? = nil,
+        referenceInputs: [RTLArtifactReference] = [],
+        constraints: RTLConstraintReference? = nil,
         analysis: RTLVerificationAnalysis = .lint,
         policy: RTLVerificationPolicy = RTLVerificationPolicy(),
         waivers: [RTLVerificationWaiver] = [],
@@ -83,11 +82,11 @@ public struct RTLVerificationRequest: XcircuiteEngineRequest {
         }
         self.init(
             runID: try container.decode(String.self, forKey: .runID),
-            inputs: try container.decode([XcircuiteFileReference].self, forKey: .inputs),
+            inputs: try container.decode([RTLArtifactReference].self, forKey: .inputs),
             design: try container.decode(LogicDesignReference.self, forKey: .design),
             referenceDesign: try container.decodeIfPresent(LogicDesignReference.self, forKey: .referenceDesign),
-            referenceInputs: try container.decodeIfPresent([XcircuiteFileReference].self, forKey: .referenceInputs) ?? [],
-            constraints: try container.decodeIfPresent(TimingConstraintReference.self, forKey: .constraints),
+            referenceInputs: try container.decodeIfPresent([RTLArtifactReference].self, forKey: .referenceInputs) ?? [],
+            constraints: try container.decodeIfPresent(RTLConstraintReference.self, forKey: .constraints),
             analysis: try container.decodeIfPresent(RTLVerificationAnalysis.self, forKey: .analysis) ?? .lint,
             policy: try container.decodeIfPresent(RTLVerificationPolicy.self, forKey: .policy) ?? RTLVerificationPolicy(),
             waivers: try container.decodeIfPresent([RTLVerificationWaiver].self, forKey: .waivers) ?? [],

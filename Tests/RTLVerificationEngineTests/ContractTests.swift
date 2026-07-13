@@ -4,7 +4,6 @@ import LogicLowering
 import LogicIR
 import TimingCore
 import Testing
-import XcircuitePackage
 @testable import RTLVerificationCore
 @testable import RTLLint
 @testable import CDCAnalysis
@@ -263,7 +262,7 @@ struct ContractTests {
 
     @Test("request and payload round trip")
     func requestAndPayloadRoundTrip() throws {
-        let reference = XcircuiteFileReference(
+        let reference = makeTestArtifactReference(
             path: "rtl/top.sv",
             kind: .rtl,
             format: .systemVerilog
@@ -272,7 +271,7 @@ struct ContractTests {
             runID: "run-001",
             inputs: [reference],
             design: LogicDesignReference(
-                artifact: reference,
+                artifact: reference.locator,
                 topDesignName: "top",
                 designDigest: "design-digest"
             ),
@@ -427,7 +426,7 @@ struct ContractTests {
         endmodule
         """
         let rtl = makeReference(path: "rdc-constrained.sv", format: .systemVerilog)
-        let sdc = XcircuiteFileReference(path: "rdc.sdc", kind: .constraint, format: .sdc)
+        let sdc = makeTestArtifactReference(path: "rdc.sdc", kind: .constraint, format: .sdc)
         let reader = InMemoryRTLArtifactReader(artifacts: [
             rtl.path: Data(source.utf8),
             sdc.path: Data("create_clock -name clk -period 10 [get_ports clk]".utf8)
@@ -435,7 +434,7 @@ struct ContractTests {
         var request = makeRequest(
             reference: rtl,
             analysis: .rdc,
-            constraints: TimingConstraintReference(artifact: sdc, modeIDs: ["reset-signoff"])
+            constraints: RTLConstraintReference(artifact: sdc, modeIDs: ["reset-signoff"])
         )
         request.inputs.append(sdc)
 
@@ -458,7 +457,7 @@ struct ContractTests {
         endmodule
         """
         let rtl = makeReference(path: "rdc-unconstrained.sv", format: .systemVerilog)
-        let sdc = XcircuiteFileReference(path: "rdc-unconstrained.sdc", kind: .constraint, format: .sdc)
+        let sdc = makeTestArtifactReference(path: "rdc-unconstrained.sdc", kind: .constraint, format: .sdc)
         let reader = InMemoryRTLArtifactReader(artifacts: [
             rtl.path: Data(source.utf8),
             sdc.path: Data("create_clock -name clk -period 10 [get_ports clk]".utf8)
@@ -466,7 +465,7 @@ struct ContractTests {
         var request = makeRequest(
             reference: rtl,
             analysis: .rdc,
-            constraints: TimingConstraintReference(artifact: sdc, modeIDs: ["reset-signoff"])
+            constraints: RTLConstraintReference(artifact: sdc, modeIDs: ["reset-signoff"])
         )
         request.inputs.append(sdc)
 
@@ -627,7 +626,7 @@ struct ContractTests {
             reference: implementationReference,
             analysis: .formalEquivalence,
             referenceDesign: LogicDesignReference(
-                artifact: referenceDesignReference,
+                artifact: referenceDesignReference.locator,
                 topDesignName: "top",
                 designDigest: "reference-digest"
             )
@@ -681,12 +680,12 @@ struct ContractTests {
         let mappedData = try encodeJSON(mappedDocument)
         let mappedReference = makeJSONReference(path: "mapped-design.json", kind: .netlist, data: mappedData)
         let sourceDesign = LogicDesignReference(
-            artifact: sourceReference,
+            artifact: sourceReference.locator,
             topDesignName: "top",
             designDigest: try #require(snapshot.designDigest)
         )
         let mappedDesign = LogicDesignReference(
-            artifact: mappedReference,
+            artifact: mappedReference.locator,
             topDesignName: "top",
             designDigest: try #require(mappedReference.sha256)
         )
@@ -749,12 +748,12 @@ struct ContractTests {
             runID: "mapped-proof-mismatch",
             inputs: [sourceReference, mappedReference],
             design: LogicDesignReference(
-                artifact: sourceReference,
+                artifact: sourceReference.locator,
                 topDesignName: "top",
                 designDigest: try #require(snapshot.designDigest)
             ),
             referenceDesign: LogicDesignReference(
-                artifact: mappedReference,
+                artifact: mappedReference.locator,
                 topDesignName: "top",
                 designDigest: try #require(mappedReference.sha256)
             ),
@@ -1195,8 +1194,8 @@ struct ContractTests {
         #expect(!report.evidence.contains { $0.kind == .processQualification })
     }
 
-    @Test("oracle evidence requires digest-bound artifacts")
-    func oracleEvidenceRequiresDigestBoundArtifacts() throws {
+    @Test("oracle evidence rejects unmatched correlation")
+    func oracleEvidenceRejectsUnmatchedCorrelation() throws {
         let report = RTLVerificationOracleCorrelationReport(
             caseID: "oracle-case",
             nativeImplementationID: "native",
@@ -1204,7 +1203,7 @@ struct ContractTests {
             nativeImplementationVersion: "1",
             oracleImplementationVersion: "1",
             independenceVerified: true,
-            matched: true
+            matched: false
         )
         let evidence = RTLVerificationOracleEvidence(
             evidenceID: "oracle-evidence",
@@ -1212,7 +1211,7 @@ struct ContractTests {
             requestDigest: "request-digest",
             nativePayloadRequestDigest: "request-digest",
             oraclePayloadRequestDigest: "request-digest",
-            nativeArtifact: XcircuiteFileReference(
+            nativeArtifact: makeTestArtifactReference(
                 path: "native.json",
                 kind: .report,
                 format: .json
@@ -1432,7 +1431,7 @@ struct ContractTests {
         endmodule
         """
         let rtl = makeReference(path: "constrained.sv", format: .systemVerilog)
-        let sdc = XcircuiteFileReference(path: "constraints.sdc", kind: .constraint, format: .sdc)
+        let sdc = makeTestArtifactReference(path: "constraints.sdc", kind: .constraint, format: .sdc)
         let reader = InMemoryRTLArtifactReader(artifacts: [
             rtl.path: Data(source.utf8),
             sdc.path: Data("""
@@ -1444,7 +1443,7 @@ struct ContractTests {
         var request = makeRequest(
             reference: rtl,
             analysis: .cdc,
-            constraints: TimingConstraintReference(artifact: sdc, modeIDs: ["functional"])
+            constraints: RTLConstraintReference(artifact: sdc, modeIDs: ["functional"])
         )
         request.inputs.append(sdc)
 
@@ -1475,7 +1474,7 @@ struct ContractTests {
             reference: implementation,
             analysis: .formalEquivalence,
             referenceDesign: LogicDesignReference(
-                artifact: reference,
+                artifact: reference.locator,
                 topDesignName: "top",
                 designDigest: "reference-digest"
             ),
@@ -1601,16 +1600,16 @@ struct ContractTests {
             runID: "formal-reference-source-set",
             inputs: [implementationTop, implementationChild],
             design: LogicDesignReference(
-                artifact: implementationTop,
+                artifact: implementationTop.locator,
                 topDesignName: "top",
                 designDigest: "implementation-digest"
             ),
             referenceDesign: LogicDesignReference(
-                artifact: referenceTop,
+                artifact: referenceTop.locator,
                 topDesignName: "top",
                 designDigest: "reference-digest"
             ),
-            referenceInputs: [referenceChild],
+            referenceInputs: [referenceTop, referenceChild],
             analysis: .formalEquivalence
         )
 
@@ -1638,8 +1637,8 @@ struct ContractTests {
         ])
     }
 
-    private func makeReference(path: String, format: XcircuiteFileFormat) -> XcircuiteFileReference {
-        XcircuiteFileReference(path: path, kind: .rtl, format: format)
+    private func makeReference(path: String, format: ArtifactFormat) -> RTLArtifactReference {
+        makeTestArtifactReference(path: path, kind: .rtl, format: format)
     }
 
     private func encodeJSON<Value: Encodable>(_ value: Value) throws -> Data {
@@ -1650,25 +1649,25 @@ struct ContractTests {
 
     private func makeJSONReference(
         path: String,
-        kind: XcircuiteFileKind,
+        kind: ArtifactKind,
         data: Data,
         artifactID: String? = nil
-    ) -> XcircuiteFileReference {
-        XcircuiteFileReference(
+    ) -> RTLArtifactReference {
+        makeTestArtifactReference(
             artifactID: artifactID,
             path: path,
             kind: kind,
             format: .json,
-            sha256: XcircuiteHasher().sha256(data: data),
+            sha256: SHA256ContentDigester().sha256(data: data),
             byteCount: Int64(data.count)
         )
     }
 
     private func makeRequest(
-        reference: XcircuiteFileReference,
+        reference: RTLArtifactReference,
         analysis: RTLVerificationAnalysis,
         referenceDesign: LogicDesignReference? = nil,
-        constraints: TimingConstraintReference? = nil,
+        constraints: RTLConstraintReference? = nil,
         waivers: [RTLVerificationWaiver] = [],
         policy: RTLVerificationPolicy = RTLVerificationPolicy(),
         frontend: RTLVerificationFrontendOptions = RTLVerificationFrontendOptions(),
@@ -1679,7 +1678,7 @@ struct ContractTests {
             runID: "test-run",
             inputs: [reference],
             design: LogicDesignReference(
-                artifact: reference,
+                artifact: reference.locator,
                 topDesignName: "top",
                 designDigest: "design-digest"
             ),

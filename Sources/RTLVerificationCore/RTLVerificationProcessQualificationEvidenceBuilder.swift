@@ -1,5 +1,4 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificationProcessQualificationEvidenceBuilding {
     public init() {}
@@ -194,7 +193,7 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
     }
 
     private func validateArtifacts(
-        _ artifacts: [XcircuiteFileReference]
+        _ artifacts: [RTLArtifactReference]
     ) throws -> Set<String> {
         guard !artifacts.isEmpty else {
             throw RTLVerificationProcessQualificationEvidenceBuildError.invalidInput(
@@ -214,8 +213,7 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
                   let sha256 = artifact.sha256,
                   sha256.count == 64,
                   sha256.allSatisfy(\.isHexDigit),
-                  let byteCount = artifact.byteCount,
-                  byteCount >= 0 else {
+                  artifact.byteCount >= 0 else {
                 throw RTLVerificationProcessQualificationEvidenceBuildError.invalidArtifact(artifactID)
             }
         }

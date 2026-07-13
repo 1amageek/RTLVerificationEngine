@@ -1,37 +1,38 @@
 import Foundation
-import XcircuitePackage
+import CircuiteFoundation
 
 public struct FileSystemRTLArtifactStore: RTLArtifactWriting {
     public var projectRoot: URL
-    private var packageStore: XcircuitePackageStore
 
-    public init(projectRoot: URL, packageStore: XcircuitePackageStore = XcircuitePackageStore()) {
+    public init(projectRoot: URL) {
         self.projectRoot = projectRoot
-        self.packageStore = packageStore
     }
 
     public func persist(
         _ data: Data,
         artifactID: String,
         runID: String
-    ) async throws -> XcircuiteFileReference {
+    ) async throws -> RTLArtifactReference {
         let safeArtifactID = artifactID.replacingOccurrences(of: "/", with: "-")
         let relativePath = ".xcircuite/runs/\(runID)/\(safeArtifactID).json"
-        let url: URL
+        let url = projectRoot.appending(path: relativePath)
         do {
-            url = try packageStore.url(forProjectRelativePath: relativePath, inProjectAt: projectRoot)
             try FileManager.default.createDirectory(
                 at: url.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
             try data.write(to: url, options: .atomic)
-            return try packageStore.fileReference(
-                forProjectRelativePath: relativePath,
-                artifactID: artifactID,
-                kind: .report,
-                format: .json,
-                inProjectAt: projectRoot,
-                producedByRunID: runID
+            let location = try ArtifactLocation(fileURL: url)
+            return ArtifactReference(
+                id: try ArtifactID(rawValue: artifactID),
+                locator: ArtifactLocator(
+                    location: location,
+                    role: .output,
+                    kind: .report,
+                    format: .json
+                ),
+                digest: try SHA256ContentDigester().digest(data: data),
+                byteCount: UInt64(data.count)
             )
         } catch {
             throw RTLVerificationExecutionError.artifactWriteFailed(

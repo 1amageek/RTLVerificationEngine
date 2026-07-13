@@ -3,18 +3,17 @@ import LogicIR
 import Testing
 import RTLVerificationCore
 import RTLVerificationEngine
-import XcircuitePackage
 
 @Suite("RTL external adapter")
 struct ExternalAdapterTests {
     @Test("unqualified external tools are blocked")
     func unqualifiedToolIsBlocked() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-blocked",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -36,12 +35,12 @@ struct ExternalAdapterTests {
 
     @Test("qualified external tools return a validated envelope")
     func qualifiedToolReturnsEnvelope() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-qualified",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -67,12 +66,12 @@ struct ExternalAdapterTests {
 
     @Test("external proof-view mismatches are rejected")
     func externalProofViewMismatchIsRejected() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-proof-view-mismatch",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -107,12 +106,12 @@ struct ExternalAdapterTests {
 
     @Test("external result identity is bound to the descriptor")
     func externalResultIdentityMismatchIsRejected() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-identity-mismatch",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -141,12 +140,12 @@ struct ExternalAdapterTests {
 
     @Test("external adapter forwards the configured process timeout")
     func externalTimeoutIsForwarded() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-timeout",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -175,12 +174,12 @@ struct ExternalAdapterTests {
 
     @Test("invalid external timeouts are blocked before execution")
     func invalidExternalTimeoutBlocks() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-invalid-timeout",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -206,12 +205,12 @@ struct ExternalAdapterTests {
 
     @Test("external adapter executes a real process and binds the request digest")
     func externalAdapterExecutesRealProcess() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-real-process",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -273,12 +272,12 @@ struct ExternalAdapterTests {
 
     @Test("external adapter blocks when a real process exceeds its timeout")
     func externalAdapterRealProcessTimeoutBlocks() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-real-timeout",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -304,12 +303,12 @@ struct ExternalAdapterTests {
 
     @Test("independent oracle executor binds the oracle to the native request")
     func independentOracleExecutorBindsNativeRequest() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-oracle",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -342,12 +341,12 @@ struct ExternalAdapterTests {
 
     @Test("independent oracle executor rejects self-correlation")
     func independentOracleExecutorRejectsSelfCorrelation() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-oracle-self",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -378,12 +377,12 @@ struct ExternalAdapterTests {
 
     @Test("solver-backed external proof requires a digest-bound proof artifact")
     func solverBackedExternalProofRequiresArtifact() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-solver-artifact",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -418,12 +417,12 @@ struct ExternalAdapterTests {
 
     @Test("solver-backed external proof accepts a digest-bound proof artifact")
     func solverBackedExternalProofAcceptsArtifact() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-solver-artifact-valid",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -434,14 +433,14 @@ struct ExternalAdapterTests {
             request: request,
             implementationID: "qualified-solver"
         )
-        output.artifacts = [XcircuiteFileReference(
+        output.artifacts = [makeTestArtifactReference(
             artifactID: "solver-proof-certificate",
             path: "proof/certificate.json",
             kind: .report,
             format: .json,
+            role: .output,
             sha256: String(repeating: "a", count: 64),
-            byteCount: 1,
-            producedByRunID: request.runID
+            byteCount: 1
         )]
         let engine = ExternalRTLVerificationEngine(
             descriptor: RTLExternalToolDescriptor(
@@ -465,13 +464,13 @@ struct ExternalAdapterTests {
         request: RTLVerificationRequest,
         implementationID: String = "qualified-tool",
         implementationVersion: String = "1"
-    ) throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) throws -> RTLVerificationResult {
         let now = Date(timeIntervalSince1970: 1)
-        return XcircuiteEngineResultEnvelope(
+        return RTLVerificationResult(
             schemaVersion: RTLVerificationRequest.currentSchemaVersion,
             runID: request.runID,
             status: .completed,
-            metadata: XcircuiteEngineExecutionMetadata(
+            metadata: RTLExecutionMetadata(
                 engineID: request.analysis.stageID,
                 implementationID: implementationID,
                 implementationVersion: implementationVersion,
@@ -497,12 +496,12 @@ struct ExternalAdapterTests {
 
     @Test("external results must bind to the exact request digest")
     func externalRequestDigestMismatchIsRejected() async throws {
-        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-request-digest-mismatch",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact,
+                artifact: artifact.locator,
                 topDesignName: "top",
                 designDigest: "digest"
             ),

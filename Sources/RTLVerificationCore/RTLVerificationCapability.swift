@@ -1,11 +1,10 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationCapability: Sendable, Hashable, Codable {
     public var engineID: String
     public var contractVersion: Int
-    public var supportedInputFormats: [XcircuiteFileFormat]
-    public var supportedOutputFormats: [XcircuiteFileFormat]
+    public var supportedInputFormats: [ArtifactFormat]
+    public var supportedOutputFormats: [ArtifactFormat]
     public var features: [String]
     public var limitations: [String]
     public var qualification: RTLVerificationQualificationReport
@@ -23,8 +22,8 @@ public struct RTLVerificationCapability: Sendable, Hashable, Codable {
     public init(
         engineID: String,
         contractVersion: Int,
-        supportedInputFormats: [XcircuiteFileFormat],
-        supportedOutputFormats: [XcircuiteFileFormat],
+        supportedInputFormats: [ArtifactFormat],
+        supportedOutputFormats: [ArtifactFormat],
         features: [String],
         limitations: [String],
         qualification: RTLVerificationQualificationReport = RTLVerificationQualificationReport()
@@ -43,8 +42,8 @@ public struct RTLVerificationCapability: Sendable, Hashable, Codable {
         self.init(
             engineID: try container.decode(String.self, forKey: .engineID),
             contractVersion: try container.decode(Int.self, forKey: .contractVersion),
-            supportedInputFormats: try container.decode([XcircuiteFileFormat].self, forKey: .supportedInputFormats),
-            supportedOutputFormats: try container.decode([XcircuiteFileFormat].self, forKey: .supportedOutputFormats),
+            supportedInputFormats: try container.decode([ArtifactFormat].self, forKey: .supportedInputFormats),
+            supportedOutputFormats: try container.decode([ArtifactFormat].self, forKey: .supportedOutputFormats),
             features: try container.decodeIfPresent([String].self, forKey: .features) ?? [],
             limitations: try container.decodeIfPresent([String].self, forKey: .limitations) ?? [],
             qualification: try container.decodeIfPresent(

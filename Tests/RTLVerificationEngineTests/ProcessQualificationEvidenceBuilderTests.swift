@@ -1,7 +1,6 @@
 import Foundation
 import Testing
 import RTLVerificationCore
-import XcircuitePackage
 
 @Suite("RTL process qualification evidence builder")
 struct ProcessQualificationEvidenceBuilderTests {
@@ -167,8 +166,8 @@ struct ProcessQualificationEvidenceBuilderTests {
         id: String,
         path: String,
         fill: Character
-    ) -> XcircuiteFileReference {
-        XcircuiteFileReference(
+    ) -> RTLArtifactReference {
+        makeTestArtifactReference(
             artifactID: id,
             path: path,
             kind: .report,

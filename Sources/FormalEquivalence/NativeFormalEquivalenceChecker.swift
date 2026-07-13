@@ -1,7 +1,6 @@
 import Foundation
 import LogicIR
 import RTLVerificationCore
-import XcircuitePackage
 
 public struct NativeFormalEquivalenceChecker: FormalEquivalenceChecking {
     public var environment: RTLVerificationEnvironment
@@ -20,13 +19,13 @@ public struct NativeFormalEquivalenceChecker: FormalEquivalenceChecking {
 
     public func execute(
         _ request: RTLVerificationRequest
-    ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) async throws -> RTLVerificationResult {
         let startedAt = Date()
         if request.proofView == .rtlToMappedExecutionStructural {
             return try await NativeMappedExecutionEquivalenceChecker(environment: environment).execute(request)
         }
         guard request.analysis == .formalEquivalence else {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -34,7 +33,7 @@ public struct NativeFormalEquivalenceChecker: FormalEquivalenceChecking {
             )
         }
         guard request.referenceDesign != nil else {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -42,7 +41,7 @@ public struct NativeFormalEquivalenceChecker: FormalEquivalenceChecking {
             )
         }
         guard request.proofView == .rtlToRtlStructural else {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -52,7 +51,7 @@ public struct NativeFormalEquivalenceChecker: FormalEquivalenceChecking {
             )
         }
         guard request.assumptions.isEmpty else {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -81,7 +80,7 @@ public struct NativeFormalEquivalenceChecker: FormalEquivalenceChecking {
                 ] + unsupported.map { "Unsupported construct: \($0)" },
                 sourceArtifacts: implementation.sourceArtifacts + reference.sourceArtifacts
             )
-            let status: XcircuiteEngineExecutionStatus = unsupported.isEmpty && comparison.mismatches.isEmpty ? .completed : .blocked
+            let status: RTLExecutionStatus = unsupported.isEmpty && comparison.mismatches.isEmpty ? .completed : .blocked
             let findings: [RTLVerificationFinding]
             if !unsupported.isEmpty {
                 findings = [RTLVerificationFinding(
@@ -141,7 +140,7 @@ public struct NativeFormalEquivalenceChecker: FormalEquivalenceChecking {
                 )
             )
         } catch let error as RTLVerificationExecutionError {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,

@@ -1,6 +1,5 @@
 import Foundation
 import RTLVerificationCore
-import XcircuitePackage
 
 public enum RTLVerificationEngineAPI {
     public static let contractVersion = 1

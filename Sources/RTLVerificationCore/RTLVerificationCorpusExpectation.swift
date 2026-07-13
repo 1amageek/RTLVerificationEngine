@@ -1,15 +1,14 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationCorpusExpectation: Sendable, Hashable, Codable {
-    public var status: XcircuiteEngineExecutionStatus
+    public var status: RTLExecutionStatus
     public var requiredFindingCodes: [String]
     public var forbiddenFindingCodes: [String]
     public var proofStatus: String?
     public var minimumAnalyzedFraction: Double?
 
     public init(
-        status: XcircuiteEngineExecutionStatus,
+        status: RTLExecutionStatus,
         requiredFindingCodes: [String] = [],
         forbiddenFindingCodes: [String] = [],
         proofStatus: String? = nil,

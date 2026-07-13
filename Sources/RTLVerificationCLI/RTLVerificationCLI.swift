@@ -4,7 +4,6 @@ import LogicIR
 import RTLVerificationCore
 import RTLVerificationEngine
 import TimingCore
-import XcircuitePackage
 
 @main
 struct RTLVerificationCLI {
@@ -34,20 +33,20 @@ struct RTLVerificationCLI {
 
     private static func run(
         arguments: [String]
-    ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) async throws -> RTLVerificationResult {
         let options = try Options(arguments: arguments)
         if options.help {
-            return XcircuiteEngineResultEnvelope(
+            return RTLVerificationResult(
                 schemaVersion: RTLVerificationRequest.currentSchemaVersion,
                 runID: "help",
                 status: .completed,
-                diagnostics: [XcircuiteEngineDiagnostic(
+                diagnostics: [RTLDiagnostic(
                     severity: .info,
                     code: "RTL_CLI_HELP",
                 message: "Use --analysis, --project-root, repeated --rtl/--reference, --top, --run-id, optional --constraint, frontend options, proof view, waivers, assumptions and --qualification-input.",
                 suggestedActions: ["run_rtl_verify"]
                 )],
-                metadata: XcircuiteEngineExecutionMetadata(
+                metadata: RTLExecutionMetadata(
                     engineID: "rtl.cli",
                     implementationID: RTLVerificationExecutionSupport.implementationID,
                     implementationVersion: RTLVerificationExecutionSupport.implementationVersion,
@@ -58,10 +57,10 @@ struct RTLVerificationCLI {
             )
         }
 
-        let packageStore = XcircuitePackageStore()
+        let referenceBuilder = RTLArtifactReferenceBuilder()
         let inputPaths = try options.inputPaths(projectRoot: options.projectRoot)
         let rtlReferences = try inputPaths.enumerated().map { index, path in
-            try packageStore.fileReference(
+            try referenceBuilder.reference(
                 forProjectRelativePath: path,
                 artifactID: index == 0 ? "rtl-input" : "rtl-input-\(index)",
                 kind: .rtl,
@@ -73,12 +72,12 @@ struct RTLVerificationCLI {
             throw RTLVerificationExecutionError.invalidRequest("At least one --rtl input is required.")
         }
         let design = LogicDesignReference(
-            artifact: rtlReference,
+            artifact: rtlReference.locator,
             topDesignName: options.topModule,
             designDigest: rtlReference.sha256 ?? ""
         )
         let referenceReferences = try options.referencePaths.enumerated().map { index, referencePath in
-            try packageStore.fileReference(
+            try referenceBuilder.reference(
                 forProjectRelativePath: referencePath,
                 artifactID: index == 0 ? "rtl-reference" : "rtl-reference-\(index)",
                 kind: .rtl,
@@ -89,7 +88,7 @@ struct RTLVerificationCLI {
         let referenceDesign: LogicDesignReference?
         if let reference = referenceReferences.first {
             referenceDesign = LogicDesignReference(
-                artifact: reference,
+                artifact: reference.locator,
                 topDesignName: options.topModule,
                 designDigest: reference.sha256 ?? ""
             )
@@ -97,27 +96,27 @@ struct RTLVerificationCLI {
             referenceDesign = nil
         }
         let referenceInputs = Array(referenceReferences.dropFirst())
-        let constraintReference: TimingConstraintReference?
+        let constraintReference: RTLConstraintReference?
         if let constraintPath = options.constraintPath {
-            let reference = try packageStore.fileReference(
+            let reference = try referenceBuilder.reference(
                 forProjectRelativePath: constraintPath,
                 artifactID: "rtl-constraints",
                 kind: .constraint,
                 format: .sdc,
                 inProjectAt: options.projectRoot
             )
-            constraintReference = TimingConstraintReference(artifact: reference, modeIDs: options.constraintModes)
+            constraintReference = RTLConstraintReference(artifact: reference, modeIDs: options.constraintModes)
         } else {
             constraintReference = nil
         }
         let waivers = try options.waiversPath.map {
-            try packageStore.readJSON([RTLVerificationWaiver].self, named: $0, forProjectAt: options.projectRoot)
+            try referenceBuilder.readJSON([RTLVerificationWaiver].self, named: $0, forProjectAt: options.projectRoot)
         } ?? []
         let assumptions = try options.assumptionsPath.map {
-            try packageStore.readJSON([RTLVerificationAssumption].self, named: $0, forProjectAt: options.projectRoot)
+            try referenceBuilder.readJSON([RTLVerificationAssumption].self, named: $0, forProjectAt: options.projectRoot)
         } ?? []
         let qualificationInput = try options.qualificationInputPath.map {
-            try packageStore.readJSON(
+            try referenceBuilder.readJSON(
                 RTLVerificationQualificationInput.self,
                 named: $0,
                 forProjectAt: options.projectRoot
@@ -154,7 +153,7 @@ struct RTLVerificationCLI {
         return try await RTLVerificationEngine(environment: environment).execute(request)
     }
 
-    private static func format(for path: String) -> XcircuiteFileFormat {
+    private static func format(for path: String) -> ArtifactFormat {
         switch URL(fileURLWithPath: path).pathExtension.lowercased() {
         case "sv", "svh": return .systemVerilog
         case "v", "vh": return .verilog

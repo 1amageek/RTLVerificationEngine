@@ -1,7 +1,7 @@
 import Foundation
+import CircuiteFoundation
 import LogicIR
 import SystemVerilogFrontend
-import XcircuitePackage
 
 public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificationSourceSetParsing {
     public init() {}
@@ -13,11 +13,7 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
     ) throws -> RTLVerificationParsedDesign {
         try parse(
             sources: [RTLVerificationSourceInput(
-                reference: XcircuiteFileReference(
-                    path: path,
-                    kind: .rtl,
-                    format: .systemVerilog
-                ),
+                reference: try Self.makeReference(path: path, data: data, format: .systemVerilog),
                 data: data
             )],
             topModuleName: topModuleName,
@@ -33,9 +29,9 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
     ) throws -> RTLVerificationParsedDesign {
         try parse(
             sources: [RTLVerificationSourceInput(
-                reference: XcircuiteFileReference(
+                reference: try Self.makeReference(
                     path: path,
-                    kind: .rtl,
+                    data: data,
                     format: path.lowercased().hasSuffix(".v") ? .verilog : .systemVerilog
                 ),
                 data: data
@@ -105,7 +101,7 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
         let sourceFiles = sources.enumerated().map { index, source in
             LogicSourceFile(
                 path: source.path,
-                sha256: XcircuiteHasher().sha256(data: source.data),
+                sha256: RTLHasher().sha256(data: source.data),
                 byteCount: Int64(source.data.count)
             )
         }
@@ -117,6 +113,24 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
             requireTopModule: options.requireTopModule,
             unsupportedDirectives: unsupportedDirectives,
             sourceFiles: sourceFiles
+        )
+    }
+
+    private static func makeReference(
+        path: String,
+        data: Data,
+        format: ArtifactFormat
+    ) throws -> RTLArtifactReference {
+        ArtifactReference(
+            id: ArtifactID(stableKey: "rtl-source:\(path)"),
+            locator: ArtifactLocator(
+                location: try ArtifactLocation(workspaceRelativePath: path),
+                role: .input,
+                kind: .rtl,
+                format: format
+            ),
+            digest: try SHA256ContentDigester().digest(data: data),
+            byteCount: UInt64(data.count)
         )
     }
 

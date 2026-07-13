@@ -1,5 +1,4 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationCorpusRun: Sendable, Hashable, Codable {
     public static let currentSchemaVersion = 1
@@ -7,15 +6,15 @@ public struct RTLVerificationCorpusRun: Sendable, Hashable, Codable {
     public var schemaVersion: Int
     public var runID: String
     public var evaluations: [RTLVerificationCorpusEvaluation]
-    public var resultArtifacts: [String: XcircuiteFileReference]
-    public var summaryArtifact: XcircuiteFileReference?
+    public var resultArtifacts: [String: RTLArtifactReference]
+    public var summaryArtifact: RTLArtifactReference?
     public var completedAt: Date
 
     public init(
         runID: String,
         evaluations: [RTLVerificationCorpusEvaluation],
-        resultArtifacts: [String: XcircuiteFileReference],
-        summaryArtifact: XcircuiteFileReference? = nil,
+        resultArtifacts: [String: RTLArtifactReference],
+        summaryArtifact: RTLArtifactReference? = nil,
         completedAt: Date = Date(),
         schemaVersion: Int = RTLVerificationCorpusRun.currentSchemaVersion
     ) {

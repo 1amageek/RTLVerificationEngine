@@ -3,7 +3,6 @@ import LogicEngineCore
 import LogicIR
 import LogicLowering
 import RTLVerificationCore
-import XcircuitePackage
 
 public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking {
     public var environment: RTLVerificationEnvironment
@@ -21,10 +20,10 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
 
     public func execute(
         _ request: RTLVerificationRequest
-    ) async throws -> XcircuiteEngineResultEnvelope<RTLVerificationPayload> {
+    ) async throws -> RTLVerificationResult {
         let startedAt = Date()
         guard request.analysis == .formalEquivalence else {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -32,7 +31,7 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
             )
         }
         guard let mappedReference = request.referenceDesign else {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -40,7 +39,7 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
             )
         }
         guard request.proofView == .rtlToMappedExecutionStructural else {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -48,7 +47,7 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
             )
         }
         guard request.assumptions.isEmpty else {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -58,11 +57,15 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
 
         do {
             let sourceData = try environment.reader.read(request.design.artifact)
-            try validateArtifactIntegrity(sourceData, reference: request.design.artifact)
+            if let sourceReference = request.inputs.first(where: { $0.locator == request.design.artifact }) {
+                try validateArtifactIntegrity(sourceData, reference: sourceReference)
+            }
             let sourceDocument = try loadSourceDocument(sourceData, request: request)
 
             let mappedData = try environment.reader.read(mappedReference.artifact)
-            try validateArtifactIntegrity(mappedData, reference: mappedReference.artifact)
+            if let mappedArtifactReference = request.referenceInputs.first(where: { $0.locator == mappedReference.artifact }) {
+                try validateArtifactIntegrity(mappedData, reference: mappedArtifactReference)
+            }
             let mappedDocument = try loadMappedDocument(mappedData, request: request)
 
             let comparison = compare(sourceDocument, mappedDocument)
@@ -142,21 +145,21 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
                 )
             )
         } catch let error as RTLVerificationExecutionError {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
                 error: error
             )
         } catch let error as LogicExecutionError {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
                 error: .invalidArtifact(error.localizedDescription)
             )
         } catch {
-            return try await RTLVerificationExecutionSupport.blockedEnvelope(
+            return try await RTLVerificationExecutionSupport.blockedResult(
                 request: request,
                 environment: environment,
                 startedAt: startedAt,
@@ -180,7 +183,7 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
             }
             let lowering = NativeLogicDesignLowering().lower(snapshot)
             guard lowering.status == .completed, let document = lowering.document else {
-                let message = lowering.diagnostics.map(\.message).joined(separator: "; ")
+                let message = lowering.diagnostics.map(\.summary).joined(separator: "; ")
                 throw RTLVerificationExecutionError.invalidArtifact(
                     "source snapshot could not be lowered into the native execution graph: \(message)"
                 )
@@ -201,7 +204,7 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
                     "source design top \(document.topDesignName) does not match request top \(request.design.topDesignName)"
                 )
             }
-            let digest = XcircuiteHasher().sha256(data: data)
+            let digest = RTLHasher().sha256(data: data)
             guard request.design.designDigest == digest else {
                 throw RTLVerificationExecutionError.invalidArtifact(
                     "source design document digest does not match the request design reference"
@@ -241,9 +244,9 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
 
     private func validateArtifactIntegrity(
         _ data: Data,
-        reference: XcircuiteFileReference
+        reference: RTLArtifactReference
     ) throws {
-        let hasher = XcircuiteHasher()
+        let hasher = RTLHasher()
         if let expectedSHA256 = reference.sha256 {
             let actualSHA256 = hasher.sha256(data: data)
             guard expectedSHA256 == actualSHA256 else {
@@ -253,24 +256,23 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
                 )
             }
         }
-        if let expectedByteCount = reference.byteCount {
-            guard expectedByteCount == Int64(data.count) else {
+        let expectedByteCount = reference.byteCount
+        guard expectedByteCount == UInt64(data.count) else {
                 throw RTLVerificationExecutionError.artifactReadFailed(
                     path: reference.path,
                     reason: "Byte count does not match the artifact reference."
                 )
-            }
         }
     }
 
     private func sourceArtifactReference(
-        _ reference: XcircuiteFileReference,
+        _ reference: ArtifactLocator,
         data: Data,
         order: Int
     ) -> RTLVerificationSourceArtifact {
         RTLVerificationSourceArtifact(
             path: reference.path,
-            sha256: XcircuiteHasher().sha256(data: data),
+            sha256: RTLHasher().sha256(data: data),
             byteCount: Int64(data.count),
             order: order
         )

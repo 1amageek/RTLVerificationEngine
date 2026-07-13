@@ -1,13 +1,12 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationOracleCorrelator: RTLVerificationOracleCorrelating {
     public init() {}
 
     public func correlate(
         caseID: String,
-        native: XcircuiteEngineResultEnvelope<RTLVerificationPayload>,
-        oracle: XcircuiteEngineResultEnvelope<RTLVerificationPayload>
+        native: RTLVerificationResult,
+        oracle: RTLVerificationResult
     ) -> RTLVerificationOracleCorrelationReport {
         var mismatches: [RTLVerificationOracleCorrelationMismatch] = []
         let independenceVerified = native.metadata.implementationID != oracle.metadata.implementationID

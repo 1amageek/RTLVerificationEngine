@@ -1,5 +1,4 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationQualificationInputArtifactAuditor: Sendable {
     public init() {}
@@ -29,7 +28,7 @@ public struct RTLVerificationQualificationInputArtifactAuditor: Sendable {
     }
 
     private func verify(
-        _ artifacts: [XcircuiteFileReference],
+        _ artifacts: [RTLArtifactReference],
         reader: any RTLArtifactReading
     ) throws {
         for artifact in artifacts {

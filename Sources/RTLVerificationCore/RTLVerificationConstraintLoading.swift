@@ -1,6 +1,5 @@
 import Foundation
 import TimingCore
-import XcircuitePackage
 
 public struct RTLVerificationConstraintLoader: Sendable {
     public var reader: any RTLArtifactReading
@@ -9,7 +8,7 @@ public struct RTLVerificationConstraintLoader: Sendable {
         self.reader = reader
     }
 
-    public func load(_ reference: TimingConstraintReference) throws -> RTLVerificationConstraintContext {
+    public func load(_ reference: RTLConstraintReference) throws -> RTLVerificationConstraintContext {
         let data = try reader.read(reference.artifact)
         let modeIDs = reference.modeIDs.isEmpty ? ["default"] : reference.modeIDs
         do {
@@ -18,7 +17,7 @@ public struct RTLVerificationConstraintLoader: Sendable {
                 sets,
                 sourceArtifact: RTLVerificationSourceArtifact(
                     path: reference.artifact.path,
-                    sha256: XcircuiteHasher().sha256(data: data),
+                    sha256: RTLHasher().sha256(data: data),
                     byteCount: Int64(data.count),
                     order: 0
                 )

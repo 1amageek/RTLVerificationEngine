@@ -1,17 +1,16 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationCorpusEvaluation: Sendable, Hashable, Codable {
     public var caseID: String
     public var matched: Bool
-    public var observedStatus: XcircuiteEngineExecutionStatus
+    public var observedStatus: RTLExecutionStatus
     public var observedFindingCodes: [String]
     public var mismatches: [RTLVerificationCorpusMismatch]
 
     public init(
         caseID: String,
         matched: Bool,
-        observedStatus: XcircuiteEngineExecutionStatus,
+        observedStatus: RTLExecutionStatus,
         observedFindingCodes: [String],
         mismatches: [RTLVerificationCorpusMismatch]
     ) {

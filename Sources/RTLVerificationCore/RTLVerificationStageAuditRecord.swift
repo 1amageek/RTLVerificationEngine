@@ -1,5 +1,4 @@
 import Foundation
-import XcircuitePackage
 
 public struct RTLVerificationStageAuditRecord: Sendable, Hashable, Codable {
     public static let currentSchemaVersion = 1
@@ -8,7 +7,7 @@ public struct RTLVerificationStageAuditRecord: Sendable, Hashable, Codable {
     public var stageID: String
     public var runID: String
     public var requestDigest: String
-    public var status: XcircuiteEngineExecutionStatus
+    public var status: RTLExecutionStatus
     public var qualificationState: RTLVerificationQualificationState
     public var artifactIDs: [String]
     public var resumable: Bool
@@ -19,7 +18,7 @@ public struct RTLVerificationStageAuditRecord: Sendable, Hashable, Codable {
         stageID: String,
         runID: String,
         requestDigest: String,
-        status: XcircuiteEngineExecutionStatus,
+        status: RTLExecutionStatus,
         qualificationState: RTLVerificationQualificationState,
         artifactIDs: [String],
         resumable: Bool,
