@@ -48,6 +48,367 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
         var body: String
     }
 
+    private enum ConditionalExpressionError: Error {
+        case invalid
+    }
+
+    private enum ConditionalExpressionToken: Sendable, Equatable {
+        case identifier(String)
+        case number(Int64)
+        case leftParenthesis
+        case rightParenthesis
+        case logicalNot
+        case logicalAnd
+        case logicalOr
+        case equal
+        case notEqual
+        case less
+        case lessOrEqual
+        case greater
+        case greaterOrEqual
+        case plus
+        case minus
+    }
+
+    private struct ConditionalExpressionParser: Sendable {
+        private var tokens: [ConditionalExpressionToken]
+        private var index: Int = 0
+        private let defines: [String: String]
+        private let functionNames: Set<String>
+
+        init(
+            expression: String,
+            defines: [String: String],
+            functionNames: Set<String>
+        ) throws {
+            self.tokens = try Self.tokenize(expression)
+            self.defines = defines
+            self.functionNames = functionNames
+        }
+
+        mutating func evaluate() throws -> Bool {
+            let value = try parseLogicalOr()
+            guard index == tokens.count else { throw ConditionalExpressionError.invalid }
+            return value != 0
+        }
+
+        private mutating func parseLogicalOr() throws -> Int64 {
+            var value = try parseLogicalAnd()
+            while consumeLogicalOr() {
+                let right = try parseLogicalAnd()
+                value = value != 0 || right != 0 ? 1 : 0
+            }
+            return value
+        }
+
+        private mutating func parseLogicalAnd() throws -> Int64 {
+            var value = try parseEquality()
+            while consumeLogicalAnd() {
+                let right = try parseEquality()
+                value = value != 0 && right != 0 ? 1 : 0
+            }
+            return value
+        }
+
+        private mutating func parseEquality() throws -> Int64 {
+            var value = try parseRelational()
+            while true {
+                if consumeEqual() {
+                    let right = try parseRelational()
+                    value = value == right ? 1 : 0
+                } else if consumeNotEqual() {
+                    let right = try parseRelational()
+                    value = value != right ? 1 : 0
+                } else {
+                    return value
+                }
+            }
+        }
+
+        private mutating func parseRelational() throws -> Int64 {
+            var value = try parseUnary()
+            while true {
+                if consumeLessOrEqual() {
+                    let right = try parseUnary()
+                    value = value <= right ? 1 : 0
+                } else if consumeLess() {
+                    let right = try parseUnary()
+                    value = value < right ? 1 : 0
+                } else if consumeGreaterOrEqual() {
+                    let right = try parseUnary()
+                    value = value >= right ? 1 : 0
+                } else if consumeGreater() {
+                    let right = try parseUnary()
+                    value = value > right ? 1 : 0
+                } else {
+                    return value
+                }
+            }
+        }
+
+        private mutating func parseUnary() throws -> Int64 {
+            if consumeLogicalNot() {
+                return try parseUnary() == 0 ? 1 : 0
+            }
+            if consumePlus() {
+                return try parseUnary()
+            }
+            if consumeMinus() {
+                return -(try parseUnary())
+            }
+            return try parsePrimary()
+        }
+
+        private mutating func parsePrimary() throws -> Int64 {
+            guard index < tokens.count else { throw ConditionalExpressionError.invalid }
+            switch tokens[index] {
+            case .number(let value):
+                index += 1
+                return value
+            case .identifier(let name):
+                index += 1
+                if name == "defined" {
+                    if consumeLeftParenthesis() {
+                        guard case .identifier(let macroName) = current else {
+                            throw ConditionalExpressionError.invalid
+                        }
+                        index += 1
+                        guard consumeRightParenthesis() else {
+                            throw ConditionalExpressionError.invalid
+                        }
+                        return isDefined(macroName) ? 1 : 0
+                    }
+                    guard case .identifier(let macroName) = current else {
+                        throw ConditionalExpressionError.invalid
+                    }
+                    index += 1
+                    return isDefined(macroName) ? 1 : 0
+                }
+                return try value(of: name)
+            case .leftParenthesis:
+                index += 1
+                let value = try parseLogicalOr()
+                guard consumeRightParenthesis() else {
+                    throw ConditionalExpressionError.invalid
+                }
+                return value
+            default:
+                throw ConditionalExpressionError.invalid
+            }
+        }
+
+        private var current: ConditionalExpressionToken? {
+            index < tokens.count ? tokens[index] : nil
+        }
+
+        private func isDefined(_ name: String) -> Bool {
+            defines[name] != nil || functionNames.contains(name)
+        }
+
+        private func value(of name: String) throws -> Int64 {
+            guard let rawValue = defines[name] else {
+                return functionNames.contains(name) ? 1 : 0
+            }
+            let normalized = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            if normalized.isEmpty { return 1 }
+            return try Self.parseInteger(normalized)
+        }
+
+        private mutating func consumeLeftParenthesis() -> Bool {
+            guard case .leftParenthesis = current else { return false }
+            index += 1
+            return true
+        }
+
+        private mutating func consumeRightParenthesis() -> Bool {
+            guard case .rightParenthesis = current else { return false }
+            index += 1
+            return true
+        }
+
+        private mutating func consumeLogicalNot() -> Bool {
+            consume(.logicalNot)
+        }
+
+        private mutating func consumeLogicalAnd() -> Bool {
+            consume(.logicalAnd)
+        }
+
+        private mutating func consumeLogicalOr() -> Bool {
+            consume(.logicalOr)
+        }
+
+        private mutating func consumeEqual() -> Bool {
+            consume(.equal)
+        }
+
+        private mutating func consumeNotEqual() -> Bool {
+            consume(.notEqual)
+        }
+
+        private mutating func consumeLess() -> Bool {
+            consume(.less)
+        }
+
+        private mutating func consumeLessOrEqual() -> Bool {
+            consume(.lessOrEqual)
+        }
+
+        private mutating func consumeGreater() -> Bool {
+            consume(.greater)
+        }
+
+        private mutating func consumeGreaterOrEqual() -> Bool {
+            consume(.greaterOrEqual)
+        }
+
+        private mutating func consumePlus() -> Bool {
+            consume(.plus)
+        }
+
+        private mutating func consumeMinus() -> Bool {
+            consume(.minus)
+        }
+
+        private mutating func consume(_ expected: ConditionalExpressionToken) -> Bool {
+            guard let current, current == expected else { return false }
+            index += 1
+            return true
+        }
+
+        private static func tokenize(_ expression: String) throws -> [ConditionalExpressionToken] {
+            var tokens: [ConditionalExpressionToken] = []
+            var index = expression.startIndex
+            while index < expression.endIndex {
+                let character = expression[index]
+                if character.isWhitespace {
+                    index = expression.index(after: index)
+                    continue
+                }
+                if character == "(" {
+                    tokens.append(.leftParenthesis)
+                    index = expression.index(after: index)
+                    continue
+                }
+                if character == ")" {
+                    tokens.append(.rightParenthesis)
+                    index = expression.index(after: index)
+                    continue
+                }
+                if character == "!" {
+                    let next = expression.index(after: index)
+                    if next < expression.endIndex, expression[next] == "=" {
+                        tokens.append(.notEqual)
+                        index = expression.index(after: next)
+                    } else {
+                        tokens.append(.logicalNot)
+                        index = next
+                    }
+                    continue
+                }
+                if character == "&" || character == "|" {
+                    let next = expression.index(after: index)
+                    guard next < expression.endIndex, expression[next] == character else {
+                        throw ConditionalExpressionError.invalid
+                    }
+                    tokens.append(character == "&" ? .logicalAnd : .logicalOr)
+                    index = expression.index(after: next)
+                    continue
+                }
+                if character == "=" {
+                    let next = expression.index(after: index)
+                    guard next < expression.endIndex, expression[next] == "=" else {
+                        throw ConditionalExpressionError.invalid
+                    }
+                    tokens.append(.equal)
+                    index = expression.index(after: next)
+                    continue
+                }
+                if character == "<" || character == ">" {
+                    let next = expression.index(after: index)
+                    if next < expression.endIndex, expression[next] == "=" {
+                        tokens.append(character == "<" ? .lessOrEqual : .greaterOrEqual)
+                        index = expression.index(after: next)
+                    } else {
+                        tokens.append(character == "<" ? .less : .greater)
+                        index = next
+                    }
+                    continue
+                }
+                if character == "+" {
+                    tokens.append(.plus)
+                    index = expression.index(after: index)
+                    continue
+                }
+                if character == "-" {
+                    tokens.append(.minus)
+                    index = expression.index(after: index)
+                    continue
+                }
+                if character.isNumber || character == "'" {
+                    let start = index
+                    index = expression.index(after: index)
+                    while index < expression.endIndex,
+                          isNumberCharacter(expression[index]) {
+                        index = expression.index(after: index)
+                    }
+                    let raw = String(expression[start..<index])
+                    tokens.append(.number(try parseInteger(raw)))
+                    continue
+                }
+                if isIdentifierStart(character) {
+                    let start = index
+                    index = expression.index(after: index)
+                    while index < expression.endIndex,
+                          isIdentifierCharacter(expression[index]) {
+                        index = expression.index(after: index)
+                    }
+                    tokens.append(.identifier(String(expression[start..<index])))
+                    continue
+                }
+                throw ConditionalExpressionError.invalid
+            }
+            return tokens
+        }
+
+        private static func parseInteger(_ raw: String) throws -> Int64 {
+            let normalized = raw.replacingOccurrences(of: "_", with: "")
+            if normalized == "'0" { return 0 }
+            if normalized == "'1" { return 1 }
+            if let quote = normalized.firstIndex(of: "'") {
+                let baseAndDigits = normalized[normalized.index(after: quote)...]
+                guard let base = baseAndDigits.first else { throw ConditionalExpressionError.invalid }
+                let digits = baseAndDigits.dropFirst()
+                let radix: Int
+                switch base.lowercased() {
+                case "b": radix = 2
+                case "o": radix = 8
+                case "d": radix = 10
+                case "h": radix = 16
+                default: throw ConditionalExpressionError.invalid
+                }
+                guard let value = Int64(digits, radix: radix) else {
+                    throw ConditionalExpressionError.invalid
+                }
+                return value
+            }
+            guard let value = Int64(normalized) else { throw ConditionalExpressionError.invalid }
+            return value
+        }
+
+        private static func isNumberCharacter(_ character: Character) -> Bool {
+            character.isNumber || character.isLetter || character == "_" || character == "'"
+        }
+
+        private static func isIdentifierStart(_ character: Character) -> Bool {
+            character == "_" || character.isLetter
+        }
+
+        private static func isIdentifierCharacter(_ character: Character) -> Bool {
+            isIdentifierStart(character) || character.isNumber || character == "$"
+        }
+    }
+
     private struct State: Sendable {
         var defines: [String: String]
         var functionDefines: [String: FunctionMacro] = [:]
@@ -109,6 +470,25 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
                         state.functionDefines.removeValue(forKey: String(key))
                     }
                     append("", path: path, state: &state)
+                case "if":
+                    let expression = directive.dropFirst().map(String.init).joined(separator: " ")
+                    guard !expression.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                        throw RTLVerificationExecutionError.parserFailed(
+                            path: path,
+                            reason: "Preprocessor directive `if` requires an expression."
+                        )
+                    }
+                    let parentActive = state.isActive
+                    let condition = parentActive
+                        ? (evaluateConditionalExpression(expression, state: &state) ?? false)
+                        : false
+                    state.frames.append(ConditionalFrame(
+                        parentActive: parentActive,
+                        branchTaken: condition,
+                        currentBranchActive: condition,
+                        inElse: false
+                    ))
+                    append("", path: path, state: &state)
                 case "ifdef", "ifndef":
                     guard let key = directive.dropFirst().first else {
                         throw RTLVerificationExecutionError.parserFailed(
@@ -139,14 +519,17 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
                             reason: "Preprocessor `elsif` cannot follow `else`."
                         )
                     }
-                    guard let key = directive.dropFirst().first else {
+                    let expression = directive.dropFirst().map(String.init).joined(separator: " ")
+                    guard !expression.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                         throw RTLVerificationExecutionError.parserFailed(
                             path: path,
-                            reason: "Preprocessor directive `elsif` requires a macro name."
+                            reason: "Preprocessor directive `elsif` requires an expression."
                         )
                     }
-                    let condition = state.defines[String(key)] != nil
-                        || state.functionDefines[String(key)] != nil
+                    let canEvaluate = state.frames[index].parentActive && !state.frames[index].branchTaken
+                    let condition = canEvaluate
+                        ? (evaluateConditionalExpression(expression, state: &state) ?? false)
+                        : false
                     state.frames[index].currentBranchActive = !state.frames[index].branchTaken && condition
                     state.frames[index].branchTaken = state.frames[index].branchTaken || condition
                     append("", path: path, state: &state)
@@ -228,6 +611,25 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
             }
             let expanded = expandMacros(in: line, state: &state)
             append(expanded, path: path, state: &state)
+        }
+    }
+
+    private func evaluateConditionalExpression(
+        _ expression: String,
+        state: inout State
+    ) -> Bool? {
+        let expanded = expandMacros(in: expression, state: &state)
+        do {
+            var parser = try ConditionalExpressionParser(
+                expression: expanded,
+                defines: state.defines,
+                functionNames: Set(state.functionDefines.keys)
+            )
+            return try parser.evaluate()
+        } catch {
+            let normalized = expression.trimmingCharacters(in: .whitespacesAndNewlines)
+            state.unsupported.insert("conditional_expression:\(normalized)")
+            return nil
         }
     }
 

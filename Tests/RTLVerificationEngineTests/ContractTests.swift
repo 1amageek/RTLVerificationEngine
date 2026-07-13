@@ -88,6 +88,56 @@ struct ContractTests {
         #expect(preprocessed.unsupportedDirectives == ["define_function_recursion:LOOP"])
     }
 
+    @Test("frontend evaluates bounded conditional expressions")
+    func frontendEvaluatesConditionalExpressions() throws {
+        let source = """
+        `define WIDTH 8
+        `if (`WIDTH < 8) && defined(WIDTH)
+        module wrong;
+        endmodule
+        `elsif WIDTH == 8
+        module selected;
+        endmodule
+        `else
+        module fallback;
+        endmodule
+        `endif
+        """
+
+        let preprocessed = try SystemVerilogRTLPreprocessor().preprocess(
+            source,
+            path: "conditional-expression.sv",
+            options: RTLVerificationFrontendOptions()
+        )
+
+        #expect(preprocessed.unsupportedDirectives.isEmpty)
+        #expect(preprocessed.source.contains("module selected;"))
+        #expect(!preprocessed.source.contains("module wrong;"))
+        #expect(!preprocessed.source.contains("module fallback;"))
+    }
+
+    @Test("frontend reports unsupported conditional expressions")
+    func frontendReportsUnsupportedConditionalExpressions() throws {
+        let source = """
+        `if 8 >> 1
+        module unsupported;
+        endmodule
+        `else
+        module fallback;
+        endmodule
+        `endif
+        """
+
+        let preprocessed = try SystemVerilogRTLPreprocessor().preprocess(
+            source,
+            path: "unsupported-conditional-expression.sv",
+            options: RTLVerificationFrontendOptions()
+        )
+
+        #expect(preprocessed.unsupportedDirectives == ["conditional_expression:8 >> 1"])
+        #expect(preprocessed.source.contains("module fallback;"))
+    }
+
     @Test("frontend rejects an unknown requested top module")
     func frontendRejectsUnknownTopModule() {
         let source = Data("module top; endmodule".utf8)
