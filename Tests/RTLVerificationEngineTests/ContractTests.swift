@@ -19,6 +19,17 @@ struct ContractTests {
         #expect(RTLVerificationEngineAPI.contractVersion == 1)
     }
 
+    @Test("lint rule catalog is versioned and repair-oriented")
+    func lintRuleCatalog() throws {
+        #expect(RTLVerificationLintRuleCatalog.schemaVersion == 1)
+        #expect(Set(RTLVerificationLintRuleCatalog.rules.map(\.code)).count == RTLVerificationLintRuleCatalog.rules.count)
+
+        let widthRule = try #require(RTLVerificationLintRuleCatalog.rule(for: "RTL_WIDTH_MISMATCH"))
+        #expect(widthRule.severity == .error)
+        #expect(widthRule.suggestedActions.contains("resize_expression"))
+        #expect(RTLVerificationLintRuleCatalog.rule(for: "unknown-rule") == nil)
+    }
+
     @Test("frontend rejects an unknown requested top module")
     func frontendRejectsUnknownTopModule() {
         let source = Data("module top; endmodule".utf8)

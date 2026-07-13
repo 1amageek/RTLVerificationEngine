@@ -17,6 +17,7 @@ The work is intentionally staged around trust boundaries. The first implementati
 ## Implemented native slice
 
 - Shared typed request, payload, finding, waiver, coverage, report and capability contracts.
+- Versioned native lint rule catalog with stable finding codes, severity and repair actions.
 - Canonical `SystemVerilogFrontend` adapter into `LogicIR.RTLDesign`, with deterministic source-set preprocessing and provenance mapping.
 - Multi-file implementation and reference source sets with deterministic defines, conditional compilation, include resolution, include-cycle diagnostics and source provenance.
 - Native lint, CDC, RDC, RTL structural equivalence and mapped LogicEngine execution-graph equivalence backends.

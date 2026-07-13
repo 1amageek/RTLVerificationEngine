@@ -4,7 +4,7 @@ Static RTL quality, clock/reset-domain analysis and formal equivalence contracts
 
 ## Status
 
-The package provides deterministic native implementations for the declared SystemVerilog subset, a canonical `SystemVerilogFrontend` adapter with include resolution and provenance, a qualified-envelope external adapter, immutable JSON artifacts, a JSON CLI, persisted retained-corpus and oracle-evidence builders, retained fixtures, and an Xcircuite flow-stage adapter.
+The package provides deterministic native implementations for the declared SystemVerilog subset, a canonical `SystemVerilogFrontend` adapter with include resolution and provenance, a versioned lint rule catalog with repair actions, a qualified-envelope external adapter, immutable JSON artifacts, a JSON CLI, persisted retained-corpus and oracle-evidence builders, retained fixtures, and an Xcircuite flow-stage adapter.
 
 Native formal equivalence is intentionally scoped to exact canonical structural equivalence for RTL-to-RTL and mapped execution graphs. Solver-backed temporal equivalence and process-specific qualification remain blocked until independent tool and process evidence is supplied.
 
@@ -17,7 +17,7 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Gate | Status | Evidence |
 |---|---|---|
 | Native package build | Passed | `swift build` |
-| SwiftPM contract suite | Passed | 44 tests in 6 suites |
+| SwiftPM contract suite | Passed | 45 tests in 6 suites |
 | Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` |
 | CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
 | Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
@@ -131,6 +131,6 @@ For SwiftPM-only checkouts, the equivalent package test command is:
 perl -e 'alarm 60; exec @ARGV' -- swift test --filter RTLVerificationEngineTests
 ```
 
-The test suite covers request/payload compatibility, canonical RTL frontend parameters/case statements, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution, mapped execution graph proof and mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, digest-bound oracle evidence artifacts, oracle independence and mismatch retention, process qualification freshness and scope binding, qualified external-tool envelopes, proof-view validation, process timeout forwarding and deterministic release blocking.
+The test suite covers request/payload compatibility, the versioned repair-oriented lint rule catalog, canonical RTL frontend parameters/case statements, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution, mapped execution graph proof and mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, digest-bound oracle evidence artifacts, oracle independence and mismatch retention, process qualification freshness and scope binding, qualified external-tool envelopes, proof-view validation, process timeout forwarding and deterministic release blocking.
 
 See `DESIGN.md`, `INTERFACES.md`, `IMPLEMENTATION_PLAN.md`, `MILESTONES.md` and `GOAL_STATUS.md` before implementing a backend or interpreting a result as qualified.

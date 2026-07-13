@@ -12,7 +12,7 @@ public enum RTLVerificationEngineAPI {
             contractVersion: contractVersion,
             supportedInputFormats: [.systemVerilog, .verilog, .json],
             supportedOutputFormats: [.json],
-            features: ["semantic-lint", "connectivity-lint", "width-lint", "combinational-loop-detection"],
+            features: ["semantic-lint", "connectivity-lint", "width-lint", "combinational-loop-detection", "versioned-rule-catalog"],
             limitations: ["SystemVerilog support is intentionally subset-scoped."]
         ),
         RTLVerificationCapability(
