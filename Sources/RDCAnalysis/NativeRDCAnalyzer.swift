@@ -32,13 +32,13 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
         }
         do {
             let parsed = try RTLVerificationDesignLoader(reader: environment.reader, parser: environment.parser).load(request)
-            let analysis = analyze(parsed.design)
             let constraintContext: RTLVerificationConstraintContext
             if let constraints = request.constraints {
                 constraintContext = try RTLVerificationConstraintLoader(reader: environment.reader).load(constraints)
             } else {
                 constraintContext = RTLVerificationConstraintContext()
             }
+            let analysis = analyze(parsed.design, constraintContext: constraintContext)
             let coverage = RTLVerificationCoverage(
                 totalConstructs: parsed.constructCount,
                 analyzedConstructs: parsed.analyzedConstructCount,
@@ -57,13 +57,26 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
                 constraintExceptionKinds: constraintContext.exceptionKinds,
                 asynchronousClockGroups: constraintContext.asynchronousClockGroups
             )
-            let requestedStatus: XcircuiteEngineExecutionStatus = analysis.resetDomains.isEmpty ? .blocked : .completed
-            let diagnostics = analysis.resetDomains.isEmpty ? [XcircuiteEngineDiagnostic(
-                severity: .error,
-                code: "RDC_RESET_DOMAIN_UNRESOLVED",
-                message: "No reset domain could be inferred from the sequential RTL.",
-                suggestedActions: ["declare_reset_event", "add_reset_constraint"]
-            )] : []
+            let requestedStatus: XcircuiteEngineExecutionStatus = analysis.resetDomains.isEmpty || analysis.hasUnresolvedClock
+                ? .blocked
+                : .completed
+            var diagnostics: [XcircuiteEngineDiagnostic] = []
+            if analysis.resetDomains.isEmpty {
+                diagnostics.append(XcircuiteEngineDiagnostic(
+                    severity: .error,
+                    code: "RDC_RESET_DOMAIN_UNRESOLVED",
+                    message: "No reset domain could be inferred from the sequential RTL.",
+                    suggestedActions: ["declare_reset_event", "add_reset_constraint"]
+                ))
+            }
+            if analysis.hasUnresolvedClock {
+                diagnostics.append(XcircuiteEngineDiagnostic(
+                    severity: .error,
+                    code: "RDC_CLOCK_DOMAIN_UNRESOLVED",
+                    message: "At least one sequential reset process has no resolvable clock domain.",
+                    suggestedActions: ["declare_clock_event", "add_clock_constraint"]
+                ))
+            }
             return try await RTLVerificationExecutionSupport.finalize(
                 request: request,
                 environment: environment,
@@ -86,18 +99,37 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
         var findings: [RTLVerificationFinding]
         var clockDomains: [String]
         var resetDomains: [String]
+        var hasUnresolvedClock: Bool
     }
 
-    private func analyze(_ design: RTLDesign) -> Analysis {
+    private func analyze(
+        _ design: RTLDesign,
+        constraintContext: RTLVerificationConstraintContext
+    ) -> Analysis {
         var findings: [RTLVerificationFinding] = []
         var clocks: Set<String> = []
         var resetToClocks: [String: Set<String>] = [:]
         var resetDomains: Set<String> = []
+        var unresolvedClock = false
 
         for module in design.modules {
             for process in module.processes where process.kind == .sequential {
                 let clock = RTLVerificationAnalysisHelpers.clockName(for: process)
-                if let clock { clocks.insert(clock) }
+                if let clock {
+                    clocks.insert(clock)
+                    if !constraintContext.clockNames.isEmpty,
+                       !constraintContext.containsClock(clock) {
+                        findings.append(RTLVerificationFinding(
+                            severity: .error,
+                            code: "RDC_CLOCK_UNCONSTRAINED",
+                            message: "The inferred reset-process clock is not declared in the supplied timing constraints.",
+                            entity: "\(module.name).\(clock)",
+                            suggestedActions: ["declare_clock_in_sdc", "verify_clock_source"]
+                        ))
+                    }
+                } else {
+                    unresolvedClock = true
+                }
                 let resets = RTLVerificationAnalysisHelpers.resetNames(for: process)
                 if resets.isEmpty {
                     findings.append(RTLVerificationFinding(
@@ -139,7 +171,8 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
         return Analysis(
             findings: findings,
             clockDomains: Array(clocks).sorted(),
-            resetDomains: Array(resetDomains).sorted()
+            resetDomains: Array(resetDomains).sorted(),
+            hasUnresolvedClock: unresolvedClock
         )
     }
 }

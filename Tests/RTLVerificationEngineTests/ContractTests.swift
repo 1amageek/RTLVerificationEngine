@@ -302,6 +302,56 @@ struct ContractTests {
         #expect(envelope.payload.coverage.sourceArtifacts.contains { $0.path == "rdc.sdc" })
     }
 
+    @Test("RDC blocks an unconstrained reset-process clock", .timeLimit(.minutes(1)))
+    func rdcBlocksUnconstrainedClock() async throws {
+        let source = """
+        module top(input logic aux_clk, input logic rst_n, output logic q);
+          always_ff @(posedge aux_clk or negedge rst_n) begin
+            if (!rst_n) q <= 1'b0;
+            else q <= 1'b1;
+          end
+        endmodule
+        """
+        let rtl = makeReference(path: "rdc-unconstrained.sv", format: .systemVerilog)
+        let sdc = XcircuiteFileReference(path: "rdc-unconstrained.sdc", kind: .constraint, format: .sdc)
+        let reader = InMemoryRTLArtifactReader(artifacts: [
+            rtl.path: Data(source.utf8),
+            sdc.path: Data("create_clock -name clk -period 10 [get_ports clk]".utf8)
+        ])
+        var request = makeRequest(
+            reference: rtl,
+            analysis: .rdc,
+            constraints: TimingConstraintReference(artifact: sdc, modeIDs: ["reset-signoff"])
+        )
+        request.inputs.append(sdc)
+
+        let envelope = try await NativeRDCAnalyzer(reader: reader).execute(request)
+
+        #expect(envelope.status == .failed)
+        #expect(envelope.payload.findings.contains { $0.code == "RDC_CLOCK_UNCONSTRAINED" })
+    }
+
+    @Test("RDC blocks a reset process without a resolvable clock", .timeLimit(.minutes(1)))
+    func rdcBlocksUnresolvedClock() async throws {
+        let source = """
+        module top(input logic rst_n, output logic q);
+          always_ff @() begin
+            if (!rst_n) q <= 1'b0;
+            else q <= 1'b1;
+          end
+        endmodule
+        """
+        let reference = makeReference(path: "rdc-unresolved.sv", format: .systemVerilog)
+        let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
+
+        let envelope = try await NativeRDCAnalyzer(reader: reader).execute(
+            makeRequest(reference: reference, analysis: .rdc)
+        )
+
+        #expect(envelope.status == .blocked)
+        #expect(envelope.diagnostics.contains { $0.code == "RDC_CLOCK_DOMAIN_UNRESOLVED" })
+    }
+
     @Test("formal mismatch persists a counterexample artifact", .timeLimit(.minutes(1)))
     func formalCounterexampleFixture() async throws {
         let implementation = "module top(input logic a, output logic q); assign q = a; endmodule"
