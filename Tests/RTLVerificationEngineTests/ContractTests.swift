@@ -191,7 +191,10 @@ struct ContractTests {
                 message: "Crossing requires synchronization.",
                 entity: "top.q"
             )],
-            coverage: RTLVerificationCoverage(clockDomains: ["clk"]),
+            coverage: RTLVerificationCoverage(
+                clockDomains: ["clk"],
+                resetReleaseDomains: ["rst_n@clk"]
+            ),
             appliedWaivers: request.waivers,
             counterexampleArtifactIDs: [],
             reportVersion: 1
@@ -363,6 +366,121 @@ struct ContractTests {
 
         #expect(envelope.status == .failed)
         #expect(envelope.payload.findings.contains { $0.code == "RDC_CLOCK_UNCONSTRAINED" })
+    }
+
+    @Test("RDC records recognized reset release synchronizers across clock domains", .timeLimit(.minutes(1)))
+    func rdcRecognizesResetReleaseSynchronizers() async throws {
+        let source = """
+        module top(input logic clk_a, input logic clk_b, input logic rst_n, output logic q_a, output logic q_b);
+          logic a_sync1;
+          logic a_sync2;
+          logic a_direct;
+          logic b_sync1;
+          logic b_sync2;
+          always_ff @(posedge clk_a or negedge rst_n) begin
+            if (!rst_n) begin
+              a_sync1 <= 1'b0;
+              a_sync2 <= 1'b0;
+            end else begin
+              a_sync1 <= 1'b1;
+              a_sync2 <= a_sync1;
+            end
+          end
+          always_ff @(posedge clk_b or negedge rst_n) begin
+            if (!rst_n) begin
+              b_sync1 <= 1'b0;
+              b_sync2 <= 1'b0;
+            end else begin
+              b_sync1 <= 1'b1;
+              b_sync2 <= b_sync1;
+            end
+          end
+          assign q_a = a_sync2;
+          assign q_b = b_sync2;
+        endmodule
+        """
+        let reference = makeReference(path: "rdc-reset-sync.sv", format: .systemVerilog)
+        let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
+
+        let envelope = try await NativeRDCAnalyzer(reader: reader).execute(
+            makeRequest(reference: reference, analysis: .rdc)
+        )
+
+        #expect(envelope.status == .completed)
+        #expect(envelope.payload.coverage.resetReleaseDomains == ["rst_n@clk_a", "rst_n@clk_b"])
+        #expect(!envelope.payload.findings.contains { $0.code == "RDC_UNSAFE_RESET_CROSSING" })
+    }
+
+    @Test("RDC does not treat a mixed reset domain as synchronized", .timeLimit(.minutes(1)))
+    func rdcRejectsMixedResetDomain() async throws {
+        let source = """
+        module top(input logic clk_a, input logic clk_b, input logic rst_n, output logic q_a, output logic q_b);
+          logic a_sync1;
+          logic a_sync2;
+          logic b_sync1;
+          logic b_sync2;
+          always_ff @(posedge clk_a or negedge rst_n) begin
+            if (!rst_n) begin
+              a_sync1 <= 1'b0;
+              a_sync2 <= 1'b0;
+            end else begin
+              a_sync1 <= 1'b1;
+              a_sync2 <= a_sync1;
+            end
+          end
+          always_ff @(posedge clk_a or negedge rst_n) begin
+            if (!rst_n) a_direct <= 1'b0;
+            else a_direct <= 1'b1;
+          end
+          always_ff @(posedge clk_b or negedge rst_n) begin
+            if (!rst_n) begin
+              b_sync1 <= 1'b0;
+              b_sync2 <= 1'b0;
+            end else begin
+              b_sync1 <= 1'b1;
+              b_sync2 <= b_sync1;
+            end
+          end
+          assign q_a = a_sync2;
+          assign q_b = b_sync2;
+        endmodule
+        """
+        let reference = makeReference(path: "rdc-reset-mixed.sv", format: .systemVerilog)
+        let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
+
+        let envelope = try await NativeRDCAnalyzer(reader: reader).execute(
+            makeRequest(reference: reference, analysis: .rdc)
+        )
+
+        #expect(envelope.status == .failed)
+        #expect(envelope.payload.findings.contains { $0.code == "RDC_UNSAFE_RESET_CROSSING" })
+        #expect(envelope.payload.coverage.resetReleaseDomains == ["rst_n@clk_b"])
+    }
+
+    @Test("RDC blocks a cross-domain reset without synchronizers", .timeLimit(.minutes(1)))
+    func rdcBlocksUnsynchronizedResetCrossing() async throws {
+        let source = """
+        module top(input logic clk_a, input logic clk_b, input logic rst_n, output logic q_a, output logic q_b);
+          always_ff @(posedge clk_a or negedge rst_n) begin
+            if (!rst_n) q_a <= 1'b0;
+            else q_a <= 1'b1;
+          end
+          always_ff @(posedge clk_b or negedge rst_n) begin
+            if (!rst_n) q_b <= 1'b0;
+            else q_b <= 1'b1;
+          end
+        endmodule
+        """
+        let reference = makeReference(path: "rdc-reset-crossing.sv", format: .systemVerilog)
+        let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
+
+        let envelope = try await NativeRDCAnalyzer(reader: reader).execute(
+            makeRequest(reference: reference, analysis: .rdc)
+        )
+
+        #expect(envelope.status == .failed)
+        #expect(envelope.payload.coverage.resetReleaseDomains.isEmpty)
+        #expect(envelope.payload.findings.contains { $0.code == "RDC_UNSAFE_RESET_CROSSING" })
     }
 
     @Test("RDC blocks a reset process without a resolvable clock", .timeLimit(.minutes(1)))

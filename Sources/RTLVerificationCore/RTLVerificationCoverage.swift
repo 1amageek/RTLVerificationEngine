@@ -7,6 +7,7 @@ public struct RTLVerificationCoverage: Sendable, Hashable, Codable {
     public var unsupportedConstructs: [String]
     public var clockDomains: [String]
     public var resetDomains: [String]
+    public var resetReleaseDomains: [String]
     public var proofScope: String
     public var limitations: [String]
     public var sourceArtifacts: [RTLVerificationSourceArtifact]
@@ -23,6 +24,7 @@ public struct RTLVerificationCoverage: Sendable, Hashable, Codable {
         unsupportedConstructs: [String] = [],
         clockDomains: [String] = [],
         resetDomains: [String] = [],
+        resetReleaseDomains: [String] = [],
         proofScope: String = "none",
         limitations: [String] = [],
         sourceArtifacts: [RTLVerificationSourceArtifact] = [],
@@ -38,6 +40,7 @@ public struct RTLVerificationCoverage: Sendable, Hashable, Codable {
         self.unsupportedConstructs = unsupportedConstructs
         self.clockDomains = clockDomains
         self.resetDomains = resetDomains
+        self.resetReleaseDomains = resetReleaseDomains.sorted()
         self.proofScope = proofScope
         self.limitations = limitations
         self.sourceArtifacts = sourceArtifacts
@@ -64,6 +67,7 @@ public struct RTLVerificationCoverage: Sendable, Hashable, Codable {
         case unsupportedConstructs
         case clockDomains
         case resetDomains
+        case resetReleaseDomains
         case proofScope
         case limitations
         case sourceArtifacts
@@ -83,6 +87,10 @@ public struct RTLVerificationCoverage: Sendable, Hashable, Codable {
             unsupportedConstructs: try container.decodeIfPresent([String].self, forKey: .unsupportedConstructs) ?? [],
             clockDomains: try container.decodeIfPresent([String].self, forKey: .clockDomains) ?? [],
             resetDomains: try container.decodeIfPresent([String].self, forKey: .resetDomains) ?? [],
+            resetReleaseDomains: try container.decodeIfPresent(
+                [String].self,
+                forKey: .resetReleaseDomains
+            ) ?? [],
             proofScope: try container.decodeIfPresent(String.self, forKey: .proofScope) ?? "none",
             limitations: try container.decodeIfPresent([String].self, forKey: .limitations) ?? [],
             sourceArtifacts: try container.decodeIfPresent(

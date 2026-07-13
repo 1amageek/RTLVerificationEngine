@@ -29,7 +29,9 @@ public enum RTLVerificationEngineAPI {
             supportedInputFormats: [.systemVerilog, .verilog, .json],
             supportedOutputFormats: [.json],
             features: ["reset-domain-inference", "reset-release-crossing-detection"],
-            limitations: ["Reset sequencing constraints are not inferred from waveforms."]
+            limitations: [
+                "Reset release is recognized only from a conservative structural synchronizer pattern; waveform, UPF and process-specific intent are not inferred."
+            ]
         ),
         RTLVerificationCapability(
             engineID: "rtl.equivalence",

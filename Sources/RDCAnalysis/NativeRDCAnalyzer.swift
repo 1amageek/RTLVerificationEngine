@@ -45,8 +45,10 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
                 unsupportedConstructs: parsed.unsupportedConstructs,
                 clockDomains: Array(Set(analysis.clockDomains + constraintContext.clockNames)).sorted(),
                 resetDomains: analysis.resetDomains,
+                resetReleaseDomains: analysis.resetReleaseDomains,
                 proofScope: "reset-domain-crossing",
                 limitations: parsed.unsupportedConstructs.map { "Unsupported construct: \($0)" }
+                    + ["Reset release evidence is limited to a conservative structural synchronizer pattern; temporal and process qualification remain separate."]
                     + (constraintContext.exceptionCount > 0
                         ? ["SDC path exceptions are recorded for audit; native RDC does not treat them as safety waivers."]
                         : []),
@@ -99,6 +101,7 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
         var findings: [RTLVerificationFinding]
         var clockDomains: [String]
         var resetDomains: [String]
+        var resetReleaseDomains: [String]
         var hasUnresolvedClock: Bool
     }
 
@@ -109,7 +112,10 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
         var findings: [RTLVerificationFinding] = []
         var clocks: Set<String> = []
         var resetToClocks: [String: Set<String>] = [:]
+        var resetReleaseToClocks: [String: Set<String>] = [:]
+        var resetUnsynchronizedToClocks: [String: Set<String>] = [:]
         var resetDomains: Set<String> = []
+        var resetReleaseDomains: Set<String> = []
         var unresolvedClock = false
 
         for module in design.modules {
@@ -154,25 +160,127 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
                     let domain = "\(reset)@\(clock ?? "unknown-clock")"
                     resetDomains.insert(domain)
                     resetToClocks[reset, default: []].insert(clock ?? "unknown-clock")
+                    if let clock {
+                        if isResetReleaseSynchronizer(process, reset: reset) {
+                            resetReleaseToClocks[reset, default: []].insert(clock)
+                        } else {
+                            resetUnsynchronizedToClocks[reset, default: []].insert(clock)
+                        }
+                    }
                 }
             }
         }
 
+        for (reset, synchronizedClocks) in resetReleaseToClocks {
+            let unsynchronizedClocks = resetUnsynchronizedToClocks[reset, default: []]
+            for clock in synchronizedClocks where !unsynchronizedClocks.contains(clock) {
+                resetReleaseDomains.insert("\(reset)@\(clock)")
+            }
+        }
         for (reset, resetClocks) in resetToClocks where resetClocks.count > 1 {
-            findings.append(RTLVerificationFinding(
-                severity: .error,
-                code: "RDC_UNSAFE_RESET_CROSSING",
-                message: "A reset signal is used by multiple clock domains without a declared release relationship.",
-                entity: reset,
-                suggestedActions: ["synchronize_reset_release", "declare_reset_relationship"]
-            ))
+            let synchronizedClocks = resetReleaseToClocks[reset, default: []]
+            let unsynchronizedClocks = resetUnsynchronizedToClocks[reset, default: []]
+            if synchronizedClocks != resetClocks || !unsynchronizedClocks.isEmpty {
+                findings.append(RTLVerificationFinding(
+                    severity: .error,
+                    code: "RDC_UNSAFE_RESET_CROSSING",
+                    message: "A reset signal is used by multiple clock domains without a recognized release synchronizer in every domain.",
+                    entity: reset,
+                    suggestedActions: ["synchronize_reset_release", "declare_reset_relationship"]
+                ))
+            }
         }
 
         return Analysis(
             findings: findings,
             clockDomains: Array(clocks).sorted(),
             resetDomains: Array(resetDomains).sorted(),
+            resetReleaseDomains: Array(resetReleaseDomains).sorted(),
             hasUnresolvedClock: unresolvedClock
         )
+    }
+
+    private func isResetReleaseSynchronizer(_ process: RTLProcess, reset: String) -> Bool {
+        containsResetReleaseSynchronizer(in: process.statements, reset: reset)
+    }
+
+    private func containsResetReleaseSynchronizer(
+        in statements: [RTLStatement],
+        reset: String
+    ) -> Bool {
+        for statement in statements {
+            switch statement {
+            case .conditional(let condition, let ifTrue, let ifFalse):
+                if RTLVerificationAnalysisHelpers.expressionNames(condition).contains(reset),
+                   (isResetReleaseBranchPair(ifTrue, ifFalse) || isResetReleaseBranchPair(ifFalse, ifTrue)) {
+                    return true
+                }
+                if containsResetReleaseSynchronizer(in: ifTrue, reset: reset)
+                    || containsResetReleaseSynchronizer(in: ifFalse, reset: reset) {
+                    return true
+                }
+            case .block(let children):
+                if containsResetReleaseSynchronizer(in: children, reset: reset) {
+                    return true
+                }
+            case .caseStatement(_, let items, let defaults),
+                 .typedCaseStatement(_, _, let items, let defaults):
+                if items.contains(where: { containsResetReleaseSynchronizer(in: $0.statements, reset: reset) })
+                    || containsResetReleaseSynchronizer(in: defaults, reset: reset) {
+                    return true
+                }
+            case .assignment, .null:
+                continue
+            }
+        }
+        return false
+    }
+
+    private func isResetReleaseBranchPair(
+        _ assertedBranch: [RTLStatement],
+        _ releasedBranch: [RTLStatement]
+    ) -> Bool {
+        let assertedAssignments = RTLVerificationAnalysisHelpers.assignments(in: assertedBranch)
+        let releasedAssignments = RTLVerificationAnalysisHelpers.assignments(in: releasedBranch)
+        let assertedTargets = Set(assertedAssignments.compactMap(targetName(of:)))
+        let releasedTargets = Set(releasedAssignments.compactMap(targetName(of:)))
+        guard assertedTargets.count >= 2,
+              assertedTargets == releasedTargets,
+              assertedAssignments.count == assertedTargets.count,
+              releasedAssignments.count == releasedTargets.count,
+              assertedAssignments.allSatisfy(\.nonBlocking),
+              releasedAssignments.allSatisfy(\.nonBlocking) else {
+            return false
+        }
+
+        let assertedValues = assertedAssignments.compactMap(integerValue(of:))
+        guard assertedValues.count == assertedAssignments.count,
+              let assertedValue = assertedValues.first,
+              assertedValues.allSatisfy({ $0 == assertedValue }) else {
+            return false
+        }
+
+        let hasReleaseConstant = releasedAssignments.contains { assignment in
+            guard let value = integerValue(of: assignment) else { return false }
+            return value != assertedValue
+        }
+        let hasStageDependency = releasedAssignments.contains { assignment in
+            guard let target = targetName(of: assignment),
+                  case .identifier(let source) = assignment.value else {
+                return false
+            }
+            return target != source && releasedTargets.contains(source)
+        }
+        return hasReleaseConstant && hasStageDependency
+    }
+
+    private func targetName(of assignment: RTLAssignment) -> String? {
+        guard case .identifier(let name) = assignment.target else { return nil }
+        return name
+    }
+
+    private func integerValue(of assignment: RTLAssignment) -> Int64? {
+        guard case .integer(let value, _, _) = assignment.value else { return nil }
+        return value
     }
 }

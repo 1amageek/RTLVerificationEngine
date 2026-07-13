@@ -10,7 +10,7 @@
 | Public package products | Implemented for current slice | Package.swift |
 | Shared Xcircuite request/result contract | Implemented for current slice | Public Swift protocols, payloads and qualification gate |
 | Contract build | Passed | `swift build` |
-| Contract test | Passed | timeout-bounded SwiftPM test: 52 tests in 6 suites; qualification-input health evidence binding, mapped pass/mismatch, typed counterexample differences, persisted corpus runs, oracle evidence artifacts, versioned lint rule catalog, canonical frontend parameterized hierarchy/case statements, hierarchy flattening, conditional elsif selection, process evidence binding, order-independent CDC domains, RDC clock-domain blockers, top policy, freshness, scope binding, external descriptor identity and timeout fixtures included |
+| Contract test | Passed | timeout-bounded SwiftPM test: 55 tests in 6 suites; qualification-input health evidence binding, mapped pass/mismatch, typed counterexample differences, persisted corpus runs, oracle evidence artifacts, versioned lint rule catalog, canonical frontend parameterized hierarchy/case statements, hierarchy flattening, conditional elsif selection, process evidence binding, order-independent CDC domains, conservative RDC reset-release synchronizer recognition, mixed-domain blockers, top policy, freshness, scope binding, external descriptor identity and timeout fixtures included |
 | Domain implementation | Complete for native subset | Native lint, CDC, RDC and structural equivalence backends |
 | CLI implementation | Complete | `rtl-verify` deterministic JSON executable |
 | Fixture corpus | Contract-complete smoke corpus | Retained positive/negative/equivalence/source-set fixtures, deterministic expectation evaluator and persisted corpus runner; independent corpus not attached |
@@ -26,7 +26,7 @@
 |---|---|---|---|---|
 | RTL lint | Contract + native backend | Implemented | Retained positive/negative fixtures | No process qualification |
 | CDC analysis | Contract + native backend | Implemented | Retained positive/negative fixtures | No process qualification |
-| RDC analysis | Contract + native backend | Implemented | Retained reset fixture | No process qualification |
+| RDC analysis | Contract + native backend | Implemented for structural reset-release subset | Retained reset, unconstrained-clock, cross-domain and mixed-domain fixtures | No waveform/UPF/process qualification |
 | Formal equivalence | Contract + RTL/mapped structural backends | Implemented in declared scope | RTL mismatch, LogicDesignSnapshot lowering, mapped graph pass/mismatch, and counterexample fixtures | No solver/process qualification |
 | Counterexample artifacts | Contract + JSON persistence | Implemented | Formal mismatch fixture with typed difference records and legacy message compatibility | No process qualification |
 | Waiver support | Scoped retained waivers | Implemented | Negative lint fixture | No process qualification |
@@ -63,7 +63,7 @@ The package goal is complete only when every P0 function has a concrete backend,
 - The external adapter is contract-complete but requires a qualified command descriptor.
 - The Xcircuite serial full test graph passes 534 tests in 58 suites. A parallel run in the shared workspace produced transient cross-process failures, so it is not used as signoff evidence. The Xcircuite package is intentionally not committed with this repository's focused changes because its worktree contains unrelated in-progress changes.
 - The native frontend adapts the canonical LogicDesign SystemVerilog frontend for a declared deterministic subset with multi-file source sets, defines, `ifdef`/`ifndef`/`elsif`/`else` conditionals, includes, include-cycle diagnostics, source provenance, parameters, case statements, connected hierarchy flattening and generate blocks; complete IEEE SystemVerilog preprocessing/elaboration is not implemented.
-- Native CDC consumes SDC clock declarations for coverage and unconstrained-clock findings and resolves module signal domains independent of process order; native RDC now blocks unconstrained or unresolved reset-process clocks, while reset intent and full exception semantics remain incomplete.
+- Native CDC consumes SDC clock declarations for coverage and unconstrained-clock findings and resolves module signal domains independent of process order; native RDC blocks unconstrained or unresolved reset-process clocks and recognizes a conservative multi-stage reset-release pattern per domain, while waveform/UPF reset intent and full exception semantics remain incomplete.
 - Native formal is canonical RTL structural comparison plus the explicitly limited mapped LogicEngine graph comparison, not solver-backed temporal equivalence for synthesized or DFT views; mismatches persist typed difference records with canonical implementation/reference values.
 - The ToolQualification bridge declares RTL operation IDs and requirements, but no qualified descriptor, health result or process-scoped evidence is attached.
 - Xcircuite review/audit/resume artifacts are implemented. The current source builds as an Xcircuite target and the serial full graph passes; complete workspace-wide qualification and release evidence remain open.
