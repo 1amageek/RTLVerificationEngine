@@ -45,6 +45,44 @@ struct ContractTests {
         #expect(parsed.design.topModuleName == "first")
     }
 
+    @Test("canonical frontend retains parameters and case statements")
+    func canonicalFrontendRetainsStructuredSystemVerilog() throws {
+        let source = Data("""
+        module top #(parameter WIDTH = 8) (
+            input logic [WIDTH-1:0] d,
+            input logic select,
+            output logic [WIDTH-1:0] q
+        );
+            always_comb begin
+                case (select)
+                    1'b0: q = d;
+                    default: q = '0;
+                endcase
+            end
+        endmodule
+        """.utf8)
+
+        let parsed = try SystemVerilogRTLParser().parse(
+            data: source,
+            path: "structured.sv",
+            topModuleName: "top"
+        )
+
+        let module = try #require(parsed.design.modules.first)
+        #expect(module.parameters.first?.value == 8)
+        #expect(module.ports.first(where: { $0.name == "q" })?.range?.width == 8)
+        #expect(module.processes.first?.statements.contains { statement in
+            if case .block(let statements) = statement {
+                return statements.contains { child in
+                    if case .typedCaseStatement = child { return true }
+                    return false
+                }
+            }
+            return false
+        } == true)
+        #expect(parsed.unsupportedConstructs.isEmpty)
+    }
+
     @Test("request and payload round trip")
     func requestAndPayloadRoundTrip() throws {
         let reference = XcircuiteFileReference(

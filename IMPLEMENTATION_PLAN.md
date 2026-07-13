@@ -17,7 +17,7 @@ The work is intentionally staged around trust boundaries. The first implementati
 ## Implemented native slice
 
 - Shared typed request, payload, finding, waiver, coverage, report and capability contracts.
-- Deterministic SystemVerilog subset parser into `LogicIR.RTLDesign`.
+- Canonical `SystemVerilogFrontend` adapter into `LogicIR.RTLDesign`, with deterministic source-set preprocessing and provenance mapping.
 - Multi-file implementation and reference source sets with deterministic defines, conditional compilation, include resolution, include-cycle diagnostics and source provenance.
 - Native lint, CDC, RDC, RTL structural equivalence and mapped LogicEngine execution-graph equivalence backends.
 - Counterexample artifact persistence through the injected artifact writer.
@@ -32,7 +32,7 @@ The work is intentionally staged around trust boundaries. The first implementati
 - Record process-specific qualification evidence for every supported PDK and solver configuration; the process scope/record now enforces freshness and the ToolQualification bridge is implemented, but no PDK evidence is supplied.
 - Add those evidence records to ToolQualification before release eligibility is granted.
 - Enforce bounded external process execution and retain timeout failures as structured diagnostics.
-- Extend the declared frontend boundary toward complete SystemVerilog preprocessing/elaboration and publish the language coverage matrix.
+- Extend the declared frontend boundary toward complete SystemVerilog preprocessing/elaboration and publish the language coverage matrix; the current adapter covers parameters, case statements, hierarchy and generate blocks in the declared subset.
 - Project SDC clocks and timing exceptions into CDC/RDC analysis instead of treating `constraints` as an unused request field.
 - Add proof-view identity, assumptions and trace semantics for RTL-to-synthesized and synthesized-to-DFT equivalence.
 - Extend the persisted corpus-run artifact pattern to oracle, qualification and release evidence, then connect those immutable artifacts to the Xcircuite audit packet. Corpus result envelopes and the aggregate `RTLVerificationCorpusRun` are now persisted by the native runner.

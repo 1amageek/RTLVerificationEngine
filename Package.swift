@@ -23,7 +23,12 @@ let package = Package(
     targets: [
         .target(
             name: "RTLVerificationCore",
-            dependencies: [.product(name: "XcircuitePackage", package: "XcircuitePackage"), .product(name: "LogicIR", package: "LogicDesign"), .product(name: "TimingCore", package: "TimingEngine")]
+            dependencies: [
+                .product(name: "XcircuitePackage", package: "XcircuitePackage"),
+                .product(name: "LogicIR", package: "LogicDesign"),
+                .product(name: "SystemVerilogFrontend", package: "LogicDesign"),
+                .product(name: "TimingCore", package: "TimingEngine")
+            ]
         ),
         .target(
             name: "RTLLint",

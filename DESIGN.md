@@ -42,7 +42,7 @@ flowchart LR
   Envelope --> Gate["Xcircuite stage gate"]
 ```
 
-The native frontend is subset-scoped by design. It records ordered implementation/reference source sets, include provenance, unsupported constructs, source artifact digests and preprocessing coverage, and blocks when the request policy does not allow them. The external adapter accepts a result only when its descriptor declares the requested analysis/proof view and satisfies the qualification policy.
+The native frontend is subset-scoped by design and adapts `SystemVerilogFrontend` into the verification contract. It records ordered implementation/reference source sets, include provenance, unsupported constructs, source artifact digests and preprocessing coverage, and blocks when the request policy does not allow them. The canonical subset includes parameters, case statements, hierarchy and generate blocks; complete IEEE preprocessing and elaboration remain outside the current boundary. The external adapter accepts a result only when its descriptor declares the requested analysis/proof view and satisfies the qualification policy.
 
 ## Trust model
 

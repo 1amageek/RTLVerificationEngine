@@ -48,7 +48,7 @@ Umbrella API.
 | `NativeFormalEquivalenceChecker` | exact RTL-to-RTL and mapped execution structural equivalence with machine-readable counterexamples |
 | `ExternalRTLVerificationEngine` | same envelope contract for a process-qualified external command |
 
-All native products consume `RTLVerificationParsedDesign`, whose design is the `LogicIR.RTLDesign` canonical state. `SystemVerilogRTLParser` supports ordered implementation and reference source sets, object-like defines, conditional compilation, quoted includes, source maps, declarations, continuous assignments, sequential/combinational processes, conditionals, instances, ranges, and expressions in its declared subset. Unsupported directives remain in coverage and can block the request.
+All native products consume `RTLVerificationParsedDesign`, whose design is the `LogicIR.RTLDesign` canonical state. `SystemVerilogRTLParser` adapts `SystemVerilogFrontend` and supports ordered implementation and reference source sets, object-like defines, conditional compilation, quoted includes, source maps, parameters, declarations, continuous assignments, sequential/combinational/latch processes, conditionals, case statements, instances, ranges, hierarchy and generate blocks in its declared subset. Unsupported directives remain in coverage and can block the request.
 
 `RTLVerificationQualificationEvaluator` is the deterministic qualification boundary. It advances state only when retained corpus evaluations, independent oracle correlations, process qualification and (for release) approval evidence satisfy their respective contracts.
 
