@@ -3,12 +3,18 @@
 ## Common shape
 
 ```swift
-public protocol DomainExecuting: Sendable {
+public protocol DomainExecuting: CircuiteFoundation.Engine {
     func execute(
         _ request: DomainRequest
     ) async throws -> XcircuiteEngineResultEnvelope<DomainPayload>
 }
 ```
+
+`RTLVerificationExecuting` is the concrete RTL protocol that refines the
+Foundation `Engine` contract. `RTLVerificationFoundationEvidence` projects a
+completed RTL envelope into Foundation evidence and diagnostics. The
+project/run fields in `XcircuitePackage` remain compatibility input/output
+models until their lifecycle owners complete the separate migration.
 
 Requests carry a schema version, run ID, typed implementation/reference artifact sets, frontend policy, explicit proof/assumption scope and an optional retained qualification input. Payloads contain domain findings, coverage and qualification evidence. Diagnostics and artifacts belong to the shared envelope. The CLI loads the same qualification input through `--qualification-input` so headless and library execution share one gate.
 

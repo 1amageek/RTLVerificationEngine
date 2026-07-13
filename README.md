@@ -17,8 +17,8 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Gate | Status | Evidence |
 |---|---|---|
 | Native package build | Passed | `swift build` |
-| SwiftPM contract suite | Passed | 77 tests in 8 suites |
-| Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` — 77 tests in 8 suites |
+| SwiftPM contract suite | Passed | 80 tests in 9 suites |
+| Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` — 80 tests in 9 suites |
 | CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
 | Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
 | Independent oracle correlation | Contract hardened | Native/oracle envelopes, correlation reports and digest-bound evidence artifacts can be persisted; no external independently retained oracle result is attached |
@@ -56,6 +56,28 @@ Process qualification is bound to a retained `RTLVerificationProcessQualificatio
 | `RDCAnalysis` | Reset-domain crossing analysis |
 | `FormalEquivalence` | RTL-to-netlist proof and counterexamples |
 | `RTLVerificationEngine` | Umbrella API |
+
+## CircuiteFoundation boundary
+
+`RTLVerificationExecuting` now refines `CircuiteFoundation.Engine`, so native
+and external implementations share the Foundation execution seam. The
+`RTLVerificationFoundationEvidence` projection exposes digest-bound
+`ArtifactReference` values and structured `DesignDiagnostic` values through
+`EvidenceProviding` and `DiagnosticReporting` without turning qualification
+or release policy into a Foundation concern.
+
+The existing `XcircuiteEngineResultEnvelope` and project/run references remain
+the compatibility contract for the current `.xcircuite` flow. Replacing those
+lifecycle-owned models is a separate migration milestone; this boundary does
+not duplicate or reinterpret flow policy.
+
+```mermaid
+flowchart LR
+    Engine["RTLVerificationExecuting\nFoundation.Engine"] --> Legacy["RTL result envelope\ncompatibility contract"]
+    Legacy --> Evidence["RTLVerificationFoundationEvidence"]
+    Evidence --> Shared["EvidenceManifest +\nDesignDiagnostic"]
+    Shared --> Flow["Flow / human review / agent"]
+```
 
 The package is intentionally independent of the Xcircuite runtime. The sibling `Xcircuite` package owns the flow-stage adapter and connects this library to `DesignFlowKernel`.
 

@@ -14,6 +14,7 @@ let package = Package(
         .executable(name: "rtl-verify", targets: ["RTLVerificationCLI"]),
     ],
     dependencies: [
+        .package(path: "../CircuiteFoundation"),
         .package(path: "../XcircuitePackage"),
         .package(path: "../LogicDesign"),
         .package(path: "../TimingEngine"),
@@ -24,6 +25,7 @@ let package = Package(
         .target(
             name: "RTLVerificationCore",
             dependencies: [
+                .product(name: "CircuiteFoundation", package: "CircuiteFoundation"),
                 .product(name: "XcircuitePackage", package: "XcircuitePackage"),
                 .product(name: "LogicIR", package: "LogicDesign"),
                 .product(name: "SystemVerilogFrontend", package: "LogicDesign"),
