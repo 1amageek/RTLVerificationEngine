@@ -30,8 +30,11 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
             }
         }
         let validHealthEvidence = healthEvidence.filter {
-            $0.kind == .healthCheck && $0.isAuditable
+            $0.kind == .healthCheck
+                && $0.isAuditable
+                && $0.matchesImplementation(id: implementationID, version: implementationVersion)
         }
+        let providedHealthEvidenceIDs = Set(healthEvidence.filter { $0.kind == .healthCheck }.map(\.evidenceID))
         let oraclePassed = !orderedOracle.isEmpty
             && validOracleEvidence.count == orderedOracle.count
             && expectedRequestDigest != nil
@@ -44,6 +47,7 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
                 analysis: analysis,
                 proofView: proofView,
                 availableHealthEvidenceIDs: validHealthEvidence.map(\.evidenceID),
+                providedHealthEvidenceIDs: providedHealthEvidenceIDs,
                 requiredCorpusEvidenceIDs: orderedCorpus
                     .filter(\.matched)
                     .map { "corpus:\($0.caseID)" },
@@ -164,6 +168,7 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         analysis: RTLVerificationAnalysis?,
         proofView: RTLVerificationProofView?,
         availableHealthEvidenceIDs: [String],
+        providedHealthEvidenceIDs: Set<String>,
         requiredCorpusEvidenceIDs: [String],
         requiredOracleEvidenceIDs: [String],
         checkedAt: Date
@@ -191,8 +196,11 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         let healthEvidence = Set(record.healthEvidenceIDs)
         let availableHealthEvidence = Set(availableHealthEvidenceIDs)
         blockers.append(contentsOf: record.healthEvidenceIDs
-            .filter { !availableHealthEvidence.contains($0) }
+            .filter { !availableHealthEvidence.contains($0) && !providedHealthEvidenceIDs.contains($0) }
             .map { "health_evidence_artifact_missing:\($0)" })
+        blockers.append(contentsOf: record.healthEvidenceIDs
+            .filter { providedHealthEvidenceIDs.contains($0) && !availableHealthEvidence.contains($0) }
+            .map { "health_evidence_implementation_mismatch:\($0)" })
         blockers.append(contentsOf: availableHealthEvidenceIDs
             .filter { !healthEvidence.contains($0) }
             .map { "health_evidence_binding_missing:\($0)" })

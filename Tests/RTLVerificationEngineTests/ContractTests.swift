@@ -807,6 +807,8 @@ struct ContractTests {
         let healthEvidence = RTLVerificationQualificationEvidence(
             evidenceID: "health:lint",
             kind: .healthCheck,
+            implementationID: "native",
+            implementationVersion: "1",
             summary: "Native lint health check passed.",
             checkedAt: Date(timeIntervalSince1970: 1)
         )
@@ -834,6 +836,50 @@ struct ContractTests {
             "oracle:lint-positive",
             "process:process-1"
         ])
+    }
+
+    @Test("qualification rejects health evidence from another implementation")
+    func qualificationRejectsMismatchedHealthEvidence() {
+        let now = Date(timeIntervalSince1970: 1)
+        let scope = RTLVerificationProcessQualificationScope(
+            implementationID: "native",
+            binaryDigest: "binary",
+            algorithmVersion: "1",
+            processProfileID: "profile",
+            pdkID: "pdk",
+            pdkDigest: "pdk-digest",
+            deckDigest: "deck-digest",
+            analyses: [.lint]
+        )
+        let process = RTLVerificationProcessQualificationRecord(
+            qualificationID: "process-health-binding",
+            scope: scope,
+            status: .qualified,
+            corpusEvidenceIDs: ["corpus:lint"],
+            oracleEvidenceIDs: ["oracle:lint"],
+            healthEvidenceIDs: ["health:lint"],
+            qualifiedAt: now.addingTimeInterval(-1),
+            expiresAt: now.addingTimeInterval(1)
+        )
+        let report = RTLVerificationQualificationEvaluator().evaluate(
+            implementationID: "native",
+            implementationVersion: "1",
+            healthEvidence: [RTLVerificationQualificationEvidence(
+                evidenceID: "health:lint",
+                kind: .healthCheck,
+                implementationID: "other-implementation",
+                implementationVersion: "1",
+                summary: "Health check from another implementation.",
+                checkedAt: now
+            )],
+            corpusEvaluations: [],
+            oracleReports: [],
+            processQualification: process,
+            checkedAt: now
+        )
+
+        #expect(report.blockers.contains("process:health_evidence_implementation_mismatch:health:lint"))
+        #expect(report.state == .unassessed)
     }
 
     @Test("qualification binds process evidence IDs to retained evidence")

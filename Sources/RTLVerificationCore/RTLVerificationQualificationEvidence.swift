@@ -5,6 +5,8 @@ public struct RTLVerificationQualificationEvidence: Sendable, Hashable, Codable 
     public var kind: RTLVerificationQualificationEvidenceKind
     public var artifactIDs: [String]
     public var scopeID: String?
+    public var implementationID: String?
+    public var implementationVersion: String?
     public var summary: String
     public var checkedAt: Date?
 
@@ -13,6 +15,8 @@ public struct RTLVerificationQualificationEvidence: Sendable, Hashable, Codable 
         kind: RTLVerificationQualificationEvidenceKind,
         artifactIDs: [String] = [],
         scopeID: String? = nil,
+        implementationID: String? = nil,
+        implementationVersion: String? = nil,
         summary: String,
         checkedAt: Date? = nil
     ) {
@@ -20,12 +24,28 @@ public struct RTLVerificationQualificationEvidence: Sendable, Hashable, Codable 
         self.kind = kind
         self.artifactIDs = artifactIDs
         self.scopeID = scopeID
+        self.implementationID = implementationID
+        self.implementationVersion = implementationVersion
         self.summary = summary
         self.checkedAt = checkedAt
     }
 
     public var isAuditable: Bool {
-        !evidenceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && (!artifactIDs.isEmpty || !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        guard !evidenceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !artifactIDs.isEmpty || !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return false
+        }
+        guard kind == .healthCheck else { return true }
+        return hasImplementationIdentity
+    }
+
+    public var hasImplementationIdentity: Bool {
+        guard let implementationID, let implementationVersion else { return false }
+        return !implementationID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !implementationVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    public func matchesImplementation(id: String, version: String) -> Bool {
+        implementationID == id && implementationVersion == version
     }
 }

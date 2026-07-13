@@ -10,12 +10,12 @@
 | Public package products | Implemented for current slice | Package.swift |
 | Shared Xcircuite request/result contract | Implemented for current slice | Public Swift protocols, payloads and qualification gate |
 | Contract build | Passed | `swift build` |
-| Contract test | Passed | timeout-bounded SwiftPM test: 55 tests in 6 suites; qualification-input health evidence binding, mapped pass/mismatch, typed counterexample differences, persisted corpus runs, oracle evidence artifacts, versioned lint rule catalog, canonical frontend parameterized hierarchy/case statements, hierarchy flattening, conditional elsif selection, process evidence binding, order-independent CDC domains, conservative RDC reset-release synchronizer recognition, mixed-domain blockers, top policy, freshness, scope binding, external descriptor identity and timeout fixtures included |
+| Contract test | Passed | timeout-bounded SwiftPM test: 56 tests in 6 suites; qualification-input health identity binding, mapped pass/mismatch, typed counterexample differences, persisted corpus runs, oracle evidence artifacts, versioned lint rule catalog, canonical frontend parameterized hierarchy/case statements, hierarchy flattening, conditional elsif selection, process evidence binding, order-independent CDC domains, conservative RDC reset-release synchronizer recognition, mixed-domain blockers, top policy, freshness, scope binding, external descriptor identity and timeout fixtures included |
 | Domain implementation | Complete for native subset | Native lint, CDC, RDC and structural equivalence backends |
 | CLI implementation | Complete | `rtl-verify` deterministic JSON executable |
 | Fixture corpus | Contract-complete smoke corpus | Retained positive/negative/equivalence/source-set fixtures, deterministic expectation evaluator and persisted corpus runner; independent corpus not attached |
 | Oracle correlation | Artifact contract hardened, external evidence pending | `RTLVerificationOracleEvidenceBuilder` persists native/oracle envelopes and evidence JSON; matched correlation requires digest-bound artifacts and independent provenance; no external retained comparison evidence |
-| Process qualification | Freshness and evidence binding hardened, process evidence pending | Process scope/record requires a valid qualification window and matching retained corpus/oracle/health evidence IDs; no PDK-scoped qualification record |
+| Process qualification | Freshness and evidence binding hardened, process evidence pending | Process scope/record requires a valid qualification window and matching retained corpus/oracle/health evidence IDs; health evidence must match implementation ID/version; no PDK-scoped qualification record |
 | Xcircuite stage adapter | Implementation complete, LogicEngine bridge verified | `RTLVerificationFlowStageExecutor` persists result/qualification/review/audit artifacts; `LogicEquivalenceFlowStageExecutor` consumes synthesis requests and emits acceptance evidence |
 | End-to-end flow evidence | Native LogicEngine synthesis → RTL mapped proof → acceptance verified | Xcircuite serial full regression passes 534 tests in 58 suites, including the LogicEngine bridge, RTL stage/resume/qualification gates, PDK corpus and end-to-end review contracts; full workspace qualification remains open |
 | Release readiness | Blocked | M1, M5, M6, M7 and M8 evidence are incomplete |
@@ -59,7 +59,7 @@ The package goal is complete only when every P0 function has a concrete backend,
 ## Current blockers
 
 - No external independent reference-oracle correlation artifact has been retained; the artifact-bound evidence contract and rejection paths are tested.
-- No PDK/process-specific qualification record has been supplied; stale or missing freshness is rejected.
+- No PDK/process-specific qualification record has been supplied; stale, missing or implementation-mismatched health evidence is rejected.
 - The external adapter is contract-complete but requires a qualified command descriptor.
 - The Xcircuite serial full test graph passes 534 tests in 58 suites. A parallel run in the shared workspace produced transient cross-process failures, so it is not used as signoff evidence. The Xcircuite package is intentionally not committed with this repository's focused changes because its worktree contains unrelated in-progress changes.
 - The native frontend adapts the canonical LogicDesign SystemVerilog frontend for a declared deterministic subset with multi-file source sets, defines, `ifdef`/`ifndef`/`elsif`/`else` conditionals, includes, include-cycle diagnostics, source provenance, parameters, case statements, connected hierarchy flattening and generate blocks; complete IEEE SystemVerilog preprocessing/elaboration is not implemented.

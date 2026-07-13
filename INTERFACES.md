@@ -18,7 +18,7 @@ Requests carry a schema version, run ID, typed implementation/reference artifact
 
 `RTLVerificationLintRuleCatalog` is the versioned repair contract for native lint findings. Each rule declares a stable code, severity, description and suggested actions; a catalog entry does not waive the finding or advance qualification.
 
-`RTLVerificationQualificationEvaluator` also verifies that a process qualification record names the retained `corpus:<caseID>` and `oracle:<caseID>` evidence required by the current evaluation. Non-empty but unrelated evidence IDs produce structured process blockers.
+`RTLVerificationQualificationEvaluator` also verifies that a process qualification record names the retained `corpus:<caseID>` and `oracle:<caseID>` evidence required by the current evaluation. Health evidence must be auditable, use `kind=healthCheck`, and carry the implementation ID/version evaluated by the current request. Non-empty but unrelated or identity-mismatched evidence IDs produce structured process blockers.
 
 ## Products
 
@@ -56,7 +56,7 @@ All native products consume `RTLVerificationParsedDesign`, whose design is the `
 
 `RTLVerificationQualificationEvaluator` is the deterministic qualification boundary. It advances state only when retained corpus evaluations, independent oracle correlations, process qualification and (for release) approval evidence satisfy their respective contracts.
 
-`RTLVerificationOracleCorrelationReport` is a comparison result, not qualification evidence by itself. `RTLVerificationOracleEvidence` must bind the report to the request digest, digest-bearing native and oracle result artifacts, and explicit independent provenance. `RTLVerificationOracleEvidenceValidator` rejects missing bindings or self-correlation. Process qualification records likewise require a complete process scope and a valid `qualifiedAt`/`expiresAt` window at evaluation time.
+`RTLVerificationOracleCorrelationReport` is a comparison result, not qualification evidence by itself. `RTLVerificationOracleEvidence` must bind the report to the request digest, digest-bearing native and oracle result artifacts, and explicit independent provenance. `RTLVerificationOracleEvidenceValidator` rejects missing bindings or self-correlation. Process qualification records likewise require a complete process scope, implementation-bound health evidence and a valid `qualifiedAt`/`expiresAt` window at evaluation time.
 
 External process descriptors carry a finite `timeoutSeconds` value. Runners that conform to `RTLExternalToolProcessRunningWithTimeout` receive that deadline; the Foundation runner terminates a process that exceeds it and returns a typed external-tool failure. Legacy runners remain supported through the original protocol method.
 

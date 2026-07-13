@@ -73,6 +73,8 @@ struct QualificationInputTests {
             healthEvidence: [RTLVerificationQualificationEvidence(
                 evidenceID: "health:lint",
                 kind: .healthCheck,
+                implementationID: "native-rtl-verification",
+                implementationVersion: "1.0.0",
                 summary: "Native lint health check passed.",
                 checkedAt: now
             )],
