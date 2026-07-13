@@ -14,6 +14,8 @@ Requests carry a schema version, run ID, typed implementation/reference artifact
 
 `RTLVerificationCorpusRunner` executes a deterministic, uniquely identified set of corpus cases through the same engine protocol, persists each result envelope and writes a digest-bound aggregate `RTLVerificationCorpusRun` under the supplied run ID. A corpus run is matched only when every case expectation is satisfied; execution errors are thrown rather than converted into qualification evidence.
 
+`RTLVerificationOracleEvidenceBuilder` persists native and independent-oracle result envelopes plus an evidence JSON artifact, correlates their typed payloads, and returns `RTLVerificationOracleEvidenceBuildResult`. A mismatched correlation is retained as a non-auditable result so qualification remains blocked while the failure is reviewable.
+
 ## Products
 
 ### RTLLint

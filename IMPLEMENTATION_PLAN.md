@@ -28,7 +28,7 @@ The work is intentionally staged around trust boundaries. The first implementati
 
 ## Qualification slice still required
 
-- Execute and retain native/external results against an independently retained reference oracle; the typed correlator, artifact-bound oracle evidence record and independence guard are implemented, but external evidence is not supplied.
+- Execute and retain native/external results against an independently retained reference oracle; the typed correlator, persisted oracle-evidence builder, artifact-bound evidence record and independence guard are implemented, but external evidence is not supplied.
 - Record process-specific qualification evidence for every supported PDK and solver configuration; the process scope/record now enforces freshness and the ToolQualification bridge is implemented, but no PDK evidence is supplied.
 - Add those evidence records to ToolQualification before release eligibility is granted.
 - Enforce bounded external process execution and retain timeout failures as structured diagnostics.
