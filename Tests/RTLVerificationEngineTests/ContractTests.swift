@@ -30,6 +30,64 @@ struct ContractTests {
         #expect(RTLVerificationLintRuleCatalog.rule(for: "unknown-rule") == nil)
     }
 
+    @Test("frontend expands function-like macros with nested arguments")
+    func frontendExpandsFunctionLikeMacros() throws {
+        let source = """
+        `define WIDTH(value) value
+        `define SELECT(left, right) ((left) ? (right) : (left))
+        module top;
+          localparam integer W = `WIDTH(`WIDTH(8));
+          wire result = `SELECT((W + 1), (W + 2));
+        endmodule
+        """
+
+        let preprocessed = try SystemVerilogRTLPreprocessor().preprocess(
+            source,
+            path: "function-macro.sv",
+            options: RTLVerificationFrontendOptions()
+        )
+
+        #expect(preprocessed.unsupportedDirectives.isEmpty)
+        #expect(preprocessed.source.contains("localparam integer W = 8"))
+        #expect(preprocessed.source.contains("wire result = (((W + 1)) ? ((W + 2)) : ((W + 1)))"))
+    }
+
+    @Test("frontend reports malformed function-like macro invocations")
+    func frontendReportsMalformedFunctionLikeMacroInvocation() throws {
+        let source = """
+        `define SELECT(left, right) left
+        module top;
+          wire result = `SELECT(1);
+        endmodule
+        """
+
+        let preprocessed = try SystemVerilogRTLPreprocessor().preprocess(
+            source,
+            path: "malformed-function-macro.sv",
+            options: RTLVerificationFrontendOptions()
+        )
+
+        #expect(preprocessed.unsupportedDirectives == ["define_function_invocation:SELECT"])
+    }
+
+    @Test("frontend reports recursive function-like macro expansion")
+    func frontendReportsRecursiveFunctionLikeMacroExpansion() throws {
+        let source = """
+        `define LOOP(value) `LOOP(value)
+        module top;
+          wire result = `LOOP(1);
+        endmodule
+        """
+
+        let preprocessed = try SystemVerilogRTLPreprocessor().preprocess(
+            source,
+            path: "recursive-function-macro.sv",
+            options: RTLVerificationFrontendOptions()
+        )
+
+        #expect(preprocessed.unsupportedDirectives == ["define_function_recursion:LOOP"])
+    }
+
     @Test("frontend rejects an unknown requested top module")
     func frontendRejectsUnknownTopModule() {
         let source = Data("module top; endmodule".utf8)

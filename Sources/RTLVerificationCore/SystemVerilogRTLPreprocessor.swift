@@ -43,8 +43,14 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
         }
     }
 
+    private struct FunctionMacro: Sendable {
+        var parameters: [String]
+        var body: String
+    }
+
     private struct State: Sendable {
         var defines: [String: String]
+        var functionDefines: [String: FunctionMacro] = [:]
         var frames: [ConditionalFrame] = []
         var output: [String] = []
         var linePaths: [String] = []
@@ -82,14 +88,16 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
                 switch name {
                 case "define":
                     if state.isActive {
-                        let pieces = directive.dropFirst().map(String.init)
-                        if let rawKey = pieces.first {
-                            let key = rawKey.split(separator: "(", maxSplits: 1).first.map(String.init) ?? rawKey
-                            if rawKey.contains("(") {
-                                state.unsupported.insert("define_function:\(key)")
-                            } else {
-                                state.defines[key] = pieces.dropFirst().joined(separator: " ")
-                            }
+                        let definition = directive.dropFirst().map(String.init).joined(separator: " ")
+                        if let function = parseFunctionMacro(definition) {
+                            state.functionDefines[function.name] = FunctionMacro(
+                                parameters: function.parameters,
+                                body: function.body
+                            )
+                            state.defines.removeValue(forKey: function.name)
+                        } else if let object = parseObjectMacro(definition) {
+                            state.defines[object.name] = object.value
+                            state.functionDefines.removeValue(forKey: object.name)
                         } else {
                             state.unsupported.insert("define")
                         }
@@ -98,6 +106,7 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
                 case "undef":
                     if state.isActive, let key = directive.dropFirst().first {
                         state.defines.removeValue(forKey: String(key))
+                        state.functionDefines.removeValue(forKey: String(key))
                     }
                     append("", path: path, state: &state)
                 case "ifdef", "ifndef":
@@ -109,6 +118,7 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
                     }
                     let parentActive = state.isActive
                     let defined = state.defines[String(key)] != nil
+                        || state.functionDefines[String(key)] != nil
                     state.frames.append(ConditionalFrame(
                         parentActive: parentActive,
                         branchTaken: name == "ifdef" ? defined : !defined,
@@ -136,6 +146,7 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
                         )
                     }
                     let condition = state.defines[String(key)] != nil
+                        || state.functionDefines[String(key)] != nil
                     state.frames[index].currentBranchActive = !state.frames[index].branchTaken && condition
                     state.frames[index].branchTaken = state.frames[index].branchTaken || condition
                     append("", path: path, state: &state)
@@ -215,12 +226,278 @@ public struct SystemVerilogRTLPreprocessor: Sendable {
                 append("", path: path, state: &state)
                 continue
             }
-            var expanded = line
-            for key in state.defines.keys.sorted() {
-                expanded = expanded.replacingOccurrences(of: "`\(key)", with: state.defines[key] ?? "")
-            }
+            let expanded = expandMacros(in: line, state: &state)
             append(expanded, path: path, state: &state)
         }
+    }
+
+    private func parseFunctionMacro(
+        _ definition: String
+    ) -> (name: String, parameters: [String], body: String)? {
+        guard let open = definition.firstIndex(of: "(") else { return nil }
+        let name = definition[..<open].trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isIdentifier(String(name)), let close = matchingParenthesis(in: definition, opening: open) else {
+            return nil
+        }
+        let parametersText = String(definition[definition.index(after: open)..<close])
+        let parameters: [String]
+        if parametersText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            parameters = []
+        } else {
+            parameters = parametersText.split(separator: ",", omittingEmptySubsequences: false).map {
+                String($0).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            guard parameters.allSatisfy(isIdentifier), Set(parameters).count == parameters.count else {
+                return nil
+            }
+        }
+        let body = String(definition[definition.index(after: close)...])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return (String(name), parameters, body)
+    }
+
+    private func parseObjectMacro(
+        _ definition: String
+    ) -> (name: String, value: String)? {
+        let pieces = definition.split(
+            maxSplits: 1,
+            omittingEmptySubsequences: true,
+            whereSeparator: { $0 == " " || $0 == "\t" }
+        )
+        guard let name = pieces.first, isIdentifier(String(name)) else { return nil }
+        let value = pieces.dropFirst().first.map(String.init) ?? ""
+        return (String(name), value)
+    }
+
+    private func expandMacros(
+        in line: String,
+        state: inout State,
+        activeFunctions: Set<String> = [],
+        depth: Int = 0
+    ) -> String {
+        guard depth < 64 else {
+            state.unsupported.insert("macro_expansion_depth")
+            return line
+        }
+
+        var expanded = line
+        let objectMacroNames = state.defines.keys.sorted()
+        for key in objectMacroNames {
+            guard let value = state.defines[key] else { continue }
+            expanded = replaceObjectMacro(
+                named: key,
+                value: value,
+                in: expanded,
+                state: &state,
+                activeFunctions: activeFunctions,
+                depth: depth
+            )
+        }
+        let functionMacroNames = state.functionDefines.keys.sorted()
+        for key in functionMacroNames where !activeFunctions.contains(key) {
+            expanded = expandFunctionMacro(
+                named: key,
+                in: expanded,
+                state: &state,
+                activeFunctions: activeFunctions,
+                depth: depth
+            )
+        }
+        for key in activeFunctions where expanded.contains("`\(key)") {
+            state.unsupported.insert("define_function_recursion:\(key)")
+        }
+        return expanded
+    }
+
+    private func replaceObjectMacro(
+        named name: String,
+        value: String,
+        in text: String,
+        state: inout State,
+        activeFunctions: Set<String>,
+        depth: Int
+    ) -> String {
+        var result = ""
+        var cursor = text.startIndex
+        let token = "`\(name)"
+        while let range = text.range(of: token, range: cursor..<text.endIndex) {
+            result.append(contentsOf: text[cursor..<range.lowerBound])
+            let after = range.upperBound
+            if after < text.endIndex, text[after] == "(" {
+                result.append(contentsOf: text[range.lowerBound..<after])
+                cursor = after
+                continue
+            }
+            result.append(expandMacros(
+                in: value,
+                state: &state,
+                activeFunctions: activeFunctions,
+                depth: depth + 1
+            ))
+            cursor = after
+        }
+        result.append(contentsOf: text[cursor...])
+        return result
+    }
+
+    private func expandFunctionMacro(
+        named name: String,
+        in text: String,
+        state: inout State,
+        activeFunctions: Set<String>,
+        depth: Int
+    ) -> String {
+        guard let macro = state.functionDefines[name] else { return text }
+        let token = "`\(name)"
+        var result = ""
+        var cursor = text.startIndex
+        while let range = text.range(of: token, range: cursor..<text.endIndex) {
+            result.append(contentsOf: text[cursor..<range.lowerBound])
+            let afterName = range.upperBound
+            guard afterName < text.endIndex, text[afterName] == "(" else {
+                result.append(contentsOf: text[range.lowerBound..<afterName])
+                cursor = afterName
+                continue
+            }
+            guard let close = matchingParenthesis(in: text, opening: afterName) else {
+                state.unsupported.insert("define_function_invocation:\(name)")
+                result.append(contentsOf: text[range.lowerBound...])
+                return result
+            }
+            let argumentText = String(text[text.index(after: afterName)..<close])
+            guard let arguments = splitArguments(argumentText), arguments.count == macro.parameters.count else {
+                state.unsupported.insert("define_function_invocation:\(name)")
+                result.append(contentsOf: text[range.lowerBound...close])
+                cursor = text.index(after: close)
+                continue
+            }
+            var replacement = macro.body
+            for (parameter, argument) in zip(macro.parameters, arguments) {
+                let expandedArgument = expandMacros(
+                    in: argument,
+                    state: &state,
+                    activeFunctions: activeFunctions,
+                    depth: depth + 1
+                )
+                replacement = replaceIdentifier(parameter, with: expandedArgument, in: replacement)
+            }
+            replacement = expandMacros(
+                in: replacement,
+                state: &state,
+                activeFunctions: activeFunctions.union([name]),
+                depth: depth + 1
+            )
+            result.append(replacement)
+            cursor = text.index(after: close)
+        }
+        result.append(contentsOf: text[cursor...])
+        return result
+    }
+
+    private func replaceIdentifier(_ name: String, with value: String, in text: String) -> String {
+        guard !name.isEmpty else { return text }
+        var result = ""
+        var cursor = text.startIndex
+        while let range = text.range(of: name, range: cursor..<text.endIndex) {
+            let beforeIsIdentifier = range.lowerBound > text.startIndex
+                && isIdentifierCharacter(text[text.index(before: range.lowerBound)])
+            let afterIsIdentifier = range.upperBound < text.endIndex
+                && isIdentifierCharacter(text[range.upperBound])
+            result.append(contentsOf: text[cursor..<range.lowerBound])
+            if !beforeIsIdentifier && !afterIsIdentifier {
+                result.append(contentsOf: value)
+            } else {
+                result.append(contentsOf: text[range])
+            }
+            cursor = range.upperBound
+        }
+        result.append(contentsOf: text[cursor...])
+        return result
+    }
+
+    private func splitArguments(_ text: String) -> [String]? {
+        if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return [] }
+        var result: [String] = []
+        var start = text.startIndex
+        var parenthesisDepth = 0
+        var bracketDepth = 0
+        var braceDepth = 0
+        var inString = false
+        var escaped = false
+        var index = text.startIndex
+        while index < text.endIndex {
+            let character = text[index]
+            if inString {
+                if escaped {
+                    escaped = false
+                } else if character == "\\" {
+                    escaped = true
+                } else if character == "\"" {
+                    inString = false
+                }
+            } else {
+                switch character {
+                case "\"": inString = true
+                case "(": parenthesisDepth += 1
+                case ")": parenthesisDepth -= 1
+                case "[": bracketDepth += 1
+                case "]": bracketDepth -= 1
+                case "{": braceDepth += 1
+                case "}": braceDepth -= 1
+                case "," where parenthesisDepth == 0 && bracketDepth == 0 && braceDepth == 0:
+                    result.append(String(text[start..<index]).trimmingCharacters(in: .whitespacesAndNewlines))
+                    start = text.index(after: index)
+                default: break
+                }
+                if parenthesisDepth < 0 || bracketDepth < 0 || braceDepth < 0 {
+                    return nil
+                }
+            }
+            index = text.index(after: index)
+        }
+        guard !inString, parenthesisDepth == 0, bracketDepth == 0, braceDepth == 0 else { return nil }
+        result.append(String(text[start...]).trimmingCharacters(in: .whitespacesAndNewlines))
+        return result
+    }
+
+    private func matchingParenthesis(in text: String, opening: String.Index) -> String.Index? {
+        guard opening < text.endIndex, text[opening] == "(" else { return nil }
+        var depth = 0
+        var inString = false
+        var escaped = false
+        var index = opening
+        while index < text.endIndex {
+            let character = text[index]
+            if inString {
+                if escaped {
+                    escaped = false
+                } else if character == "\\" {
+                    escaped = true
+                } else if character == "\"" {
+                    inString = false
+                }
+            } else {
+                switch character {
+                case "\"": inString = true
+                case "(": depth += 1
+                case ")":
+                    depth -= 1
+                    if depth == 0 { return index }
+                default: break
+                }
+            }
+            index = text.index(after: index)
+        }
+        return nil
+    }
+
+    private func isIdentifier(_ value: String) -> Bool {
+        guard let first = value.first, first == "_" || first.isLetter else { return false }
+        return value.dropFirst().allSatisfy(isIdentifierCharacter)
+    }
+
+    private func isIdentifierCharacter(_ character: Character) -> Bool {
+        character == "_" || character.isLetter || character.isNumber || character == "$"
     }
 
     private func append(_ line: String, path: String, state: inout State) {
