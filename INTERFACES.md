@@ -18,6 +18,8 @@ Requests carry a schema version, run ID, typed implementation/reference artifact
 
 `RTLVerificationLintRuleCatalog` is the versioned repair contract for native lint findings. Each rule declares a stable code, severity, description and suggested actions; a catalog entry does not waive the finding or advance qualification.
 
+`RTLVerificationQualificationEvaluator` also verifies that a process qualification record names the retained `corpus:<caseID>` and `oracle:<caseID>` evidence required by the current evaluation. Non-empty but unrelated evidence IDs produce structured process blockers.
+
 ## Products
 
 ### RTLLint

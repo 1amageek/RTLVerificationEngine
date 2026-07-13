@@ -621,6 +621,85 @@ struct ContractTests {
         ])
     }
 
+    @Test("qualification binds process evidence IDs to retained evidence")
+    func qualificationRequiresProcessEvidenceBinding() {
+        let now = Date(timeIntervalSince1970: 1)
+        let corpus = RTLVerificationCorpusEvaluation(
+            caseID: "lint-positive",
+            matched: true,
+            observedStatus: .completed,
+            observedFindingCodes: [],
+            mismatches: []
+        )
+        let oracle = RTLVerificationOracleCorrelationReport(
+            caseID: "lint-positive",
+            nativeImplementationID: "native",
+            oracleImplementationID: "oracle",
+            nativeImplementationVersion: "1",
+            oracleImplementationVersion: "1",
+            independenceVerified: true,
+            matched: true,
+            checkedAt: now
+        )
+        let oracleEvidence = RTLVerificationOracleEvidence(
+            evidenceID: "oracle-evidence:lint-positive",
+            caseID: "lint-positive",
+            requestDigest: "request-digest",
+            nativeArtifact: makeJSONReference(
+                path: "binding-native.json",
+                kind: .report,
+                data: Data("native".utf8),
+                artifactID: "binding-native"
+            ),
+            oracleArtifact: makeJSONReference(
+                path: "binding-oracle.json",
+                kind: .report,
+                data: Data("oracle".utf8),
+                artifactID: "binding-oracle"
+            ),
+            report: oracle,
+            oracleProvenance: "retained-independent-oracle",
+            recordedAt: now
+        )
+        let scope = RTLVerificationProcessQualificationScope(
+            implementationID: "native",
+            binaryDigest: "binary",
+            algorithmVersion: "1",
+            processProfileID: "profile",
+            pdkID: "pdk",
+            pdkDigest: "pdk-digest",
+            deckDigest: "deck-digest",
+            analyses: [.lint]
+        )
+        let process = RTLVerificationProcessQualificationRecord(
+            qualificationID: "process-binding",
+            scope: scope,
+            status: .qualified,
+            corpusEvidenceIDs: ["corpus:other"],
+            oracleEvidenceIDs: ["oracle:other"],
+            healthEvidenceIDs: ["health:lint"],
+            qualifiedAt: now,
+            expiresAt: now.addingTimeInterval(60)
+        )
+
+        let report = RTLVerificationQualificationEvaluator().evaluate(
+            implementationID: "native",
+            implementationVersion: "1",
+            corpusEvaluations: [corpus],
+            oracleReports: [oracle],
+            oracleEvidence: [oracleEvidence],
+            processQualification: process,
+            expectedRequestDigest: "request-digest",
+            analysis: .lint,
+            checkedAt: now
+        )
+
+        #expect(report.state == .oracleCorrelated)
+        #expect(report.blockers.contains("process:corpus_evidence_binding_missing:corpus:lint-positive"))
+        #expect(report.blockers.contains("process:oracle_evidence_binding_missing:oracle:lint-positive"))
+        #expect(!report.isReleaseEligible)
+    }
+
     @Test("qualification rejects an expired process record")
     func expiredProcessQualificationIsRejected() {
         let scope = RTLVerificationProcessQualificationScope(

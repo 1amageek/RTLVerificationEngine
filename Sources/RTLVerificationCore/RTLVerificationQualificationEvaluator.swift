@@ -39,6 +39,11 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
                 implementationVersion: implementationVersion,
                 analysis: analysis,
                 proofView: proofView,
+                requiredCorpusEvidenceIDs: orderedCorpus
+                    .filter(\.matched)
+                    .map { "corpus:\($0.caseID)" },
+                requiredOracleEvidenceIDs: validOracleEvidence
+                    .map { "oracle:\($0.caseID)" },
                 checkedAt: checkedAt
             )
         } ?? []
@@ -150,6 +155,8 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         implementationVersion: String,
         analysis: RTLVerificationAnalysis?,
         proofView: RTLVerificationProofView?,
+        requiredCorpusEvidenceIDs: [String],
+        requiredOracleEvidenceIDs: [String],
         checkedAt: Date
     ) -> [String] {
         var blockers = record.blockers
@@ -171,6 +178,14 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
            !record.scope.proofViews.contains(proofView) {
             blockers.append("scope_proof_view_mismatch")
         }
+        let corpusEvidence = Set(record.corpusEvidenceIDs)
+        blockers.append(contentsOf: requiredCorpusEvidenceIDs
+            .filter { !corpusEvidence.contains($0) }
+            .map { "corpus_evidence_binding_missing:\($0)" })
+        let oracleEvidence = Set(record.oracleEvidenceIDs)
+        blockers.append(contentsOf: requiredOracleEvidenceIDs
+            .filter { !oracleEvidence.contains($0) }
+            .map { "oracle_evidence_binding_missing:\($0)" })
         return Array(Set(blockers)).sorted()
     }
 }

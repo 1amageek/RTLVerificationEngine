@@ -17,7 +17,7 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Gate | Status | Evidence |
 |---|---|---|
 | Native package build | Passed | `swift build` |
-| SwiftPM contract suite | Passed | 47 tests in 6 suites |
+| SwiftPM contract suite | Passed | 48 tests in 6 suites |
 | Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` |
 | CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
 | Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
@@ -42,6 +42,8 @@ flowchart LR
 The native frontend adapts the canonical `SystemVerilogFrontend` into the verification contract. It supports the declared SystemVerilog subset with ordered multi-file inputs, object-like defines, `ifdef`/`ifndef`/`elsif`/`else` conditional compilation, quoted includes, include-cycle diagnostics, source maps, parameters, case statements, connected hierarchy flattening, generate blocks and SHA-256 source artifacts. It does not claim complete IEEE SystemVerilog preprocessing, elaboration or synthesis semantics. Unsupported constructs remain in coverage and block according to the request policy.
 
 Native formal proves only exact canonical structural equivalence for `rtlToRtlStructural` and the explicitly limited `rtlToMappedExecutionStructural` graph contract. The mapped view lowers a retained LogicIR snapshot into a LogicEngine document and compares it with a retained mapped document; it does not prove temporal execution behavior. Requests for synthesized or DFT proof views, or assumptions that the native backend cannot interpret, are blocked. A waiver preserves the original finding and records its scope, reason and approver.
+
+Process qualification is bound to the retained corpus and oracle evidence IDs used by the evaluator. A process record with stale, mismatched or unrelated evidence IDs remains blocked even when its scope and validity window are otherwise complete.
 
 ## Products
 

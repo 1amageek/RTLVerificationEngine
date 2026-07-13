@@ -10,12 +10,12 @@
 | Public package products | Implemented for current slice | Package.swift |
 | Shared Xcircuite request/result contract | Implemented for current slice | Public Swift protocols, payloads and qualification gate |
 | Contract build | Passed | `swift build` |
-| Contract test | Passed | timeout-bounded SwiftPM test: 47 tests in 6 suites; qualification-input wiring, mapped pass/mismatch, persisted corpus runs, oracle evidence artifacts, versioned lint rule catalog, canonical frontend parameters/case statements, hierarchy flattening, conditional elsif selection, order-independent CDC domains, top policy, freshness, scope binding and timeout fixtures included |
+| Contract test | Passed | timeout-bounded SwiftPM test: 48 tests in 6 suites; qualification-input wiring, mapped pass/mismatch, persisted corpus runs, oracle evidence artifacts, versioned lint rule catalog, canonical frontend parameters/case statements, hierarchy flattening, conditional elsif selection, process evidence binding, order-independent CDC domains, top policy, freshness, scope binding and timeout fixtures included |
 | Domain implementation | Complete for native subset | Native lint, CDC, RDC and structural equivalence backends |
 | CLI implementation | Complete | `rtl-verify` deterministic JSON executable |
 | Fixture corpus | Contract-complete smoke corpus | Retained positive/negative/equivalence/source-set fixtures, deterministic expectation evaluator and persisted corpus runner; independent corpus not attached |
 | Oracle correlation | Artifact contract hardened, external evidence pending | `RTLVerificationOracleEvidenceBuilder` persists native/oracle envelopes and evidence JSON; matched correlation requires digest-bound artifacts and independent provenance; no external retained comparison evidence |
-| Process qualification | Freshness contract hardened, process evidence pending | Process scope/record now requires a valid qualification window; no PDK-scoped qualification record |
+| Process qualification | Freshness and evidence binding hardened, process evidence pending | Process scope/record requires a valid qualification window and matching retained corpus/oracle evidence IDs; no PDK-scoped qualification record |
 | Xcircuite stage adapter | Implementation complete, LogicEngine bridge verified | `RTLVerificationFlowStageExecutor` persists result/qualification/review/audit artifacts; `LogicEquivalenceFlowStageExecutor` consumes synthesis requests and emits acceptance evidence |
 | End-to-end flow evidence | Native LogicEngine synthesis → RTL mapped proof → acceptance verified | Retained Xcircuite evidence includes 5 LogicEngine adapter tests and 3 RTL stage/resume/qualification-gate tests; full workspace qualification remains open |
 | Release readiness | Blocked | M1, M5, M6, M7 and M8 evidence are incomplete |
