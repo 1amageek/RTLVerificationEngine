@@ -777,6 +777,14 @@ struct ContractTests {
             qualifiedAt: Date(timeIntervalSince1970: 1),
             expiresAt: Date(timeIntervalSince1970: 2)
         )
+        let processEvidence = RTLVerificationProcessQualificationEvidence(
+            evidenceID: "process-evidence:process-1",
+            qualificationID: process.qualificationID,
+            qualification: process,
+            artifactIDs: ["process-qualification-record"],
+            provenance: "retained-process-qualification",
+            recordedAt: Date(timeIntervalSince1970: 1)
+        )
         let approval = RTLVerificationQualificationEvidence(
             evidenceID: "approval-1",
             kind: .releaseApproval,
@@ -787,6 +795,8 @@ struct ContractTests {
             evidenceID: "oracle:lint-positive",
             caseID: "lint-positive",
             requestDigest: "request-digest",
+            nativePayloadRequestDigest: "request-digest",
+            oraclePayloadRequestDigest: "request-digest",
             nativeArtifact: makeJSONReference(
                 path: "native-lint-positive.json",
                 kind: .report,
@@ -821,6 +831,7 @@ struct ContractTests {
             oracleReports: [oracle],
             oracleEvidence: [oracleEvidence],
             processQualification: process,
+            processEvidence: [processEvidence],
             releaseApproval: approval,
             expectedRequestDigest: "request-digest",
             checkedAt: Date(timeIntervalSince1970: 1)
@@ -836,6 +847,43 @@ struct ContractTests {
             "oracle:lint-positive",
             "process:process-1"
         ])
+    }
+
+    @Test("process qualification requires a retained process evidence artifact")
+    func processQualificationRequiresEvidenceArtifact() {
+        let now = Date(timeIntervalSince1970: 1)
+        let scope = RTLVerificationProcessQualificationScope(
+            implementationID: "native",
+            binaryDigest: "binary",
+            algorithmVersion: "1",
+            processProfileID: "profile",
+            pdkID: "pdk",
+            pdkDigest: "pdk-digest",
+            deckDigest: "deck-digest",
+            analyses: [.lint]
+        )
+        let process = RTLVerificationProcessQualificationRecord(
+            qualificationID: "process-without-artifact",
+            scope: scope,
+            status: .qualified,
+            corpusEvidenceIDs: ["corpus:lint"],
+            oracleEvidenceIDs: ["oracle:lint"],
+            healthEvidenceIDs: ["health:lint"],
+            qualifiedAt: now,
+            expiresAt: now.addingTimeInterval(60)
+        )
+
+        let report = RTLVerificationQualificationEvaluator().evaluate(
+            implementationID: "native",
+            implementationVersion: "1",
+            corpusEvaluations: [],
+            oracleReports: [],
+            processQualification: process,
+            checkedAt: now
+        )
+
+        #expect(report.blockers.contains("process:process_evidence_artifact_required"))
+        #expect(report.state == .unassessed)
     }
 
     @Test("qualification rejects health evidence from another implementation")
@@ -906,6 +954,8 @@ struct ContractTests {
             evidenceID: "oracle-evidence:lint-positive",
             caseID: "lint-positive",
             requestDigest: "request-digest",
+            nativePayloadRequestDigest: "request-digest",
+            oraclePayloadRequestDigest: "request-digest",
             nativeArtifact: makeJSONReference(
                 path: "binding-native.json",
                 kind: .report,
@@ -1046,6 +1096,8 @@ struct ContractTests {
             evidenceID: "oracle-evidence",
             caseID: "oracle-case",
             requestDigest: "request-digest",
+            nativePayloadRequestDigest: "request-digest",
+            oraclePayloadRequestDigest: "request-digest",
             nativeArtifact: XcircuiteFileReference(
                 path: "native.json",
                 kind: .report,
@@ -1082,6 +1134,8 @@ struct ContractTests {
             evidenceID: "oracle-evidence",
             caseID: "oracle-case",
             requestDigest: "request-digest",
+            nativePayloadRequestDigest: "request-digest",
+            oraclePayloadRequestDigest: "request-digest",
             nativeArtifact: makeJSONReference(
                 path: "native.json",
                 kind: .report,

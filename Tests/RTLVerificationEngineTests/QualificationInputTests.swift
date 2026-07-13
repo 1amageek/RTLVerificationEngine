@@ -31,10 +31,12 @@ struct QualificationInputTests {
             matched: true,
             checkedAt: now
         )
-        let oracleEvidence = RTLVerificationOracleEvidence(
+        var oracleEvidence = RTLVerificationOracleEvidence(
             evidenceID: "oracle:\(caseID)",
             caseID: caseID,
             requestDigest: "request-digest",
+            nativePayloadRequestDigest: "request-digest",
+            oraclePayloadRequestDigest: "request-digest",
             nativeArtifact: jsonReference(
                 artifactID: "native-result",
                 path: "native.json",
@@ -69,7 +71,15 @@ struct QualificationInputTests {
             qualifiedAt: now.addingTimeInterval(-60),
             expiresAt: now.addingTimeInterval(60)
         )
-        let qualificationInput = RTLVerificationQualificationInput(
+        let processEvidence = RTLVerificationProcessQualificationEvidence(
+            evidenceID: "process-evidence:process-qualification",
+            qualificationID: processQualification.qualificationID,
+            qualification: processQualification,
+            artifactIDs: ["process-qualification-record"],
+            provenance: "retained-process-qualification",
+            recordedAt: now
+        )
+        var qualificationInput = RTLVerificationQualificationInput(
             healthEvidence: [RTLVerificationQualificationEvidence(
                 evidenceID: "health:lint",
                 kind: .healthCheck,
@@ -88,15 +98,16 @@ struct QualificationInputTests {
             oracleReports: [oracleReport],
             oracleEvidence: [oracleEvidence],
             processQualification: processQualification,
+            processEvidence: [processEvidence],
             releaseApproval: RTLVerificationQualificationEvidence(
                 evidenceID: "approval-1",
                 kind: .releaseApproval,
                 summary: "Approved by verification owner.",
                 checkedAt: now
             ),
-            expectedRequestDigest: "request-digest"
+            expectedRequestDigest: nil
         )
-        let request = RTLVerificationRequest(
+        var request = RTLVerificationRequest(
             runID: "qualification-input",
             inputs: [rtl],
             design: LogicDesignReference(
@@ -108,6 +119,13 @@ struct QualificationInputTests {
             policy: RTLVerificationPolicy(minimumQualification: .releaseEligible),
             qualificationInput: qualificationInput
         )
+        let requestDigest = try RTLVerificationRequestDigest.make(request)
+        oracleEvidence.requestDigest = requestDigest
+        oracleEvidence.nativePayloadRequestDigest = requestDigest
+        oracleEvidence.oraclePayloadRequestDigest = requestDigest
+        qualificationInput.oracleEvidence = [oracleEvidence]
+        qualificationInput.expectedRequestDigest = requestDigest
+        request.qualificationInput = qualificationInput
 
         let envelope = try await NativeRTLLintEngine(reader: reader).execute(request)
 
@@ -115,6 +133,15 @@ struct QualificationInputTests {
         #expect(envelope.payload.qualification.state == .releaseEligible)
         #expect(envelope.payload.qualification.isReleaseEligible)
         #expect(envelope.payload.qualification.blockers.isEmpty)
+
+        qualificationInput.expectedRequestDigest = "another-request-digest"
+        request.qualificationInput = qualificationInput
+        let mismatchedEnvelope = try await NativeRTLLintEngine(reader: reader).execute(request)
+
+        #expect(mismatchedEnvelope.status == .blocked)
+        #expect(mismatchedEnvelope.payload.qualification.blockers.contains(
+            "qualification_request_digest_mismatch"
+        ))
     }
 
     private func jsonReference(artifactID: String, path: String, data: Data) -> XcircuiteFileReference {

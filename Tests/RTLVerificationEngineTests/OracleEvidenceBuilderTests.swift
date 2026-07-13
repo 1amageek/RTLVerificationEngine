@@ -51,6 +51,31 @@ struct OracleEvidenceBuilderTests {
         #expect(await writer.data(for: result.evidenceArtifact) != nil)
     }
 
+    @Test("builder rejects an envelope whose payload belongs to another request")
+    func builderRejectsPayloadRequestDigestMismatch() async throws {
+        let writer = InMemoryRTLArtifactStore()
+        var native = envelope(implementationID: "native-rtl-verification", implementationVersion: "1.0.0")
+        native.payload.requestDigest = "other-request-digest"
+        let oracle = envelope(implementationID: "independent-oracle", implementationVersion: "oracle-1")
+        let builder = RTLVerificationOracleEvidenceBuilder(writer: writer)
+
+        do {
+            _ = try await builder.build(
+                caseID: "lint-digest-mismatch",
+                requestDigest: "request-digest",
+                native: native,
+                oracle: oracle,
+                oracleProvenance: "retained-independent-oracle",
+                runID: "oracle-regression"
+            )
+            Issue.record("Oracle evidence must reject a payload from another request.")
+        } catch let error as RTLVerificationExecutionError {
+            #expect(error == .invalidArtifact(
+                "Native oracle evidence result request digest does not match the evidence request."
+            ))
+        }
+    }
+
     private func envelope(
         implementationID: String,
         implementationVersion: String,
@@ -77,6 +102,7 @@ struct OracleEvidenceBuilderTests {
             ),
             payload: RTLVerificationPayload(
                 findingCount: finding == nil ? 0 : 1,
+                requestDigest: "request-digest",
                 analysis: .lint,
                 findings: finding.map { [$0] } ?? [],
                 coverage: RTLVerificationCoverage(totalConstructs: 1, analyzedConstructs: 1)

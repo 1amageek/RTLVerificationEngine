@@ -204,6 +204,165 @@ struct ExternalAdapterTests {
         #expect(result.diagnostics.first?.code == "RTL_EXTERNAL_TIMEOUT_INVALID")
     }
 
+    @Test("independent oracle executor binds the oracle to the native request")
+    func independentOracleExecutorBindsNativeRequest() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-oracle",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .lint
+        )
+        let native = try makeEnvelope(
+            request: request,
+            implementationID: "native-rtl-verification"
+        )
+        let oracle = try makeEnvelope(
+            request: request,
+            implementationID: "independent-oracle"
+        )
+        let executor = ExternalRTLVerificationOracleExecutor(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "independent-oracle",
+                executablePath: "/qualified/oracle",
+                version: "1",
+                supportedAnalyses: [.lint],
+                qualified: true
+            ),
+            runner: StaticOutputRunner(output: try JSONEncoder().encode(oracle))
+        )
+
+        let result = try await executor.execute(request, native: native)
+
+        #expect(result.metadata.implementationID == "independent-oracle")
+        #expect(result.payload.requestDigest == native.payload.requestDigest)
+    }
+
+    @Test("independent oracle executor rejects self-correlation")
+    func independentOracleExecutorRejectsSelfCorrelation() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-oracle-self",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .lint
+        )
+        let native = try makeEnvelope(request: request, implementationID: "same-tool")
+        let oracle = try makeEnvelope(request: request, implementationID: "same-tool")
+        let executor = ExternalRTLVerificationOracleExecutor(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "same-tool",
+                executablePath: "/qualified/oracle",
+                version: "1",
+                supportedAnalyses: [.lint],
+                qualified: true
+            ),
+            runner: StaticOutputRunner(output: try JSONEncoder().encode(oracle))
+        )
+
+        do {
+            _ = try await executor.execute(request, native: native)
+            Issue.record("An oracle must not use the native implementation.")
+        } catch let error as RTLVerificationExecutionError {
+            #expect(error == .invalidArtifact(
+                "Oracle result implementation must be independent from the native implementation."
+            ))
+        }
+    }
+
+    @Test("solver-backed external proof requires a digest-bound proof artifact")
+    func solverBackedExternalProofRequiresArtifact() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-solver-artifact",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .formalEquivalence,
+            proofView: .rtlToSynthesized
+        )
+        let output = try makeEnvelope(
+            request: request,
+            implementationID: "qualified-solver"
+        )
+        let engine = ExternalRTLVerificationEngine(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "qualified-solver",
+                executablePath: "/qualified/solver",
+                version: "1",
+                supportedAnalyses: [.formalEquivalence],
+                supportedProofViews: [.rtlToSynthesized],
+                qualified: true
+            ),
+            runner: StaticOutputRunner(output: try JSONEncoder().encode(output))
+        )
+
+        do {
+            _ = try await engine.execute(request)
+            Issue.record("A solver-backed proof without a retained certificate must be rejected.")
+        } catch let error as RTLVerificationExecutionError {
+            #expect(error == .invalidArtifact(
+                "A solver-backed proof result must retain at least one digest-bound proof artifact."
+            ))
+        }
+    }
+
+    @Test("solver-backed external proof accepts a digest-bound proof artifact")
+    func solverBackedExternalProofAcceptsArtifact() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-solver-artifact-valid",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .formalEquivalence,
+            proofView: .rtlToSynthesized
+        )
+        var output = try makeEnvelope(
+            request: request,
+            implementationID: "qualified-solver"
+        )
+        output.artifacts = [XcircuiteFileReference(
+            artifactID: "solver-proof-certificate",
+            path: "proof/certificate.json",
+            kind: .report,
+            format: .json,
+            sha256: String(repeating: "a", count: 64),
+            byteCount: 1,
+            producedByRunID: request.runID
+        )]
+        let engine = ExternalRTLVerificationEngine(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "qualified-solver",
+                executablePath: "/qualified/solver",
+                version: "1",
+                supportedAnalyses: [.formalEquivalence],
+                supportedProofViews: [.rtlToSynthesized],
+                qualified: true
+            ),
+            runner: StaticOutputRunner(output: try JSONEncoder().encode(output))
+        )
+
+        let result = try await engine.execute(request)
+
+        #expect(result.status == .completed)
+        #expect(result.artifacts.first?.artifactID == "solver-proof-certificate")
+    }
+
     private func makeEnvelope(
         request: RTLVerificationRequest,
         implementationID: String = "qualified-tool",

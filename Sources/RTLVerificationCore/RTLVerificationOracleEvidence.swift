@@ -8,6 +8,8 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
     public var evidenceID: String
     public var caseID: String
     public var requestDigest: String
+    public var nativePayloadRequestDigest: String?
+    public var oraclePayloadRequestDigest: String?
     public var nativeArtifact: XcircuiteFileReference
     public var oracleArtifact: XcircuiteFileReference
     public var report: RTLVerificationOracleCorrelationReport
@@ -18,6 +20,8 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
         evidenceID: String,
         caseID: String,
         requestDigest: String,
+        nativePayloadRequestDigest: String? = nil,
+        oraclePayloadRequestDigest: String? = nil,
         nativeArtifact: XcircuiteFileReference,
         oracleArtifact: XcircuiteFileReference,
         report: RTLVerificationOracleCorrelationReport,
@@ -29,6 +33,8 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
         self.evidenceID = evidenceID
         self.caseID = caseID
         self.requestDigest = requestDigest
+        self.nativePayloadRequestDigest = nativePayloadRequestDigest
+        self.oraclePayloadRequestDigest = oraclePayloadRequestDigest
         self.nativeArtifact = nativeArtifact
         self.oracleArtifact = oracleArtifact
         self.report = report
@@ -44,6 +50,8 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
         !evidenceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !caseID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !requestDigest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && nativePayloadRequestDigest == requestDigest
+            && oraclePayloadRequestDigest == requestDigest
             && !oracleProvenance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && nativeArtifact.isDigestBound
             && oracleArtifact.isDigestBound

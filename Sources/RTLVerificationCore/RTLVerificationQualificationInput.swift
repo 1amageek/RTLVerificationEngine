@@ -9,6 +9,7 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
     public var oracleReports: [RTLVerificationOracleCorrelationReport]
     public var oracleEvidence: [RTLVerificationOracleEvidence]
     public var processQualification: RTLVerificationProcessQualificationRecord?
+    public var processEvidence: [RTLVerificationProcessQualificationEvidence]
     public var releaseApproval: RTLVerificationQualificationEvidence?
     public var expectedRequestDigest: String?
 
@@ -18,6 +19,7 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
         oracleReports: [RTLVerificationOracleCorrelationReport] = [],
         oracleEvidence: [RTLVerificationOracleEvidence] = [],
         processQualification: RTLVerificationProcessQualificationRecord? = nil,
+        processEvidence: [RTLVerificationProcessQualificationEvidence] = [],
         releaseApproval: RTLVerificationQualificationEvidence? = nil,
         expectedRequestDigest: String? = nil,
         schemaVersion: Int = RTLVerificationQualificationInput.currentSchemaVersion
@@ -28,6 +30,7 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
         self.oracleReports = oracleReports
         self.oracleEvidence = oracleEvidence
         self.processQualification = processQualification
+        self.processEvidence = processEvidence
         self.releaseApproval = releaseApproval
         self.expectedRequestDigest = expectedRequestDigest
     }
@@ -64,6 +67,10 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
                 RTLVerificationProcessQualificationRecord.self,
                 forKey: .processQualification
             ),
+            processEvidence: try container.decodeIfPresent(
+                [RTLVerificationProcessQualificationEvidence].self,
+                forKey: .processEvidence
+            ) ?? [],
             releaseApproval: try container.decodeIfPresent(
                 RTLVerificationQualificationEvidence.self,
                 forKey: .releaseApproval
@@ -80,6 +87,7 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
         case oracleReports
         case oracleEvidence
         case processQualification
+        case processEvidence
         case releaseApproval
         case expectedRequestDigest
     }

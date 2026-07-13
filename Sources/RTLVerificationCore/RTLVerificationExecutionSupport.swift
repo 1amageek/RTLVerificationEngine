@@ -136,7 +136,7 @@ public enum RTLVerificationExecutionSupport {
         let waiverResult = applyWaivers(analysisResult.findings, waivers: request.waivers)
         let findings = normalizeFindings(waiverResult.findings)
         let completedAt = Date()
-        let qualification = makeQualification(
+        let qualification = try makeQualification(
             request: request,
             analysisResult: analysisResult,
             checkedAt: completedAt
@@ -244,7 +244,7 @@ public enum RTLVerificationExecutionSupport {
         request: RTLVerificationRequest,
         analysisResult: RTLVerificationAnalysisResult,
         checkedAt: Date
-    ) -> RTLVerificationQualificationReport {
+    ) throws -> RTLVerificationQualificationReport {
         guard let input = request.qualificationInput else {
             return analysisResult.qualification
         }
@@ -256,8 +256,10 @@ public enum RTLVerificationExecutionSupport {
             oracleReports: input.oracleReports,
             oracleEvidence: input.oracleEvidence,
             processQualification: input.processQualification,
+            processEvidence: input.processEvidence,
             releaseApproval: input.releaseApproval,
             expectedRequestDigest: input.expectedRequestDigest,
+            actualRequestDigest: try RTLVerificationRequestDigest.make(request),
             analysis: request.analysis,
             proofView: request.proofView,
             checkedAt: checkedAt

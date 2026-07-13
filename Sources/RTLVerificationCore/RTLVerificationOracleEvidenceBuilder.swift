@@ -38,6 +38,16 @@ public struct RTLVerificationOracleEvidenceBuilder: RTLVerificationOracleEvidenc
         guard !runID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw RTLVerificationExecutionError.invalidRequest("Oracle run ID must not be empty.")
         }
+        guard native.payload.requestDigest == requestDigest else {
+            throw RTLVerificationExecutionError.invalidArtifact(
+                "Native oracle evidence result request digest does not match the evidence request."
+            )
+        }
+        guard oracle.payload.requestDigest == requestDigest else {
+            throw RTLVerificationExecutionError.invalidArtifact(
+                "Oracle result request digest does not match the evidence request."
+            )
+        }
 
         let report = correlator.correlate(caseID: caseID, native: native, oracle: oracle)
         let nativeArtifact = try await writer.persist(
@@ -54,6 +64,8 @@ public struct RTLVerificationOracleEvidenceBuilder: RTLVerificationOracleEvidenc
             evidenceID: "oracle-evidence:\(caseID)",
             caseID: caseID,
             requestDigest: requestDigest,
+            nativePayloadRequestDigest: native.payload.requestDigest,
+            oraclePayloadRequestDigest: oracle.payload.requestDigest,
             nativeArtifact: nativeArtifact,
             oracleArtifact: oracleArtifact,
             report: report,

@@ -6,7 +6,7 @@ import RTLLint
 import RTLVerificationCore
 import XcircuitePackage
 
-public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDCAnalyzing, FormalEquivalenceChecking {
+public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDCAnalyzing, FormalEquivalenceChecking, Sendable {
     public var descriptor: RTLExternalToolDescriptor
     public var runner: any RTLExternalToolProcessRunning
     public var additionalArguments: [String]
@@ -144,6 +144,18 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                     "External result qualification implementation version does not match the tool descriptor."
                 )
             }
+            if request.proofView.requiresSolver,
+               request.policy.requiredProof,
+               envelope.status == .completed,
+               envelope.payload.proofStatus == "proved" {
+                guard envelope.artifacts.contains(where: {
+                    Self.isDigestBoundProofArtifact($0, runID: request.runID)
+                }) else {
+                    throw RTLVerificationExecutionError.invalidArtifact(
+                        "A solver-backed proof result must retain at least one digest-bound proof artifact."
+                    )
+                }
+            }
             if request.analysis == .formalEquivalence,
                request.policy.requiredProof,
                envelope.payload.proofStatus != "proved",
@@ -164,6 +176,24 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                 "External tool output is not a valid RTL verification envelope: \(error.localizedDescription)"
             )
         }
+    }
+
+    private static func isDigestBoundProofArtifact(
+        _ artifact: XcircuiteFileReference,
+        runID: String
+    ) -> Bool {
+        guard let artifactID = artifact.artifactID,
+              !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !artifact.path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let sha256 = artifact.sha256,
+              sha256.count == 64,
+              sha256.allSatisfy(\.isHexDigit),
+              let byteCount = artifact.byteCount,
+              byteCount >= 0,
+              artifact.producedByRunID == runID else {
+            return false
+        }
+        return true
     }
 
     private func blockedEnvelope(

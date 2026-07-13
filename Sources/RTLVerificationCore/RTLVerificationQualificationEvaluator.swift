@@ -11,8 +11,10 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         oracleReports: [RTLVerificationOracleCorrelationReport],
         oracleEvidence: [RTLVerificationOracleEvidence] = [],
         processQualification: RTLVerificationProcessQualificationRecord?,
+        processEvidence: [RTLVerificationProcessQualificationEvidence] = [],
         releaseApproval: RTLVerificationQualificationEvidence? = nil,
         expectedRequestDigest: String? = nil,
+        actualRequestDigest: String? = nil,
         analysis: RTLVerificationAnalysis? = nil,
         proofView: RTLVerificationProofView? = nil,
         checkedAt: Date = Date()
@@ -53,6 +55,7 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
                     .map { "corpus:\($0.caseID)" },
                 requiredOracleEvidenceIDs: validOracleEvidence
                     .map { "oracle:\($0.caseID)" },
+                processEvidence: processEvidence,
                 checkedAt: checkedAt
             )
         } ?? []
@@ -85,9 +88,13 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
             }
         }
         if let processQualification, processPassed {
+            let processArtifactIDs = processEvidence.first {
+                $0.matches(processQualification, at: checkedAt)
+            }?.artifactIDs ?? []
             evidence.append(RTLVerificationQualificationEvidence(
                 evidenceID: "process:\(processQualification.qualificationID)",
                 kind: .processQualification,
+                artifactIDs: processArtifactIDs,
                 scopeID: processQualification.qualificationID,
                 summary: "Process qualification \(processQualification.qualificationID) covers the declared implementation and process scope.",
                 checkedAt: checkedAt
@@ -101,6 +108,11 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         }
 
         var blockers: [String] = []
+        if let expectedRequestDigest,
+           let actualRequestDigest,
+           expectedRequestDigest != actualRequestDigest {
+            blockers.append("qualification_request_digest_mismatch")
+        }
         if !corpusPassed {
             blockers.append("independent_corpus_validation_required")
             blockers.append(contentsOf: orderedCorpus.filter { !$0.matched }.map { "corpus_mismatch:\($0.caseID)" })
@@ -171,12 +183,23 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         providedHealthEvidenceIDs: Set<String>,
         requiredCorpusEvidenceIDs: [String],
         requiredOracleEvidenceIDs: [String],
+        processEvidence: [RTLVerificationProcessQualificationEvidence],
         checkedAt: Date
     ) -> [String] {
         var blockers = record.blockers
         guard record.isQualified(at: checkedAt) else {
             blockers.append("record_not_current")
             return Array(Set(blockers)).sorted()
+        }
+        let matchingProcessEvidence = processEvidence.filter {
+            $0.qualificationID == record.qualificationID
+        }
+        if !matchingProcessEvidence.contains(where: { $0.matches(record, at: checkedAt) }) {
+            if matchingProcessEvidence.isEmpty {
+                blockers.append("process_evidence_artifact_required")
+            } else {
+                blockers.append("process_evidence_record_mismatch")
+            }
         }
         if record.scope.implementationID != implementationID {
             blockers.append("scope_implementation_mismatch")
