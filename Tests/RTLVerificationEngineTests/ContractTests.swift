@@ -195,6 +195,29 @@ struct ContractTests {
         #expect(envelope.payload.findings.contains { $0.code == "CDC_ASYNCHRONOUS_INPUT" })
     }
 
+    @Test("CDC resolves source domains independently of process order", .timeLimit(.minutes(1)))
+    func cdcResolvesSourceDomainBeforeDestinationOrder() async throws {
+        let source = """
+        module top(input logic src_clk, input logic dst_clk, input logic async_in, output logic q);
+          logic source_state;
+          always_ff @(posedge dst_clk) begin
+            q <= source_state;
+          end
+          always_ff @(posedge src_clk) begin
+            source_state <= async_in;
+          end
+        endmodule
+        """
+        let reference = makeReference(path: "cdc-order.sv", format: .systemVerilog)
+        let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
+        let envelope = try await NativeCDCAnalyzer(reader: reader).execute(
+            makeRequest(reference: reference, analysis: .cdc)
+        )
+
+        #expect(envelope.status == .failed)
+        #expect(envelope.payload.findings.contains { $0.code == "CDC_UNSAFE_CROSSING" })
+    }
+
     @Test("RDC identifies reset domains", .timeLimit(.minutes(1)))
     func rdcFixture() async throws {
         let source = """

@@ -98,7 +98,7 @@ public struct NativeCDCAnalyzer: CDCAnalyzing {
         var unresolvedClock = false
 
         for module in design.modules {
-            var signalDomains: [String: String] = [:]
+            let signalDomains = signalDomains(in: module)
             for process in module.processes {
                 guard process.kind == .sequential else { continue }
                 guard let clock = RTLVerificationAnalysisHelpers.clockName(for: process) else {
@@ -120,7 +120,6 @@ public struct NativeCDCAnalyzer: CDCAnalyzing {
                 for (index, assignment) in assignments.enumerated() {
                     guard let target = RTLVerificationAnalysisHelpers.expressionBaseName(assignment.target) else { continue }
                     let sourceNames = RTLVerificationAnalysisHelpers.expressionNames(assignment.value)
-                    signalDomains[target] = clock
                     for source in sourceNames {
                         guard source != clock, source != "" else { continue }
                         if let sourceDomain = signalDomains[source], sourceDomain == clock {
@@ -156,7 +155,7 @@ public struct NativeCDCAnalyzer: CDCAnalyzing {
                 guard let destinationClock = RTLVerificationAnalysisHelpers.clockName(for: process) else { continue }
                 let assignments = RTLVerificationAnalysisHelpers.assignments(in: process.statements)
                 let externalSources = assignments.flatMap { RTLVerificationAnalysisHelpers.expressionNames($0.value) }
-                    .filter { signalDomainsFor(module: module)[$0] == nil && $0 != destinationClock }
+                    .filter { signalDomains[$0] == nil && $0 != destinationClock }
                 if Set(externalSources).count > 1 {
                     findings.append(RTLVerificationFinding(
                         severity: .error,
@@ -172,7 +171,7 @@ public struct NativeCDCAnalyzer: CDCAnalyzing {
         return Analysis(findings: findings, clockDomains: Array(clockDomains), hasUnresolvedClock: unresolvedClock)
     }
 
-    private func signalDomainsFor(module: RTLModule) -> [String: String] {
+    private func signalDomains(in module: RTLModule) -> [String: String] {
         var result: [String: String] = [:]
         for process in module.processes where process.kind == .sequential {
             guard let clock = RTLVerificationAnalysisHelpers.clockName(for: process) else { continue }
