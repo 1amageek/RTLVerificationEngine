@@ -4,7 +4,7 @@ Static RTL quality, clock/reset-domain analysis and formal equivalence contracts
 
 ## Status
 
-The package provides deterministic native implementations for the declared SystemVerilog subset, a canonical `SystemVerilogFrontend` adapter with include resolution, hierarchy elaboration and provenance, a versioned lint rule catalog with repair actions, qualified-envelope external and independent-oracle adapters bound to the exact request digest, immutable JSON artifacts, a JSON CLI, persisted retained-corpus, oracle-evidence and process-qualification artifacts, retained fixtures, and an Xcircuite flow-stage adapter.
+The package provides deterministic native implementations for the declared SystemVerilog subset, a canonical `SystemVerilogFrontend` adapter with include resolution, hierarchy elaboration and provenance, a versioned lint rule catalog with repair actions, qualified-envelope external and independent-oracle adapters bound to the exact request digest, immutable JSON artifacts, a JSON CLI, persisted retained-corpus, oracle-evidence and process-qualification artifacts, a typed process-qualification evidence builder with a digest-bound artifact manifest, retained fixtures, and an Xcircuite flow-stage adapter.
 
 Native formal equivalence is intentionally scoped to exact canonical structural equivalence for RTL-to-RTL and mapped execution graphs. Mismatch artifacts retain both the legacy human-readable messages and typed difference records containing the difference kind, affected entity and canonical implementation/reference values. The external proof contract requires a digest-bound proof artifact for solver-backed results, but does not claim that an actual temporal solver has been qualified. Process-specific qualification remains blocked until independent tool and process evidence is supplied.
 
@@ -17,8 +17,8 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Gate | Status | Evidence |
 |---|---|---|
 | Native package build | Passed | `swift build` |
-| SwiftPM contract suite | Passed | 63 tests in 6 suites |
-| Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` |
+| SwiftPM contract suite | Passed | 70 tests in 7 suites |
+| Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` — 70 tests in 7 suites |
 | CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
 | Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
 | Independent oracle correlation | Contract hardened | Native/oracle envelopes, correlation reports and digest-bound evidence artifacts can be persisted; no external independently retained oracle result is attached |
@@ -45,7 +45,7 @@ Native RDC records `resetReleaseDomains` only when every process using a reset i
 
 Native formal proves only exact canonical structural equivalence for `rtlToRtlStructural` and the explicitly limited `rtlToMappedExecutionStructural` graph contract. The mapped view lowers a retained LogicIR snapshot into a LogicEngine document and compares it with a retained mapped document; it does not prove temporal execution behavior. Requests for synthesized or DFT proof views, or assumptions that the native backend cannot interpret, are blocked. A mismatch persists a typed counterexample difference artifact for agent inspection and human review. A waiver preserves the original finding and records its scope, reason and approver.
 
-Process qualification is bound to a retained `RTLVerificationProcessQualificationEvidence` artifact and to the corpus, oracle and health evidence IDs used by the evaluator. A process record with stale, mismatched or unrelated evidence IDs remains blocked even when its scope and validity window are otherwise complete. Health evidence is represented as auditable qualification evidence with `kind=healthCheck`, implementation ID and implementation version; an ID in a process record is not sufficient by itself.
+Process qualification is bound to a retained `RTLVerificationProcessQualificationEvidence` artifact and to the corpus, oracle and health evidence IDs used by the evaluator. The `RTLVerificationProcessQualificationEvidenceBuilder` requires complete PDK scope, current validity, independent request-bound oracle evidence, implementation-bound health evidence and a fully referenced digest/byte-count artifact manifest. A process record with stale, mismatched or unrelated evidence IDs remains blocked even when its scope and validity window are otherwise complete. Health evidence is represented as auditable qualification evidence with `kind=healthCheck`, implementation ID and implementation version; an ID in a process record is not sufficient by itself.
 
 ## Products
 
@@ -135,6 +135,6 @@ For SwiftPM-only checkouts, the equivalent package test command is:
 perl -e 'alarm 60; exec @ARGV' -- swift test --filter RTLVerificationEngineTests
 ```
 
-The test suite covers request/payload compatibility, the versioned repair-oriented lint rule catalog, canonical RTL frontend parameters/case statements, connected hierarchy flattening, conditional `elsif` selection, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution, conservative reset-release synchronizer recognition and mixed-domain blockers, mapped execution graph proof and typed mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, canonical request digest binding, digest-bound oracle evidence artifacts, independent oracle execution and self-correlation rejection, process qualification evidence freshness/scope binding, qualified external-tool envelopes with descriptor identity and exact request-digest binding, solver proof artifact requirements, proof-view validation, process timeout forwarding and deterministic release blocking.
+The test suite covers request/payload compatibility, the versioned repair-oriented lint rule catalog, canonical RTL frontend parameters/case statements, connected hierarchy flattening, conditional `elsif` selection, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution, conservative reset-release synchronizer recognition and mixed-domain blockers, mapped execution graph proof and typed mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, canonical request digest binding, digest-bound oracle evidence artifacts, independent oracle execution and self-correlation rejection, real external-process execution and timeout blocking, process qualification evidence building with artifact-manifest rejection, process qualification evidence freshness/scope binding, qualified external-tool envelopes with descriptor identity and exact request-digest binding, solver proof artifact requirements, proof-view validation, process timeout forwarding and deterministic release blocking.
 
 See `DESIGN.md`, `INTERFACES.md`, `IMPLEMENTATION_PLAN.md`, `MILESTONES.md` and `GOAL_STATUS.md` before implementing a backend or interpreting a result as qualified.

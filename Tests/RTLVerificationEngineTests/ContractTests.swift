@@ -782,6 +782,12 @@ struct ContractTests {
             qualificationID: process.qualificationID,
             qualification: process,
             artifactIDs: ["process-qualification-record"],
+            artifacts: [makeJSONReference(
+                path: "process-qualification.json",
+                kind: .report,
+                data: Data("process-qualification".utf8),
+                artifactID: "process-qualification-record"
+            )],
             provenance: "retained-process-qualification",
             recordedAt: Date(timeIntervalSince1970: 1)
         )

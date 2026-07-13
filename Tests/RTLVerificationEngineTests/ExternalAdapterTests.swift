@@ -204,6 +204,104 @@ struct ExternalAdapterTests {
         #expect(result.diagnostics.first?.code == "RTL_EXTERNAL_TIMEOUT_INVALID")
     }
 
+    @Test("external adapter executes a real process and binds the request digest")
+    func externalAdapterExecutesRealProcess() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-real-process",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .lint
+        )
+        let requestDigest = try RTLVerificationRequestDigest.make(request)
+        let temporaryDirectory = FileManager.default.temporaryDirectory
+            .appending(path: "rtl-external-adapter-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(
+            at: temporaryDirectory,
+            withIntermediateDirectories: true
+        )
+        defer {
+            do {
+                try FileManager.default.removeItem(at: temporaryDirectory)
+            } catch {
+                Issue.record("Could not remove external adapter fixture: \(error.localizedDescription)")
+            }
+        }
+
+        let templateURL = temporaryDirectory.appending(path: "envelope.json")
+        let scriptURL = temporaryDirectory.appending(path: "oracle.sh")
+        var template = String(
+            data: try JSONEncoder().encode(makeEnvelope(request: request, implementationID: "real-tool")),
+            encoding: .utf8
+        ) ?? ""
+        template = template.replacingOccurrences(of: requestDigest, with: "REQUEST_DIGEST")
+        try template.write(to: templateURL, atomically: true, encoding: .utf8)
+        try """
+        #!/bin/sh
+        set -eu
+        input="$(cat)"
+        digest="$(printf '%s' "$input" | shasum -a 256 | awk '{print $1}')"
+        sed "s/REQUEST_DIGEST/$digest/g" "$1"
+        """.write(to: scriptURL, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755],
+            ofItemAtPath: scriptURL.path
+        )
+
+        let engine = ExternalRTLVerificationEngine(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "real-tool",
+                executablePath: scriptURL.path,
+                version: "1",
+                supportedAnalyses: [.lint],
+                qualified: true,
+                timeoutSeconds: 5
+            ),
+            additionalArguments: [templateURL.path]
+        )
+
+        let result = try await engine.execute(request)
+
+        #expect(result.status == .completed)
+        #expect(result.payload.requestDigest == requestDigest)
+        #expect(result.metadata.implementationID == "real-tool")
+    }
+
+    @Test("external adapter blocks when a real process exceeds its timeout")
+    func externalAdapterRealProcessTimeoutBlocks() async throws {
+        let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-real-timeout",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .lint
+        )
+        let engine = ExternalRTLVerificationEngine(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "real-timeout-tool",
+                executablePath: "/bin/sh",
+                version: "1",
+                supportedAnalyses: [.lint],
+                qualified: true,
+                timeoutSeconds: 0.05
+            ),
+            additionalArguments: ["-c", "exec sleep 1"]
+        )
+
+        let result = try await engine.execute(request)
+
+        #expect(result.status == .blocked)
+        #expect(result.diagnostics.first?.code == "RTL_EXTERNAL_TOOL_FAILED")
+    }
+
     @Test("independent oracle executor binds the oracle to the native request")
     func independentOracleExecutorBindsNativeRequest() async throws {
         let artifact = XcircuiteFileReference(path: "top.sv", kind: .rtl, format: .systemVerilog)

@@ -76,6 +76,11 @@ struct QualificationInputTests {
             qualificationID: processQualification.qualificationID,
             qualification: processQualification,
             artifactIDs: ["process-qualification-record"],
+            artifacts: [jsonReference(
+                artifactID: "process-qualification-record",
+                path: "process-qualification.json",
+                data: Data("process-qualification".utf8)
+            )],
             provenance: "retained-process-qualification",
             recordedAt: now
         )
