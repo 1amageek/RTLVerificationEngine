@@ -652,10 +652,17 @@ struct ContractTests {
             recordedAt: Date(timeIntervalSince1970: 1)
         )
         #expect(oracleEvidence.isAuditable)
+        let healthEvidence = RTLVerificationQualificationEvidence(
+            evidenceID: "health:lint",
+            kind: .healthCheck,
+            summary: "Native lint health check passed.",
+            checkedAt: Date(timeIntervalSince1970: 1)
+        )
 
         let report = RTLVerificationQualificationEvaluator().evaluate(
             implementationID: "native",
             implementationVersion: "1",
+            healthEvidence: [healthEvidence],
             corpusEvaluations: [corpus],
             oracleReports: [oracle],
             oracleEvidence: [oracleEvidence],
@@ -671,6 +678,7 @@ struct ContractTests {
         #expect(report.evidence.map(\.evidenceID) == [
             "approval-1",
             "corpus:lint-positive",
+            "health:lint",
             "oracle:lint-positive",
             "process:process-1"
         ])
@@ -752,6 +760,7 @@ struct ContractTests {
         #expect(report.state == .oracleCorrelated)
         #expect(report.blockers.contains("process:corpus_evidence_binding_missing:corpus:lint-positive"))
         #expect(report.blockers.contains("process:oracle_evidence_binding_missing:oracle:lint-positive"))
+        #expect(report.blockers.contains("process:health_evidence_artifact_missing:health:lint"))
         #expect(!report.isReleaseEligible)
     }
 

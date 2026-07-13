@@ -4,6 +4,7 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
     public static let currentSchemaVersion = 1
 
     public var schemaVersion: Int
+    public var healthEvidence: [RTLVerificationQualificationEvidence]
     public var corpusEvaluations: [RTLVerificationCorpusEvaluation]
     public var oracleReports: [RTLVerificationOracleCorrelationReport]
     public var oracleEvidence: [RTLVerificationOracleEvidence]
@@ -12,6 +13,7 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
     public var expectedRequestDigest: String?
 
     public init(
+        healthEvidence: [RTLVerificationQualificationEvidence] = [],
         corpusEvaluations: [RTLVerificationCorpusEvaluation] = [],
         oracleReports: [RTLVerificationOracleCorrelationReport] = [],
         oracleEvidence: [RTLVerificationOracleEvidence] = [],
@@ -21,6 +23,7 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
         schemaVersion: Int = RTLVerificationQualificationInput.currentSchemaVersion
     ) {
         self.schemaVersion = schemaVersion
+        self.healthEvidence = healthEvidence
         self.corpusEvaluations = corpusEvaluations
         self.oracleReports = oracleReports
         self.oracleEvidence = oracleEvidence
@@ -41,6 +44,10 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
             )
         }
         self.init(
+            healthEvidence: try container.decodeIfPresent(
+                [RTLVerificationQualificationEvidence].self,
+                forKey: .healthEvidence
+            ) ?? [],
             corpusEvaluations: try container.decodeIfPresent(
                 [RTLVerificationCorpusEvaluation].self,
                 forKey: .corpusEvaluations
@@ -68,6 +75,7 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
 
     private enum CodingKeys: String, CodingKey {
         case schemaVersion
+        case healthEvidence
         case corpusEvaluations
         case oracleReports
         case oracleEvidence

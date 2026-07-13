@@ -70,6 +70,12 @@ struct QualificationInputTests {
             expiresAt: now.addingTimeInterval(60)
         )
         let qualificationInput = RTLVerificationQualificationInput(
+            healthEvidence: [RTLVerificationQualificationEvidence(
+                evidenceID: "health:lint",
+                kind: .healthCheck,
+                summary: "Native lint health check passed.",
+                checkedAt: now
+            )],
             corpusEvaluations: [RTLVerificationCorpusEvaluation(
                 caseID: caseID,
                 matched: true,

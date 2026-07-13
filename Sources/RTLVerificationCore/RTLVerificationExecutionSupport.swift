@@ -250,6 +250,7 @@ public enum RTLVerificationExecutionSupport {
         return RTLVerificationQualificationEvaluator().evaluate(
             implementationID: analysisResult.qualification.implementationID,
             implementationVersion: analysisResult.qualification.implementationVersion,
+            healthEvidence: input.healthEvidence,
             corpusEvaluations: input.corpusEvaluations,
             oracleReports: input.oracleReports,
             oracleEvidence: input.oracleEvidence,

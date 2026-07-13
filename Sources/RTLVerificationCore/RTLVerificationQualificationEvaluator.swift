@@ -6,6 +6,7 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
     public func evaluate(
         implementationID: String,
         implementationVersion: String,
+        healthEvidence: [RTLVerificationQualificationEvidence] = [],
         corpusEvaluations: [RTLVerificationCorpusEvaluation],
         oracleReports: [RTLVerificationOracleCorrelationReport],
         oracleEvidence: [RTLVerificationOracleEvidence] = [],
@@ -28,6 +29,9 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
                     && evidence.requestDigest == expectedRequestDigest
             }
         }
+        let validHealthEvidence = healthEvidence.filter {
+            $0.kind == .healthCheck && $0.isAuditable
+        }
         let oraclePassed = !orderedOracle.isEmpty
             && validOracleEvidence.count == orderedOracle.count
             && expectedRequestDigest != nil
@@ -39,6 +43,7 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
                 implementationVersion: implementationVersion,
                 analysis: analysis,
                 proofView: proofView,
+                availableHealthEvidenceIDs: validHealthEvidence.map(\.evidenceID),
                 requiredCorpusEvidenceIDs: orderedCorpus
                     .filter(\.matched)
                     .map { "corpus:\($0.caseID)" },
@@ -83,6 +88,9 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
                 summary: "Process qualification \(processQualification.qualificationID) covers the declared implementation and process scope.",
                 checkedAt: checkedAt
             ))
+        }
+        for healthItem in validHealthEvidence where processQualification?.healthEvidenceIDs.contains(healthItem.evidenceID) == true {
+            evidence.append(healthItem)
         }
         if let releaseApproval, releaseApprovalPassed {
             evidence.append(releaseApproval)
@@ -155,6 +163,7 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         implementationVersion: String,
         analysis: RTLVerificationAnalysis?,
         proofView: RTLVerificationProofView?,
+        availableHealthEvidenceIDs: [String],
         requiredCorpusEvidenceIDs: [String],
         requiredOracleEvidenceIDs: [String],
         checkedAt: Date
@@ -179,6 +188,14 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
             blockers.append("scope_proof_view_mismatch")
         }
         let corpusEvidence = Set(record.corpusEvidenceIDs)
+        let healthEvidence = Set(record.healthEvidenceIDs)
+        let availableHealthEvidence = Set(availableHealthEvidenceIDs)
+        blockers.append(contentsOf: record.healthEvidenceIDs
+            .filter { !availableHealthEvidence.contains($0) }
+            .map { "health_evidence_artifact_missing:\($0)" })
+        blockers.append(contentsOf: availableHealthEvidenceIDs
+            .filter { !healthEvidence.contains($0) }
+            .map { "health_evidence_binding_missing:\($0)" })
         blockers.append(contentsOf: requiredCorpusEvidenceIDs
             .filter { !corpusEvidence.contains($0) }
             .map { "corpus_evidence_binding_missing:\($0)" })

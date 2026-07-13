@@ -22,7 +22,7 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
 | Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
 | Independent oracle correlation | Contract hardened | Native/oracle envelopes, correlation reports and digest-bound evidence artifacts can be persisted; no external independently retained oracle result is attached |
-| Process/PDK qualification | Contract hardened | Process records enforce a validity window; no PDK-scoped health and qualification record is attached |
+| Process/PDK qualification | Contract hardened | Process records enforce a validity window and bind corpus, oracle and auditable health evidence IDs; no PDK-scoped qualification record is attached |
 | Release eligibility | Blocked | Qualification and headless integration evidence remain incomplete |
 
 The Xcircuite library target and the focused RTL/LogicEngine adapter tests have passed in retained integration evidence. The RTL flow suite currently passes native artifact persistence, resume identity checks and qualification blocking for unqualified external tools. Full workspace qualification remains separate from this package evidence.
@@ -43,7 +43,7 @@ The native frontend adapts the canonical `SystemVerilogFrontend` into the verifi
 
 Native formal proves only exact canonical structural equivalence for `rtlToRtlStructural` and the explicitly limited `rtlToMappedExecutionStructural` graph contract. The mapped view lowers a retained LogicIR snapshot into a LogicEngine document and compares it with a retained mapped document; it does not prove temporal execution behavior. Requests for synthesized or DFT proof views, or assumptions that the native backend cannot interpret, are blocked. A mismatch persists a typed counterexample difference artifact for agent inspection and human review. A waiver preserves the original finding and records its scope, reason and approver.
 
-Process qualification is bound to the retained corpus and oracle evidence IDs used by the evaluator. A process record with stale, mismatched or unrelated evidence IDs remains blocked even when its scope and validity window are otherwise complete.
+Process qualification is bound to the retained corpus, oracle and health evidence IDs used by the evaluator. A process record with stale, mismatched or unrelated evidence IDs remains blocked even when its scope and validity window are otherwise complete. Health evidence is represented as auditable qualification evidence with `kind=healthCheck`; an ID in a process record is not sufficient by itself.
 
 ## Products
 
@@ -69,7 +69,7 @@ Every executing product uses:
 
 Native implementations are `NativeRTLLintEngine`, `NativeCDCAnalyzer`, `NativeRDCAnalyzer` and `NativeFormalEquivalenceChecker`. They share `RTLVerificationEnvironment`, `RTLVerificationDesignLoader`, the canonical `LogicIR` model, and the result finalizer.
 
-Unsupported semantics are retained in `RTLVerificationCoverage` and block the result when they exceed the request policy. Findings are never deleted by waivers; a scoped waiver is recorded on the finding and in the payload. Oracle correlation is not qualification evidence until `RTLVerificationOracleEvidence` binds the matched report to a request digest, two digest-bearing result artifacts and independent provenance. Process qualification is not current until its scope, evidence IDs, qualification timestamp and expiration timestamp are valid at evaluation time.
+Unsupported semantics are retained in `RTLVerificationCoverage` and block the result when they exceed the request policy. Findings are never deleted by waivers; a scoped waiver is recorded on the finding and in the payload. Oracle correlation is not qualification evidence until `RTLVerificationOracleEvidence` binds the matched report to a request digest, two digest-bearing result artifacts and independent provenance. Process qualification is not current until its scope, corpus/oracle/health evidence IDs, qualification timestamp and expiration timestamp are valid at evaluation time.
 
 ## CLI
 
@@ -79,7 +79,7 @@ The deterministic JSON CLI verifies a project-relative RTL artifact and writes t
 swift run rtl-verify --analysis lint --project-root /path/to/project --rtl rtl/top.sv --top top --run-id rtl-lint-001
 ```
 
-The CLI accepts repeated `--rtl` and repeated `--reference` options for multi-file implementation/reference source sets. Frontend controls include `--define NAME[=VALUE]`, `--include-dir <directory>`, `--language`, and `--max-unsupported`. CDC/RDC can load SDC with `--constraint <path>` and `--constraint-mode <mode>`; parsed clock groups and path exceptions are retained in coverage and are not treated as CDC/RDC safety waivers. Formal equivalence additionally requires at least one `--reference <path>` and accepts `--proof-view`, `--assumptions`, and the qualification policy options. `--qualification-input <file>` loads a project package JSON artifact containing retained corpus evaluations, independent oracle correlation/evidence, process qualification freshness and optional release approval. The input is evaluated during finalization and can only advance the result when every required evidence gate is satisfied.
+The CLI accepts repeated `--rtl` and repeated `--reference` options for multi-file implementation/reference source sets. Frontend controls include `--define NAME[=VALUE]`, `--include-dir <directory>`, `--language`, and `--max-unsupported`. CDC/RDC can load SDC with `--constraint <path>` and `--constraint-mode <mode>`; parsed clock groups and path exceptions are retained in coverage and are not treated as CDC/RDC safety waivers. Formal equivalence additionally requires at least one `--reference <path>` and accepts `--proof-view`, `--assumptions`, and the qualification policy options. `--qualification-input <file>` loads a project package JSON artifact containing health evidence, retained corpus evaluations, independent oracle correlation/evidence, process qualification freshness and optional release approval. The input is evaluated during finalization and can only advance the result when every required evidence gate is satisfied.
 
 ```mermaid
 flowchart LR
