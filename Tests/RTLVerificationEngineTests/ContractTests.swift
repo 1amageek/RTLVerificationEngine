@@ -94,6 +94,31 @@ struct ContractTests {
         #expect(parsed.unsupportedConstructs.isEmpty)
     }
 
+    @Test("canonical frontend flattens connected hierarchy")
+    func canonicalFrontendFlattensConnectedHierarchy() throws {
+        let source = Data("""
+        module leaf(input logic a, output logic y);
+            assign y = a;
+        endmodule
+        module top(input logic a, output logic y);
+            logic child_y;
+            leaf u_leaf(.a(a), .y(child_y));
+            assign y = child_y;
+        endmodule
+        """.utf8)
+
+        let parsed = try SystemVerilogRTLParser().parse(
+            data: source,
+            path: "hierarchy.sv",
+            topModuleName: "top"
+        )
+
+        #expect(parsed.design.modules.count == 1)
+        #expect(parsed.design.modules.first?.instances.isEmpty == true)
+        #expect(parsed.design.modules.first?.assignments.count == 3)
+        #expect(parsed.design.modules.first?.signals.contains { $0.name == "u_leaf__y" } == true)
+    }
+
     @Test("request and payload round trip")
     func requestAndPayloadRoundTrip() throws {
         let reference = XcircuiteFileReference(

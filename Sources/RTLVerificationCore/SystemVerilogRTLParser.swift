@@ -169,6 +169,24 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
             )
         }
         design.topModuleName = selectedTop
+        var elaboratedDesign = RTLGenerateElaborator().elaborate(design)
+        let topHasInstances = elaboratedDesign.modules
+            .first(where: { $0.name == selectedTop })?
+            .instances
+            .isEmpty == false
+        if topHasInstances {
+            let hierarchyResult = RTLHierarchyElaborator().elaborate(elaboratedDesign)
+            guard let flattenedDesign = hierarchyResult.design else {
+                let diagnostic = hierarchyResult.diagnostics.first
+                throw RTLVerificationExecutionError.parserFailed(
+                    path: diagnostic?.location?.start.path ?? fallbackPath,
+                    reason: diagnostic.map { "\($0.code): \($0.message)" }
+                        ?? "RTL hierarchy elaboration failed."
+                )
+            }
+            elaboratedDesign = flattenedDesign
+        }
+        design = elaboratedDesign
         design.sourceFiles = sourceFiles
         remapSourcePaths(
             in: &design,
