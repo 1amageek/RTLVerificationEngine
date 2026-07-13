@@ -25,7 +25,7 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Process/PDK qualification | Contract hardened | Process records enforce a validity window and bind corpus, oracle and implementation-matched auditable health evidence IDs; no PDK-scoped qualification record is attached |
 | Release eligibility | Blocked | Qualification and headless integration evidence remain incomplete |
 
-The Xcircuite library target and the focused RTL/LogicEngine adapter tests have passed in retained integration evidence. The current serial Xcircuite regression also passes 534 tests in 58 suites, including the RTL stage, LogicEngine bridge, review/resume, PDK corpus and end-to-end flow contracts. A parallel run in the shared workspace is not signoff evidence because unrelated concurrent SwiftPM processes can interfere; full workspace qualification remains separate from this package evidence.
+The Xcircuite library target and the focused RTL/LogicEngine adapter tests have passed in retained integration evidence. The current serial Xcircuite regression also passes 545 tests in 58 suites, including the RTL stage, LogicEngine bridge, review/resume, PDK corpus and end-to-end flow contracts. A parallel run in the shared workspace is not signoff evidence because unrelated concurrent SwiftPM processes can interfere; full workspace qualification remains separate from this package evidence.
 
 ## Scope and trust boundary
 
