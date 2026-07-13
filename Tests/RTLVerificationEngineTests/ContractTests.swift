@@ -526,6 +526,47 @@ struct ContractTests {
         #expect(!record.isFresh(at: Date(timeIntervalSince1970: 3)))
     }
 
+    @Test("qualification rejects a process record scoped to another implementation")
+    func processQualificationScopeMustMatchRequest() {
+        let now = Date()
+        let scope = RTLVerificationProcessQualificationScope(
+            implementationID: "other-implementation",
+            binaryDigest: "binary",
+            algorithmVersion: "other-version",
+            processProfileID: "profile",
+            pdkID: "pdk",
+            pdkDigest: "pdk-digest",
+            deckDigest: "deck-digest",
+            analyses: [.cdc]
+        )
+        let process = RTLVerificationProcessQualificationRecord(
+            qualificationID: "mismatched-process",
+            scope: scope,
+            status: .qualified,
+            corpusEvidenceIDs: ["corpus:lint"],
+            oracleEvidenceIDs: ["oracle:lint"],
+            healthEvidenceIDs: ["health:lint"],
+            qualifiedAt: now.addingTimeInterval(-60),
+            expiresAt: now.addingTimeInterval(60)
+        )
+
+        let report = RTLVerificationQualificationEvaluator().evaluate(
+            implementationID: "native-rtl-verification",
+            implementationVersion: "1.0.0",
+            corpusEvaluations: [],
+            oracleReports: [],
+            processQualification: process,
+            analysis: .lint,
+            proofView: .rtlToRtlStructural,
+            checkedAt: now
+        )
+
+        #expect(report.blockers.contains("process:scope_implementation_mismatch"))
+        #expect(report.blockers.contains("process:scope_algorithm_version_mismatch"))
+        #expect(report.blockers.contains("process:scope_analysis_mismatch"))
+        #expect(!report.evidence.contains { $0.kind == .processQualification })
+    }
+
     @Test("oracle evidence requires digest-bound artifacts")
     func oracleEvidenceRequiresDigestBoundArtifacts() throws {
         let report = RTLVerificationOracleCorrelationReport(

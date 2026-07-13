@@ -256,6 +256,8 @@ public enum RTLVerificationExecutionSupport {
             processQualification: input.processQualification,
             releaseApproval: input.releaseApproval,
             expectedRequestDigest: input.expectedRequestDigest,
+            analysis: request.analysis,
+            proofView: request.proofView,
             checkedAt: checkedAt
         )
     }

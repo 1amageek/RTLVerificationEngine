@@ -12,6 +12,8 @@ public protocol DomainExecuting: Sendable {
 
 Requests carry a schema version, run ID, typed implementation/reference artifact sets, frontend policy, explicit proof/assumption scope and an optional retained qualification input. Payloads contain domain findings, coverage and qualification evidence. Diagnostics and artifacts belong to the shared envelope. The CLI loads the same qualification input through `--qualification-input` so headless and library execution share one gate.
 
+`RTLVerificationCorpusRunner` executes a deterministic, uniquely identified set of corpus cases through the same engine protocol, persists each result envelope and writes a digest-bound aggregate `RTLVerificationCorpusRun` under the supplied run ID. A corpus run is matched only when every case expectation is satisfied; execution errors are thrown rather than converted into qualification evidence.
+
 ## Products
 
 ### RTLLint

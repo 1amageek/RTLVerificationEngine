@@ -12,6 +12,8 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         processQualification: RTLVerificationProcessQualificationRecord?,
         releaseApproval: RTLVerificationQualificationEvidence? = nil,
         expectedRequestDigest: String? = nil,
+        analysis: RTLVerificationAnalysis? = nil,
+        proofView: RTLVerificationProofView? = nil,
         checkedAt: Date = Date()
     ) -> RTLVerificationQualificationReport {
         let orderedCorpus = corpusEvaluations.sorted { $0.caseID < $1.caseID }
@@ -30,7 +32,17 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
             && validOracleEvidence.count == orderedOracle.count
             && expectedRequestDigest != nil
             && orderedOracle.allSatisfy { $0.matched && $0.independenceVerified }
-        let processPassed = processQualification?.isQualified(at: checkedAt) == true
+        let processBlockers = processQualification.map {
+            processQualificationBlockers(
+                $0,
+                implementationID: implementationID,
+                implementationVersion: implementationVersion,
+                analysis: analysis,
+                proofView: proofView,
+                checkedAt: checkedAt
+            )
+        } ?? []
+        let processPassed = processQualification != nil && processBlockers.isEmpty
         let releaseApprovalPassed = releaseApproval?.kind == .releaseApproval
             && releaseApproval?.isAuditable == true
 
@@ -58,7 +70,7 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
                 evidence.append(qualificationEvidence)
             }
         }
-        if let processQualification, processQualification.isQualified(at: checkedAt) {
+        if let processQualification, processPassed {
             evidence.append(RTLVerificationQualificationEvidence(
                 evidenceID: "process:\(processQualification.qualificationID)",
                 kind: .processQualification,
@@ -94,9 +106,7 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
         }
         if !processPassed {
             blockers.append("process_qualification_required")
-            if let processQualification {
-                blockers.append(contentsOf: processQualification.blockers.map { "process:\($0)" })
-            }
+            blockers.append(contentsOf: processBlockers.map { "process:\($0)" })
         }
 
         let evidenceReadyForRelease = corpusPassed && oraclePassed && processPassed
@@ -132,5 +142,35 @@ public struct RTLVerificationQualificationEvaluator: Sendable {
             processQualification: processQualification,
             checkedAt: checkedAt
         )
+    }
+
+    private func processQualificationBlockers(
+        _ record: RTLVerificationProcessQualificationRecord,
+        implementationID: String,
+        implementationVersion: String,
+        analysis: RTLVerificationAnalysis?,
+        proofView: RTLVerificationProofView?,
+        checkedAt: Date
+    ) -> [String] {
+        var blockers = record.blockers
+        guard record.isQualified(at: checkedAt) else {
+            blockers.append("record_not_current")
+            return Array(Set(blockers)).sorted()
+        }
+        if record.scope.implementationID != implementationID {
+            blockers.append("scope_implementation_mismatch")
+        }
+        if record.scope.algorithmVersion != implementationVersion {
+            blockers.append("scope_algorithm_version_mismatch")
+        }
+        if let analysis, !record.scope.analyses.contains(analysis) {
+            blockers.append("scope_analysis_mismatch")
+        }
+        if analysis == .formalEquivalence,
+           let proofView,
+           !record.scope.proofViews.contains(proofView) {
+            blockers.append("scope_proof_view_mismatch")
+        }
+        return Array(Set(blockers)).sorted()
     }
 }

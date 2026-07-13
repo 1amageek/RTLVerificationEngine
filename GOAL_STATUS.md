@@ -10,10 +10,10 @@
 | Public package products | Implemented for current slice | Package.swift |
 | Shared Xcircuite request/result contract | Implemented for current slice | Public Swift protocols, payloads and qualification gate |
 | Contract build | Passed | `swift build` |
-| Contract test | Passed | timeout-bounded SwiftPM test: 35 tests in 4 suites; qualification-input wiring, mapped pass/mismatch, oracle evidence, freshness and timeout fixtures included |
+| Contract test | Passed | timeout-bounded SwiftPM test: 38 tests in 5 suites; qualification-input wiring, mapped pass/mismatch, persisted corpus runs, oracle evidence, freshness, scope binding and timeout fixtures included |
 | Domain implementation | Complete for native subset | Native lint, CDC, RDC and structural equivalence backends |
 | CLI implementation | Complete | `rtl-verify` deterministic JSON executable |
-| Fixture corpus | Contract-complete smoke corpus | Retained positive/negative/equivalence/source-set fixtures and deterministic expectation evaluator; independent corpus not attached |
+| Fixture corpus | Contract-complete smoke corpus | Retained positive/negative/equivalence/source-set fixtures, deterministic expectation evaluator and persisted corpus runner; independent corpus not attached |
 | Oracle correlation | Artifact contract hardened, external evidence pending | `RTLVerificationOracleEvidence` binds request digest, two digest-bearing result artifacts, matched correlation and independent provenance; no external retained comparison evidence |
 | Process qualification | Freshness contract hardened, process evidence pending | Process scope/record now requires a valid qualification window; no PDK-scoped qualification record |
 | Xcircuite stage adapter | Implementation complete, LogicEngine bridge verified | `RTLVerificationFlowStageExecutor` persists result/qualification/review/audit artifacts; `LogicEquivalenceFlowStageExecutor` consumes synthesis requests and emits acceptance evidence |

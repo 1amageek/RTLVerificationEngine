@@ -35,7 +35,7 @@ The work is intentionally staged around trust boundaries. The first implementati
 - Extend the declared frontend boundary toward complete SystemVerilog preprocessing/elaboration and publish the language coverage matrix.
 - Project SDC clocks and timing exceptions into CDC/RDC analysis instead of treating `constraints` as an unused request field.
 - Add proof-view identity, assumptions and trace semantics for RTL-to-synthesized and synthesized-to-DFT equivalence.
-- Persist corpus, oracle, qualification and release evidence as first-class immutable artifacts and connect them to the Xcircuite audit packet.
+- Extend the persisted corpus-run artifact pattern to oracle, qualification and release evidence, then connect those immutable artifacts to the Xcircuite audit packet. Corpus result envelopes and the aggregate `RTLVerificationCorpusRun` are now persisted by the native runner.
 
 ## Completion gates
 
