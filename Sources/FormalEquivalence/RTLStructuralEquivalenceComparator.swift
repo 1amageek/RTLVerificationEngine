@@ -6,40 +6,80 @@ struct RTLStructuralEquivalenceComparator: Sendable {
     struct Comparison: Sendable, Hashable {
         var mismatches: [String]
         var affectedEntities: [String]
+        var differences: [RTLFormalCounterexampleDifference]
     }
 
     func compare(_ implementation: RTLDesign, _ reference: RTLDesign) -> Comparison {
         var mismatches: [String] = []
         var entities: [String] = []
+        var differences: [RTLFormalCounterexampleDifference] = []
         if implementation.topModuleName != reference.topModuleName {
-            mismatches.append("Top module differs: \(implementation.topModuleName) != \(reference.topModuleName)")
+            let message = "Top module differs: \(implementation.topModuleName) != \(reference.topModuleName)"
+            mismatches.append(message)
             entities.append(implementation.topModuleName)
+            differences.append(RTLFormalCounterexampleDifference(
+                kind: .topModule,
+                entity: implementation.topModuleName,
+                implementationValue: implementation.topModuleName,
+                referenceValue: reference.topModuleName,
+                message: message
+            ))
         }
         let implementationModules = Dictionary(uniqueKeysWithValues: implementation.modules.map { ($0.name, canonicalModule($0)) })
         let referenceModules = Dictionary(uniqueKeysWithValues: reference.modules.map { ($0.name, canonicalModule($0)) })
         for name in Set(implementationModules.keys).union(referenceModules.keys).sorted() {
-            guard let lhs = implementationModules[name], let rhs = referenceModules[name] else {
-                mismatches.append("Module presence differs: \(name)")
+            let lhs = implementationModules[name]
+            let rhs = referenceModules[name]
+            guard let lhs, let rhs else {
+                let message = "Module presence differs: \(name)"
+                mismatches.append(message)
                 entities.append(name)
+                differences.append(RTLFormalCounterexampleDifference(
+                    kind: .modulePresence,
+                    entity: name,
+                    implementationValue: lhs,
+                    referenceValue: rhs,
+                    message: message
+                ))
                 continue
             }
             if lhs != rhs {
-                mismatches.append("Canonical module differs: \(name)")
+                let message = "Canonical module differs: \(name)"
+                mismatches.append(message)
                 entities.append(name)
+                differences.append(RTLFormalCounterexampleDifference(
+                    kind: .moduleStructure,
+                    entity: name,
+                    implementationValue: lhs,
+                    referenceValue: rhs,
+                    message: message
+                ))
             }
         }
-        return Comparison(mismatches: mismatches, affectedEntities: entities)
+        return Comparison(
+            mismatches: mismatches,
+            affectedEntities: entities,
+            differences: differences
+        )
     }
 
     func compare(_ implementation: LogicDesignDocument, _ reference: LogicDesignDocument) -> Comparison {
         let implementationCanonical = canonicalDocument(implementation)
         let referenceCanonical = canonicalDocument(reference)
         guard implementationCanonical != referenceCanonical else {
-            return Comparison(mismatches: [], affectedEntities: [])
+            return Comparison(mismatches: [], affectedEntities: [], differences: [])
         }
+        let message = "Mapped execution graph differs for top module \(implementation.topDesignName)"
         return Comparison(
-            mismatches: ["Mapped execution graph differs for top module \(implementation.topDesignName)"],
-            affectedEntities: [implementation.topDesignName]
+            mismatches: [message],
+            affectedEntities: [implementation.topDesignName],
+            differences: [RTLFormalCounterexampleDifference(
+                kind: .mappedExecutionGraph,
+                entity: implementation.topDesignName,
+                implementationValue: implementationCanonical,
+                referenceValue: referenceCanonical,
+                message: message
+            )]
         )
     }
 

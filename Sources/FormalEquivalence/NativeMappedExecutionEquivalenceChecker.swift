@@ -285,16 +285,24 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
         guard sourceCanonical == mappedCanonical else {
             return Comparison(
                 mismatches: [
-                    "Canonical mapped execution graph differs for top module (source.topDesignName)."
-                ]
+                    "Canonical mapped execution graph differs for top module \(source.topDesignName)."
+                ],
+                differences: [RTLFormalCounterexampleDifference(
+                    kind: .mappedExecutionGraph,
+                    entity: source.topDesignName,
+                    implementationValue: sourceCanonical.canonicalValue,
+                    referenceValue: mappedCanonical.canonicalValue,
+                    message: "Canonical mapped execution graph differs for top module \(source.topDesignName)."
+                )]
             )
         }
-        return Comparison(mismatches: [])
+        return Comparison(mismatches: [], differences: [])
     }
 }
 
 private struct Comparison: Sendable, Hashable {
     let mismatches: [String]
+    let differences: [RTLFormalCounterexampleDifference]
 }
 
 private struct CanonicalDocument: Sendable, Hashable {
@@ -302,6 +310,19 @@ private struct CanonicalDocument: Sendable, Hashable {
     let ports: [CanonicalPort]
     let signals: [CanonicalSignal]
     let nodes: [CanonicalNode]
+
+    var canonicalValue: String {
+        let portValue = ports
+            .map { "\($0.name):\($0.direction.rawValue):\($0.width)" }
+            .joined(separator: "|")
+        let signalValue = signals
+            .map { "\($0.name):\($0.width):\($0.isSigned)" }
+            .joined(separator: "|")
+        let nodeValue = nodes
+            .map { $0.sortKey }
+            .joined(separator: "|")
+        return "\(topDesignName);ports=\(portValue);signals=\(signalValue);nodes=\(nodeValue)"
+    }
 
     init(document: LogicDesignDocument) {
         let normalized = Self.normalize(document)

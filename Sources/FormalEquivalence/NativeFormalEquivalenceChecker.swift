@@ -115,7 +115,8 @@ public struct NativeFormalEquivalenceChecker: FormalEquivalenceChecking {
                     runID: request.runID,
                     topModuleName: request.design.topDesignName,
                     mismatches: comparison.mismatches,
-                    affectedEntities: comparison.affectedEntities
+                    affectedEntities: comparison.affectedEntities,
+                    differences: comparison.differences
                 )
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = [.sortedKeys, .prettyPrinted]

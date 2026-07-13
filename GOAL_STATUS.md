@@ -28,7 +28,7 @@
 | CDC analysis | Contract + native backend | Implemented | Retained positive/negative fixtures | No process qualification |
 | RDC analysis | Contract + native backend | Implemented | Retained reset fixture | No process qualification |
 | Formal equivalence | Contract + RTL/mapped structural backends | Implemented in declared scope | RTL mismatch, LogicDesignSnapshot lowering, mapped graph pass/mismatch, and counterexample fixtures | No solver/process qualification |
-| Counterexample artifacts | Contract + JSON persistence | Implemented | Formal mismatch fixture | No process qualification |
+| Counterexample artifacts | Contract + JSON persistence | Implemented | Formal mismatch fixture with typed difference records and legacy message compatibility | No process qualification |
 | Waiver support | Scoped retained waivers | Implemented | Negative lint fixture | No process qualification |
 | Coverage reporting | Typed coverage + blocked gate | Implemented | Parser/unsupported-path coverage | No process qualification |
 
@@ -64,7 +64,7 @@ The package goal is complete only when every P0 function has a concrete backend,
 - The full Xcircuite test graph remains sensitive to unrelated workspace package changes; retained focused evidence covers the direct LogicEngine equivalence adapter path and RTL stage/resume/qualification gates. The Xcircuite package is intentionally not committed with this repository's focused changes because its worktree contains unrelated in-progress changes.
 - The native frontend adapts the canonical LogicDesign SystemVerilog frontend for a declared deterministic subset with multi-file source sets, defines, `ifdef`/`ifndef`/`elsif`/`else` conditionals, includes, include-cycle diagnostics, source provenance, parameters, case statements, connected hierarchy flattening and generate blocks; complete IEEE SystemVerilog preprocessing/elaboration is not implemented.
 - Native CDC consumes SDC clock declarations for coverage and unconstrained-clock findings and resolves module signal domains independent of process order; native RDC now blocks unconstrained or unresolved reset-process clocks, while reset intent and full exception semantics remain incomplete.
-- Native formal is canonical RTL structural comparison plus the explicitly limited mapped LogicEngine graph comparison, not solver-backed temporal equivalence for synthesized or DFT views.
+- Native formal is canonical RTL structural comparison plus the explicitly limited mapped LogicEngine graph comparison, not solver-backed temporal equivalence for synthesized or DFT views; mismatches persist typed difference records with canonical implementation/reference values.
 - The ToolQualification bridge declares RTL operation IDs and requirements, but no qualified descriptor, health result or process-scoped evidence is attached.
 - Xcircuite review/audit/resume artifacts are implemented. Retained focused tests cover resume and LogicEngine acceptance; current source builds as an Xcircuite target, but the latest test graph is blocked outside RTL. Complete workspace-wide qualification remains open.
 

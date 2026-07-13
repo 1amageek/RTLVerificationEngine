@@ -381,7 +381,12 @@ struct ContractTests {
         #expect(envelope.payload.counterexampleArtifactIDs == ["formal-counterexample"])
         #expect(envelope.artifacts.contains { $0.artifactID == "formal-counterexample" })
         let counterexampleReference = try #require(envelope.artifacts.first { $0.artifactID == "formal-counterexample" })
-        #expect(await store.data(for: counterexampleReference) != nil)
+        let counterexampleData = try #require(await store.data(for: counterexampleReference))
+        let counterexample = try JSONDecoder().decode(RTLFormalCounterexample.self, from: counterexampleData)
+        #expect(counterexample.differences.count == 1)
+        #expect(counterexample.differences.first?.kind == .moduleStructure)
+        #expect(counterexample.differences.first?.entity == "top")
+        #expect(counterexample.differences.first?.implementationValue != counterexample.differences.first?.referenceValue)
     }
 
     @Test("native mapped proof lowers the source snapshot and compares the mapped execution graph", .timeLimit(.minutes(1)))
