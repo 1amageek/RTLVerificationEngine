@@ -1,6 +1,8 @@
 import Foundation
 
 public struct RTLFormalCounterexample: Sendable, Hashable, Codable {
+    public static let currentSchemaVersion = 1
+
     public var schemaVersion: Int
     public var runID: String
     public var topModuleName: String
@@ -17,7 +19,7 @@ public struct RTLFormalCounterexample: Sendable, Hashable, Codable {
         proofScope: String = "canonical-structural-equivalence",
         differences: [RTLFormalCounterexampleDifference] = []
     ) {
-        self.schemaVersion = 1
+        self.schemaVersion = Self.currentSchemaVersion
         self.runID = runID
         self.topModuleName = topModuleName
         self.mismatches = mismatches
@@ -38,18 +40,24 @@ public struct RTLFormalCounterexample: Sendable, Hashable, Codable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        let schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
+        guard schemaVersion == Self.currentSchemaVersion else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .schemaVersion,
+                in: container,
+                debugDescription: "Unsupported RTL formal counterexample schema version \(schemaVersion)."
+            )
+        }
         self.init(
             runID: try container.decode(String.self, forKey: .runID),
             topModuleName: try container.decode(String.self, forKey: .topModuleName),
             mismatches: try container.decode([String].self, forKey: .mismatches),
             affectedEntities: try container.decode([String].self, forKey: .affectedEntities),
-            proofScope: try container.decodeIfPresent(String.self, forKey: .proofScope)
-                ?? "canonical-structural-equivalence",
-            differences: try container.decodeIfPresent(
+            proofScope: try container.decode(String.self, forKey: .proofScope),
+            differences: try container.decode(
                 [RTLFormalCounterexampleDifference].self,
                 forKey: .differences
-            ) ?? []
+            )
         )
-        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
     }
 }

@@ -76,6 +76,13 @@ public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
+        guard schemaVersion == Self.currentSchemaVersion else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .schemaVersion,
+                in: container,
+                debugDescription: "Unsupported RTL process evidence bundle schema version \(schemaVersion)."
+            )
+        }
         self.evidenceID = try container.decode(String.self, forKey: .evidenceID)
         self.evidenceSetID = try container.decode(String.self, forKey: .evidenceSetID)
         self.record = try container.decode(
@@ -83,10 +90,10 @@ public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable 
             forKey: .record
         )
         self.artifactIDs = try container.decode([String].self, forKey: .artifactIDs)
-        self.artifacts = try container.decodeIfPresent(
+        self.artifacts = try container.decode(
             [RTLArtifactReference].self,
             forKey: .artifacts
-        ) ?? []
+        )
         self.provenance = try container.decode(String.self, forKey: .provenance)
         self.recordedAt = try container.decode(Date.self, forKey: .recordedAt)
     }

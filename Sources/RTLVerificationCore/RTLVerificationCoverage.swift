@@ -81,39 +81,39 @@ public struct RTLVerificationCoverage: Sendable, Hashable, Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
-            language: try container.decodeIfPresent(String.self, forKey: .language) ?? "SystemVerilog subset",
-            totalConstructs: try container.decodeIfPresent(Int.self, forKey: .totalConstructs) ?? 0,
-            analyzedConstructs: try container.decodeIfPresent(Int.self, forKey: .analyzedConstructs) ?? 0,
-            unsupportedConstructs: try container.decodeIfPresent([String].self, forKey: .unsupportedConstructs) ?? [],
-            clockDomains: try container.decodeIfPresent([String].self, forKey: .clockDomains) ?? [],
-            resetDomains: try container.decodeIfPresent([String].self, forKey: .resetDomains) ?? [],
-            resetReleaseDomains: try container.decodeIfPresent(
+            language: try container.decode(String.self, forKey: .language),
+            totalConstructs: try container.decode(Int.self, forKey: .totalConstructs),
+            analyzedConstructs: try container.decode(Int.self, forKey: .analyzedConstructs),
+            unsupportedConstructs: try container.decode([String].self, forKey: .unsupportedConstructs),
+            clockDomains: try container.decode([String].self, forKey: .clockDomains),
+            resetDomains: try container.decode([String].self, forKey: .resetDomains),
+            resetReleaseDomains: try container.decode(
                 [String].self,
                 forKey: .resetReleaseDomains
-            ) ?? [],
-            proofScope: try container.decodeIfPresent(String.self, forKey: .proofScope) ?? "none",
-            limitations: try container.decodeIfPresent([String].self, forKey: .limitations) ?? [],
-            sourceArtifacts: try container.decodeIfPresent(
+            ),
+            proofScope: try container.decode(String.self, forKey: .proofScope),
+            limitations: try container.decode([String].self, forKey: .limitations),
+            sourceArtifacts: try container.decode(
                 [RTLVerificationSourceArtifact].self,
                 forKey: .sourceArtifacts
-            ) ?? [],
-            constraintModes: try container.decodeIfPresent([String].self, forKey: .constraintModes) ?? [],
-            constrainedClockDomains: try container.decodeIfPresent(
+            ),
+            constraintModes: try container.decode([String].self, forKey: .constraintModes),
+            constrainedClockDomains: try container.decode(
                 [String].self,
                 forKey: .constrainedClockDomains
-            ) ?? [],
-            constraintExceptionCount: try container.decodeIfPresent(
+            ),
+            constraintExceptionCount: try container.decode(
                 Int.self,
                 forKey: .constraintExceptionCount
-            ) ?? 0,
-            constraintExceptionKinds: try container.decodeIfPresent(
+            ),
+            constraintExceptionKinds: try container.decode(
                 [String].self,
                 forKey: .constraintExceptionKinds
-            ) ?? [],
-            asynchronousClockGroups: try container.decodeIfPresent(
+            ),
+            asynchronousClockGroups: try container.decode(
                 [[[String]]].self,
                 forKey: .asynchronousClockGroups
-            ) ?? []
+            )
         )
     }
 

@@ -71,8 +71,7 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion)
-            ?? Self.currentSchemaVersion
+        let schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
         guard schemaVersion == Self.currentSchemaVersion else {
             throw DecodingError.dataCorruptedError(
                 forKey: .schemaVersion,
@@ -85,14 +84,14 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
             inputs: try container.decode([RTLArtifactReference].self, forKey: .inputs),
             design: try container.decode(LogicDesignReference.self, forKey: .design),
             referenceDesign: try container.decodeIfPresent(LogicDesignReference.self, forKey: .referenceDesign),
-            referenceInputs: try container.decodeIfPresent([RTLArtifactReference].self, forKey: .referenceInputs) ?? [],
+            referenceInputs: try container.decode([RTLArtifactReference].self, forKey: .referenceInputs),
             constraints: try container.decodeIfPresent(RTLConstraintReference.self, forKey: .constraints),
-            analysis: try container.decodeIfPresent(RTLVerificationAnalysis.self, forKey: .analysis) ?? .lint,
-            policy: try container.decodeIfPresent(RTLVerificationPolicy.self, forKey: .policy) ?? RTLVerificationPolicy(),
-            waivers: try container.decodeIfPresent([RTLVerificationWaiver].self, forKey: .waivers) ?? [],
-            frontend: try container.decodeIfPresent(RTLVerificationFrontendOptions.self, forKey: .frontend) ?? RTLVerificationFrontendOptions(),
-            proofView: try container.decodeIfPresent(RTLVerificationProofView.self, forKey: .proofView) ?? .rtlToRtlStructural,
-            assumptions: try container.decodeIfPresent([RTLVerificationAssumption].self, forKey: .assumptions) ?? [],
+            analysis: try container.decode(RTLVerificationAnalysis.self, forKey: .analysis),
+            policy: try container.decode(RTLVerificationPolicy.self, forKey: .policy),
+            waivers: try container.decode([RTLVerificationWaiver].self, forKey: .waivers),
+            frontend: try container.decode(RTLVerificationFrontendOptions.self, forKey: .frontend),
+            proofView: try container.decode(RTLVerificationProofView.self, forKey: .proofView),
+            assumptions: try container.decode([RTLVerificationAssumption].self, forKey: .assumptions),
             evidenceInput: try container.decodeIfPresent(
                 RTLVerificationEvidenceInput.self,
                 forKey: .evidenceInput

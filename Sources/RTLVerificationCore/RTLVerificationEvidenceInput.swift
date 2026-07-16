@@ -25,8 +25,7 @@ public struct RTLVerificationEvidenceInput: Sendable, Hashable, Codable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion)
-            ?? Self.currentSchemaVersion
+        let schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
         guard schemaVersion == Self.currentSchemaVersion else {
             throw DecodingError.dataCorruptedError(
                 forKey: .schemaVersion,
@@ -35,18 +34,18 @@ public struct RTLVerificationEvidenceInput: Sendable, Hashable, Codable {
             )
         }
         self.init(
-            corpusEvaluations: try container.decodeIfPresent(
+            corpusEvaluations: try container.decode(
                 [RTLVerificationCorpusEvaluation].self,
                 forKey: .corpusEvaluations
-            ) ?? [],
-            oracleReports: try container.decodeIfPresent(
+            ),
+            oracleReports: try container.decode(
                 [RTLVerificationOracleCorrelationReport].self,
                 forKey: .oracleReports
-            ) ?? [],
-            oracleEvidence: try container.decodeIfPresent(
+            ),
+            oracleEvidence: try container.decode(
                 [RTLVerificationOracleEvidence].self,
                 forKey: .oracleEvidence
-            ) ?? [],
+            ),
             expectedRequestDigest: try container.decodeIfPresent(String.self, forKey: .expectedRequestDigest),
             schemaVersion: schemaVersion
         )

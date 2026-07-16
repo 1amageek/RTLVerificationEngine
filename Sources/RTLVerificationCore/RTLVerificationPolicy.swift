@@ -28,9 +28,9 @@ public struct RTLVerificationPolicy: Sendable, Hashable, Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
-            requiredProof: try container.decodeIfPresent(Bool.self, forKey: .requiredProof) ?? true,
-            maximumUnsupportedConstructs: try container.decodeIfPresent(Int.self, forKey: .maximumUnsupportedConstructs) ?? 0,
-            allowWarnings: try container.decodeIfPresent(Bool.self, forKey: .allowWarnings) ?? true,
+            requiredProof: try container.decode(Bool.self, forKey: .requiredProof),
+            maximumUnsupportedConstructs: try container.decode(Int.self, forKey: .maximumUnsupportedConstructs),
+            allowWarnings: try container.decode(Bool.self, forKey: .allowWarnings),
             seed: try container.decodeIfPresent(UInt64.self, forKey: .seed)
         )
     }

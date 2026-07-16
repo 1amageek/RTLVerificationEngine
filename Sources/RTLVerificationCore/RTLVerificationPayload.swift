@@ -15,22 +15,6 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
     public var proofView: RTLVerificationProofView
     public var assumptions: [RTLVerificationAssumption]
 
-    private enum CodingKeys: String, CodingKey {
-        case requestDigest
-        case analysis
-        case findingCount
-        case proofStatus
-        case findings
-        case coverage
-        case appliedWaivers
-        case counterexampleArtifactIDs
-        case proofArtifactIDs
-        case reportVersion
-        case record
-        case proofView
-        case assumptions
-    }
-
     public init(
         findingCount: Int,
         requestDigest: String? = nil,
@@ -61,25 +45,4 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
         self.assumptions = assumptions
     }
 
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(
-            findingCount: try container.decode(Int.self, forKey: .findingCount),
-            requestDigest: try container.decodeIfPresent(String.self, forKey: .requestDigest),
-            proofStatus: try container.decodeIfPresent(String.self, forKey: .proofStatus),
-            analysis: try container.decodeIfPresent(RTLVerificationAnalysis.self, forKey: .analysis) ?? .lint,
-            findings: try container.decodeIfPresent([RTLVerificationFinding].self, forKey: .findings) ?? [],
-            coverage: try container.decodeIfPresent(RTLVerificationCoverage.self, forKey: .coverage) ?? RTLVerificationCoverage(),
-            appliedWaivers: try container.decodeIfPresent([RTLVerificationWaiver].self, forKey: .appliedWaivers) ?? [],
-            counterexampleArtifactIDs: try container.decodeIfPresent([String].self, forKey: .counterexampleArtifactIDs) ?? [],
-            proofArtifactIDs: try container.decodeIfPresent([String].self, forKey: .proofArtifactIDs) ?? [],
-            reportVersion: try container.decodeIfPresent(Int.self, forKey: .reportVersion) ?? 1,
-            record: try container.decodeIfPresent(
-                RTLVerificationEvidenceAssessment.self,
-                forKey: .record
-            ) ?? RTLVerificationEvidenceAssessment(),
-            proofView: try container.decodeIfPresent(RTLVerificationProofView.self, forKey: .proofView) ?? .rtlToRtlStructural,
-            assumptions: try container.decodeIfPresent([RTLVerificationAssumption].self, forKey: .assumptions) ?? []
-        )
-    }
 }

@@ -9,16 +9,6 @@ public struct RTLVerificationCapability: Sendable, Hashable, Codable {
     public var limitations: [String]
     public var record: RTLVerificationEvidenceAssessment
 
-    private enum CodingKeys: String, CodingKey {
-        case engineID
-        case contractVersion
-        case supportedInputFormats
-        case supportedOutputFormats
-        case features
-        case limitations
-        case record
-    }
-
     public init(
         engineID: String,
         contractVersion: Int,
@@ -37,19 +27,4 @@ public struct RTLVerificationCapability: Sendable, Hashable, Codable {
         self.record = record
     }
 
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(
-            engineID: try container.decode(String.self, forKey: .engineID),
-            contractVersion: try container.decode(Int.self, forKey: .contractVersion),
-            supportedInputFormats: try container.decode([ArtifactFormat].self, forKey: .supportedInputFormats),
-            supportedOutputFormats: try container.decode([ArtifactFormat].self, forKey: .supportedOutputFormats),
-            features: try container.decodeIfPresent([String].self, forKey: .features) ?? [],
-            limitations: try container.decodeIfPresent([String].self, forKey: .limitations) ?? [],
-            record: try container.decodeIfPresent(
-                RTLVerificationEvidenceAssessment.self,
-                forKey: .record
-            ) ?? RTLVerificationEvidenceAssessment()
-        )
-    }
 }
