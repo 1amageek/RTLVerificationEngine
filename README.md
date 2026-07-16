@@ -143,11 +143,21 @@ The library does not depend on the Xcircuite runtime. Flow ownership supplies ar
 
 ## Build
 
+`Package.swift` resolves every dependency independently. It uses a local
+sibling when `../<Package>/Package.swift` exists and otherwise uses the pinned
+GitHub revision. No Xcircuite or other umbrella checkout is used as a switch.
+
+| Dependency | Local sibling | Remote fallback revision |
+|---|---|---|
+| CircuiteFoundation | `../CircuiteFoundation` | `2ec6ee13a89ac6885be3c26b41a9ee0ef89948ac` |
+| LogicDesign | `../LogicDesign` | `8e0c8c2c63152aa45bf12d943fa034bb1aba0f1e` |
+| TimingEngine | `../TimingEngine` | `5b2f711d355af8a204819c6ed33f98ef722e379c` |
+| ToolQualification | `../ToolQualification` | `32b031b5322f1ccb0ef78466faab0f895d47c4fd` |
+| LogicEngine | `../LogicEngine` | `5cccdb82e7272b407642aae0708966d62ceffba4` |
+
 ```bash
 perl -e 'alarm 60; exec @ARGV' -- swift build
 ```
-
-The package has local SwiftPM dependencies on `LogicDesign`, `LogicEngine`, `TimingEngine` and `ToolQualification`. A standalone checkout therefore needs those sibling packages at the paths declared in `Package.swift`, or an equivalent package-path adjustment.
 
 ## Test
 
