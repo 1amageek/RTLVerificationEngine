@@ -42,7 +42,7 @@ flowchart LR
   Result --> Gate["Flow stage gate"]
 ```
 
-The native frontend is subset-scoped by design and consumes `SystemVerilogFrontend` through the verification contract. It records ordered implementation/reference source sets, include provenance, unsupported constructs, source artifact digests and preprocessing coverage, and blocks when the request policy does not allow them. The canonical subset includes parameters, case statements, hierarchy and generate blocks; complete IEEE preprocessing and elaboration remain outside the current boundary. The external executor accepts a result only when its descriptor declares the requested analysis/proof view and satisfies the qualification policy.
+The native frontend is subset-scoped by design and consumes `SystemVerilogFrontend` through the verification contract. It records ordered implementation/reference source sets, include provenance, unsupported constructs, source artifact digests and preprocessing coverage, and blocks when the request policy does not allow them. The canonical subset includes parameters, case statements, hierarchy and generate blocks; complete IEEE preprocessing and elaboration remain outside the current boundary. The external executor accepts a result only when its descriptor declares the requested analysis/proof view and its injected ToolQualification decision is eligible.
 
 ## Trust model
 
@@ -52,4 +52,4 @@ Kernel availability, corpus validation, oracle correlation, process-scoped quali
 
 All outputs are immutable run artifacts with format, digest, producer metadata and the input design/PDK revision needed to reproduce the result.
 
-Every execution persists a JSON report. Formal mismatches additionally persist counterexample JSON through the injected artifact writer. The report includes the canonical input references, findings, waivers, proof view, assumptions, qualification state and semantic/constraint coverage.
+Every execution persists a JSON report. Formal mismatches additionally persist counterexample JSON through the injected artifact writer. The report includes the canonical input references, findings, waivers, proof view, assumptions, raw evidence assessment, and semantic/constraint coverage. It does not encode a release verdict.

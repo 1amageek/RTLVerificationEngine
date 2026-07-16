@@ -2,10 +2,10 @@ import Foundation
 import Testing
 import RTLVerificationCore
 
-@Suite("RTL process record evidence builder")
-struct ProcessQualificationEvidenceBuilderTests {
-    @Test("builder creates process-qualified evidence from retained artifacts")
-    func buildsProcessQualificationEvidence() throws {
+@Suite("RTL process evidence builder")
+struct ProcessEvidenceBuilderTests {
+    @Test("builder creates auditable process evidence from retained artifacts")
+    func buildsProcessEvidence() throws {
         let date = Date(timeIntervalSince1970: 1_000)
         let result = try RTLVerificationProcessEvidenceBuilder().build(
             makeRequest(),
@@ -46,7 +46,7 @@ struct ProcessQualificationEvidenceBuilderTests {
                 request,
                 at: Date(timeIntervalSince1970: 1_000)
             )
-            Issue.record("An oracle evidence artifact must bind to the qualified request.")
+            Issue.record("An oracle evidence artifact must bind to the evidence request.")
         } catch let error as RTLVerificationProcessEvidenceBuildError {
             #expect(error == .invalidEvidence("oracle-evidence:case-1"))
         }
