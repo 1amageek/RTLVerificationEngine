@@ -1,5 +1,5 @@
 import Foundation
-@_exported import CircuiteFoundation
+import CircuiteFoundation
 
 /// Errors raised when an RTL domain result cannot be represented by the
 /// Foundation evidence boundary without losing integrity or diagnostic data.
@@ -44,12 +44,9 @@ public struct RTLVerificationFoundationEvidence: Sendable, Hashable, Codable, Ar
 
     public var artifacts: [ArtifactReference] { evidence.artifacts }
 
-    public init(
-        result: RTLVerificationResult,
-        provenance: ExecutionProvenance
-    ) throws {
+    public init(result: RTLVerificationResult) throws {
         self.evidence = EvidenceManifest(
-            provenance: provenance,
+            provenance: result.provenance,
             artifacts: result.artifacts
         )
         self.diagnostics = try result.diagnostics.map(Self.makeDiagnostic)

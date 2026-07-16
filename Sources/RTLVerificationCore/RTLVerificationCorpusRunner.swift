@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 
 public struct RTLVerificationCorpusRunner: RTLVerificationCorpusRunning {
@@ -37,7 +38,7 @@ public struct RTLVerificationCorpusRunner: RTLVerificationCorpusRunning {
         }
 
         var evaluations: [RTLVerificationCorpusEvaluation] = []
-        var resultArtifacts: [String: RTLArtifactReference] = [:]
+        var resultArtifacts: [String: ArtifactReference] = [:]
         for corpusCase in corpus.sorted(by: { $0.caseID < $1.caseID }) {
             var request = corpusCase.request
             request.runID = "\(runID)-\(corpusCase.caseID)"

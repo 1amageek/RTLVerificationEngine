@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 import Testing
 import RTLVerificationCore
@@ -77,7 +78,7 @@ struct EvidenceInputArtifactAuditorTests {
         path: String,
         artifactID: String,
         contents: Data
-    ) throws -> RTLArtifactReference {
+    ) throws -> ArtifactReference {
         let url = root.appending(path: path)
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
@@ -96,8 +97,8 @@ struct EvidenceInputArtifactAuditorTests {
     }
 
     private func makeOracleEvidence(
-        native: RTLArtifactReference,
-        oracle: RTLArtifactReference
+        native: ArtifactReference,
+        oracle: ArtifactReference
     ) -> RTLVerificationOracleEvidence {
         let recordedAt = Date(timeIntervalSince1970: 1_000)
         let requestDigest = String(repeating: "d", count: 64)

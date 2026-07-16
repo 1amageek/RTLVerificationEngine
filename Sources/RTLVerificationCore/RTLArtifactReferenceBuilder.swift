@@ -11,7 +11,7 @@ public struct RTLArtifactReferenceBuilder: Sendable {
         kind: ArtifactKind,
         format: ArtifactFormat,
         inProjectAt projectRoot: URL
-    ) throws -> RTLArtifactReference {
+    ) throws -> ArtifactReference {
         let root = projectRoot.standardizedFileURL.resolvingSymlinksInPath()
         let candidate = URL(filePath: path, relativeTo: root)
             .standardizedFileURL

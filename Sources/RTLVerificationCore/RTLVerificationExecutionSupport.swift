@@ -1,4 +1,5 @@
 import Foundation
+import CircuiteFoundation
 import LogicIR
 
 public enum RTLVerificationExecutionSupport {
@@ -148,7 +149,7 @@ public enum RTLVerificationExecutionSupport {
             assessment: assessment
         )
         let payload: RTLVerificationPayload
-        var artifacts: [RTLArtifactReference] = []
+        var artifacts: [ArtifactReference] = []
         var counterexampleArtifactIDs: [String] = []
 
         if let counterexampleData = analysisResult.counterexampleData,
@@ -183,13 +184,20 @@ public enum RTLVerificationExecutionSupport {
                 suggestedActions: ["reduce_unsupported_constructs", "select_qualified_external_backend"]
             ))
         }
-        let metadata = RTLExecutionMetadata(
-            engineID: request.analysis.stageID,
-            implementationID: implementationID,
-            implementationVersion: implementationVersion,
+        let provenance = try ExecutionProvenance(
+            producer: ProducerIdentity(
+                kind: .engine,
+                identifier: request.analysis.stageID,
+                version: implementationVersion,
+                build: implementationID
+            ),
+            inputs: uniqueReferences(request.inputs + request.referenceInputs),
+            invocation: ExecutionInvocation.inProcess(
+                entryPoint: "RTLVerificationExecutionSupport.execute"
+            ),
+            randomSeed: request.policy.seed,
             startedAt: startedAt,
-            completedAt: completedAt,
-            seed: request.policy.seed
+            completedAt: completedAt
         )
         let report = RTLVerificationReport(
             runID: request.runID,
@@ -214,12 +222,12 @@ public enum RTLVerificationExecutionSupport {
             status: status,
             diagnostics: finalDiagnostics,
             artifacts: artifacts,
-            metadata: metadata,
+            provenance: provenance,
             payload: payload
         )
     }
 
-    private static func uniqueReferences(_ references: [RTLArtifactReference]) -> [RTLArtifactReference] {
+    private static func uniqueReferences(_ references: [ArtifactReference]) -> [ArtifactReference] {
         var paths: Set<String> = []
         return references.filter { paths.insert($0.path).inserted }
     }

@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 import LogicEngineCore
 import LogicLowering
@@ -1311,9 +1312,11 @@ struct ContractTests {
         let request = makeRequest(reference: reference, analysis: .lint)
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
         let native = try await NativeRTLLintEngine(reader: reader).execute(request)
-        var oracle = native
-        oracle.metadata.implementationID = "reference-oracle"
-        oracle.metadata.implementationVersion = "oracle-1"
+        let oracle = try replacingRTLTestProducer(
+            in: native,
+            implementationID: "reference-oracle",
+            implementationVersion: "oracle-1"
+        )
 
         let report = RTLVerificationOracleCorrelator().correlate(
             caseID: "lint-positive",
@@ -1329,8 +1332,12 @@ struct ContractTests {
             scopeID: "lint-positive"
         ) != nil)
 
-        var selfOracle = native
-        selfOracle.metadata.implementationVersion = "self-oracle"
+        let selfOracle = try replacingRTLTestProducer(
+            in: native,
+            implementationID: native.provenance.producer.build
+                ?? native.provenance.producer.identifier,
+            implementationVersion: "self-oracle"
+        )
         let selfReport = RTLVerificationOracleCorrelator().correlate(
             caseID: "lint-self",
             native: native,
@@ -1435,7 +1442,7 @@ struct ContractTests {
         ])
     }
 
-    private func makeReference(path: String, format: ArtifactFormat, data: Data) -> RTLArtifactReference {
+    private func makeReference(path: String, format: ArtifactFormat, data: Data) -> ArtifactReference {
         makeTestArtifactReference(path: path, kind: .rtl, format: format, data: data)
     }
 
@@ -1450,7 +1457,7 @@ struct ContractTests {
         kind: ArtifactKind,
         data: Data,
         artifactID: String? = nil
-    ) -> RTLArtifactReference {
+    ) -> ArtifactReference {
         makeTestArtifactReference(
             artifactID: artifactID,
             path: path,
@@ -1462,7 +1469,7 @@ struct ContractTests {
     }
 
     private func makeRequest(
-        reference: RTLArtifactReference,
+        reference: ArtifactReference,
         analysis: RTLVerificationAnalysis,
         referenceDesign: LogicDesignReference? = nil,
         constraints: RTLConstraintReference? = nil,

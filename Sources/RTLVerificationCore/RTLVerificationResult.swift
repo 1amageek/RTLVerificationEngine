@@ -1,4 +1,5 @@
 import Foundation
+import CircuiteFoundation
 
 /// RTL verification domain result. This type owns status, diagnostics and
 /// payload for RTL analyses without a generic cross-domain result.
@@ -7,8 +8,8 @@ public struct RTLVerificationResult: Sendable, Hashable, Codable {
     public var runID: String
     public var status: RTLExecutionStatus
     public var diagnostics: [RTLDiagnostic]
-    public var artifacts: [RTLArtifactReference]
-    public var metadata: RTLExecutionMetadata
+    public var artifacts: [ArtifactReference]
+    public var provenance: ExecutionProvenance
     public var payload: RTLVerificationPayload
 
     public init(
@@ -16,8 +17,8 @@ public struct RTLVerificationResult: Sendable, Hashable, Codable {
         runID: String,
         status: RTLExecutionStatus,
         diagnostics: [RTLDiagnostic] = [],
-        artifacts: [RTLArtifactReference] = [],
-        metadata: RTLExecutionMetadata,
+        artifacts: [ArtifactReference] = [],
+        provenance: ExecutionProvenance,
         payload: RTLVerificationPayload
     ) {
         self.schemaVersion = schemaVersion
@@ -25,7 +26,7 @@ public struct RTLVerificationResult: Sendable, Hashable, Codable {
         self.status = status
         self.diagnostics = diagnostics
         self.artifacts = artifacts
-        self.metadata = metadata
+        self.provenance = provenance
         self.payload = payload
     }
 }

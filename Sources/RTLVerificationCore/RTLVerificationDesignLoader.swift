@@ -187,7 +187,7 @@ public struct RTLVerificationDesignLoader: Sendable {
 
     private func parse(
         data: Data,
-        reference: RTLArtifactReference,
+        reference: ArtifactReference,
         topModuleName: String,
         options: RTLVerificationFrontendOptions
     ) throws -> RTLVerificationParsedDesign {
@@ -244,12 +244,12 @@ public struct RTLVerificationDesignLoader: Sendable {
         return try parser.parse(data: data, path: reference.path, topModuleName: topModuleName)
     }
 
-    private func uniqueReferences(_ references: [RTLArtifactReference]) -> [RTLArtifactReference] {
+    private func uniqueReferences(_ references: [ArtifactReference]) -> [ArtifactReference] {
         var seen: Set<String> = []
         return references.filter { seen.insert($0.path).inserted }
     }
 
-    private func materialize(_ locator: ArtifactLocator) throws -> RTLArtifactReference {
+    private func materialize(_ locator: ArtifactLocator) throws -> ArtifactReference {
         let data = try reader.read(locator)
         return ArtifactReference(
             id: ArtifactID(stableKey: "rtl-locator:\(locator.location.storage.rawValue):\(locator.path)"),

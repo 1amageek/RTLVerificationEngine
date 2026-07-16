@@ -8,7 +8,7 @@ public struct InMemoryRTLArtifactReader: RTLArtifactReading {
         self.artifacts = artifacts
     }
 
-    public func read(_ reference: RTLArtifactReference) throws -> Data {
+    public func read(_ reference: ArtifactReference) throws -> Data {
         guard let data = artifacts[reference.path] else {
             throw RTLVerificationExecutionError.artifactReadFailed(
                 path: reference.path,

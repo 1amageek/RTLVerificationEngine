@@ -9,12 +9,16 @@ public struct RTLVerificationOracleCorrelator: RTLVerificationOracleCorrelating 
         oracle: RTLVerificationResult
     ) -> RTLVerificationOracleCorrelationReport {
         var mismatches: [RTLVerificationOracleCorrelationMismatch] = []
-        let independenceVerified = native.metadata.implementationID != oracle.metadata.implementationID
+        let nativeImplementationID = native.provenance.producer.build
+            ?? native.provenance.producer.identifier
+        let oracleImplementationID = oracle.provenance.producer.build
+            ?? oracle.provenance.producer.identifier
+        let independenceVerified = nativeImplementationID != oracleImplementationID
         if !independenceVerified {
             mismatches.append(RTLVerificationOracleCorrelationMismatch(
                 kind: .oracleNotIndependent,
                 expected: "different implementation IDs",
-                observed: native.metadata.implementationID,
+                observed: nativeImplementationID,
                 message: "Native and oracle results use the same implementation ID."
             ))
         }
@@ -82,10 +86,10 @@ public struct RTLVerificationOracleCorrelator: RTLVerificationOracleCorrelating 
 
         return RTLVerificationOracleCorrelationReport(
             caseID: caseID,
-            nativeImplementationID: native.metadata.implementationID,
-            oracleImplementationID: oracle.metadata.implementationID,
-            nativeImplementationVersion: native.metadata.implementationVersion,
-            oracleImplementationVersion: oracle.metadata.implementationVersion,
+            nativeImplementationID: nativeImplementationID,
+            oracleImplementationID: oracleImplementationID,
+            nativeImplementationVersion: native.provenance.producer.version,
+            oracleImplementationVersion: oracle.provenance.producer.version,
             independenceVerified: independenceVerified,
             matched: mismatches.isEmpty,
             mismatches: mismatches

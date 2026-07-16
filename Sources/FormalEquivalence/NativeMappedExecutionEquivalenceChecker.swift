@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 import LogicEngineCore
 import LogicIR
@@ -244,7 +245,7 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
 
     private func validateArtifactIntegrity(
         _ data: Data,
-        reference: RTLArtifactReference
+        reference: ArtifactReference
     ) throws {
         let hasher = RTLHasher()
         if reference.digest.algorithm == .sha256 {

@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 import LogicIR
 import RTLLint
@@ -84,7 +85,7 @@ struct CorpusRunnerTests {
     }
 }
 
-private extension RTLArtifactReference {
+private extension ArtifactReference {
     var isDigestBound: Bool {
         !digest.hexadecimalValue.isEmpty && !locator.path.isEmpty
     }

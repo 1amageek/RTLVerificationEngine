@@ -40,7 +40,8 @@ public struct ExternalRTLVerificationOracleExecutor: RTLVerificationOracleExecut
                 "Oracle result request digest does not match the native result."
             )
         }
-        guard oracle.metadata.implementationID != native.metadata.implementationID else {
+        guard (oracle.provenance.producer.build ?? oracle.provenance.producer.identifier)
+            != (native.provenance.producer.build ?? native.provenance.producer.identifier) else {
             throw RTLVerificationExecutionError.invalidArtifact(
                 "Oracle result implementation must be independent from the native implementation."
             )

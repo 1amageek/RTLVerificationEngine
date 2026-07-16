@@ -1,10 +1,11 @@
+import CircuiteFoundation
 import Foundation
 
 public struct RTLVerificationSourceInput: Sendable, Hashable {
-    public var reference: RTLArtifactReference
+    public var reference: ArtifactReference
     public var data: Data
 
-    public init(reference: RTLArtifactReference, data: Data) {
+    public init(reference: ArtifactReference, data: Data) {
         self.reference = reference
         self.data = data
     }

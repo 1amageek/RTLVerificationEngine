@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 
 public struct RTLVerificationProcessEvidenceBuildRequest: Sendable, Hashable, Codable {
@@ -10,7 +11,7 @@ public struct RTLVerificationProcessEvidenceBuildRequest: Sendable, Hashable, Co
     public var corpusEvidence: [RTLVerificationEvidenceRecord]
     public var oracleEvidence: [RTLVerificationOracleEvidence]
     public var healthEvidence: [RTLVerificationEvidenceRecord]
-    public var artifacts: [RTLArtifactReference]
+    public var artifacts: [ArtifactReference]
     public var provenance: String
     public var recordedAt: Date
     public var validUntil: Date
@@ -22,7 +23,7 @@ public struct RTLVerificationProcessEvidenceBuildRequest: Sendable, Hashable, Co
         corpusEvidence: [RTLVerificationEvidenceRecord],
         oracleEvidence: [RTLVerificationOracleEvidence],
         healthEvidence: [RTLVerificationEvidenceRecord],
-        artifacts: [RTLArtifactReference],
+        artifacts: [ArtifactReference],
         provenance: String,
         recordedAt: Date,
         validUntil: Date,

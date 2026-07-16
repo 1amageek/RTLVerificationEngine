@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 
 public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
@@ -9,8 +10,8 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
     public var requestDigest: String
     public var nativePayloadRequestDigest: String?
     public var oraclePayloadRequestDigest: String?
-    public var nativeArtifact: RTLArtifactReference
-    public var oracleArtifact: RTLArtifactReference
+    public var nativeArtifact: ArtifactReference
+    public var oracleArtifact: ArtifactReference
     public var report: RTLVerificationOracleCorrelationReport
     public var oracleProvenance: String
     public var recordedAt: Date
@@ -21,8 +22,8 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
         requestDigest: String,
         nativePayloadRequestDigest: String? = nil,
         oraclePayloadRequestDigest: String? = nil,
-        nativeArtifact: RTLArtifactReference,
-        oracleArtifact: RTLArtifactReference,
+        nativeArtifact: ArtifactReference,
+        oracleArtifact: ArtifactReference,
         report: RTLVerificationOracleCorrelationReport,
         oracleProvenance: String,
         recordedAt: Date = Date(),
@@ -61,7 +62,7 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
     }
 }
 
-private extension RTLArtifactReference {
+private extension ArtifactReference {
     var isDigestBound: Bool {
         guard !sha256.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               digest.algorithm == .sha256,

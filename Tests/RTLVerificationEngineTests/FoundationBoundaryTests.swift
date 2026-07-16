@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 import RTLVerificationCore
 import Testing
@@ -35,7 +36,7 @@ struct FoundationBoundaryTests {
                 )
             ],
             artifacts: [artifact],
-            metadata: RTLExecutionMetadata(
+            provenance: try makeRTLTestProvenance(
                 engineID: "rtl.lint",
                 implementationID: "native-rtl-verification",
                 implementationVersion: "1.0.0",
@@ -44,20 +45,7 @@ struct FoundationBoundaryTests {
             ),
             payload: RTLVerificationPayload(findingCount: 1)
         )
-        let provenance = try ExecutionProvenance(
-            producer: ProducerIdentity(
-                kind: .engine,
-                identifier: "native-rtl-verification",
-                version: "1.0.0"
-            ),
-            startedAt: Date(timeIntervalSinceReferenceDate: 0),
-            completedAt: Date(timeIntervalSinceReferenceDate: 1)
-        )
-
-        let projection = try RTLVerificationFoundationEvidence(
-            result: envelope,
-            provenance: provenance
-        )
+        let projection = try RTLVerificationFoundationEvidence(result: envelope)
 
         #expect(projection.evidence.artifacts.count == 1)
         #expect(projection.evidence.artifacts[0].digest.hexadecimalValue == digest)
@@ -80,7 +68,7 @@ struct FoundationBoundaryTests {
                     format: .json
                 )
             ],
-            metadata: RTLExecutionMetadata(
+            provenance: try makeRTLTestProvenance(
                 engineID: "rtl.lint",
                 implementationID: "native-rtl-verification",
                 implementationVersion: "1.0.0",
@@ -89,20 +77,7 @@ struct FoundationBoundaryTests {
             ),
             payload: RTLVerificationPayload(findingCount: 0)
         )
-        let provenance = try ExecutionProvenance(
-            producer: ProducerIdentity(
-                kind: .engine,
-                identifier: "native-rtl-verification",
-                version: "1.0.0"
-            ),
-            startedAt: Date(timeIntervalSinceReferenceDate: 0),
-            completedAt: Date(timeIntervalSinceReferenceDate: 1)
-        )
-
-        let projection = try RTLVerificationFoundationEvidence(
-            result: envelope,
-            provenance: provenance
-        )
+        let projection = try RTLVerificationFoundationEvidence(result: envelope)
         #expect(projection.artifacts.count == 1)
         #expect(projection.artifacts[0].digest.algorithm == .sha256)
     }

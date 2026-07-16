@@ -12,7 +12,7 @@ public struct FileSystemRTLArtifactStore: RTLArtifactWriting {
         _ data: Data,
         artifactID: String,
         runID: String
-    ) async throws -> RTLArtifactReference {
+    ) async throws -> ArtifactReference {
         let safeArtifactID = artifactID.replacingOccurrences(of: "/", with: "-")
         let relativePath = ".xcircuite/runs/\(runID)/\(safeArtifactID).json"
         let url = projectRoot.appending(path: relativePath)

@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 import Darwin
 import LogicIR
@@ -64,7 +65,7 @@ struct ExternalAdapterTests {
         let result = try await engine.execute(request)
 
         #expect(result.status == .completed)
-        #expect(result.metadata.implementationID == "qualified-tool")
+        #expect(result.provenance.producer.build == "qualified-tool")
     }
 
     @Test("external proof-view mismatches are rejected")
@@ -121,7 +122,11 @@ struct ExternalAdapterTests {
             analysis: .lint
         )
         var output = try makeEnvelope(request: request)
-        output.metadata.implementationID = "other-tool"
+        output = try replacingRTLTestProducer(
+            in: output,
+            implementationID: "other-tool",
+            implementationVersion: output.provenance.producer.version
+        )
         let engine = ExternalRTLVerificationEngine(
             descriptor: RTLExternalToolDescriptor(
                 toolID: "qualified-tool",
@@ -270,7 +275,7 @@ struct ExternalAdapterTests {
 
         #expect(result.status == .completed)
         #expect(result.payload.requestDigest == requestDigest)
-        #expect(result.metadata.implementationID == "real-tool")
+        #expect(result.provenance.producer.build == "real-tool")
     }
 
     @Test("external adapter blocks when a real process exceeds its timeout")
@@ -410,7 +415,7 @@ struct ExternalAdapterTests {
 
         let result = try await executor.execute(request, native: native)
 
-        #expect(result.metadata.implementationID == "independent-oracle")
+        #expect(result.provenance.producer.build == "independent-oracle")
         #expect(result.payload.requestDigest == native.payload.requestDigest)
     }
 
@@ -601,7 +606,7 @@ struct ExternalAdapterTests {
             schemaVersion: RTLVerificationRequest.currentSchemaVersion,
             runID: request.runID,
             status: .completed,
-            metadata: RTLExecutionMetadata(
+            provenance: try makeRTLTestProvenance(
                 engineID: request.analysis.stageID,
                 implementationID: implementationID,
                 implementationVersion: implementationVersion,

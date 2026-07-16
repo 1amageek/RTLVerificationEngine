@@ -7,8 +7,8 @@ struct OracleEvidenceBuilderTests {
     @Test("builder persists independent oracle evidence with digest-bound artifacts", .timeLimit(.minutes(1)))
     func builderPersistsIndependentEvidence() async throws {
         let writer = InMemoryRTLArtifactStore()
-        let native = envelope(implementationID: "native-rtl-verification", implementationVersion: "1.0.0")
-        let oracle = envelope(implementationID: "independent-oracle", implementationVersion: "oracle-1")
+        let native = try envelope(implementationID: "native-rtl-verification", implementationVersion: "1.0.0")
+        let oracle = try envelope(implementationID: "independent-oracle", implementationVersion: "oracle-1")
         let builder = RTLVerificationOracleEvidenceBuilder(writer: writer)
 
         let result = try await builder.build(
@@ -31,8 +31,8 @@ struct OracleEvidenceBuilderTests {
     @Test("builder retains mismatched oracle correlation without producing record evidence")
     func builderRetainsMismatch() async throws {
         let writer = InMemoryRTLArtifactStore()
-        let native = envelope(implementationID: "native-rtl-verification", implementationVersion: "1.0.0")
-        let oracle = envelope(implementationID: "independent-oracle", implementationVersion: "oracle-1", findingCode: "ORACLE_ONLY")
+        let native = try envelope(implementationID: "native-rtl-verification", implementationVersion: "1.0.0")
+        let oracle = try envelope(implementationID: "independent-oracle", implementationVersion: "oracle-1", findingCode: "ORACLE_ONLY")
         let builder = RTLVerificationOracleEvidenceBuilder(writer: writer)
 
         let result = try await builder.build(
@@ -53,9 +53,9 @@ struct OracleEvidenceBuilderTests {
     @Test("builder rejects an envelope whose payload belongs to another request")
     func builderRejectsPayloadRequestDigestMismatch() async throws {
         let writer = InMemoryRTLArtifactStore()
-        var native = envelope(implementationID: "native-rtl-verification", implementationVersion: "1.0.0")
+        var native = try envelope(implementationID: "native-rtl-verification", implementationVersion: "1.0.0")
         native.payload.requestDigest = "other-request-digest"
-        let oracle = envelope(implementationID: "independent-oracle", implementationVersion: "oracle-1")
+        let oracle = try envelope(implementationID: "independent-oracle", implementationVersion: "oracle-1")
         let builder = RTLVerificationOracleEvidenceBuilder(writer: writer)
 
         do {
@@ -79,7 +79,7 @@ struct OracleEvidenceBuilderTests {
         implementationID: String,
         implementationVersion: String,
         findingCode: String? = nil
-    ) -> RTLVerificationResult {
+    ) throws -> RTLVerificationResult {
         let now = Date(timeIntervalSince1970: 1)
         let finding = findingCode.map {
             RTLVerificationFinding(
@@ -92,7 +92,7 @@ struct OracleEvidenceBuilderTests {
             schemaVersion: 1,
             runID: "oracle-run",
             status: .completed,
-            metadata: RTLExecutionMetadata(
+            provenance: try makeRTLTestProvenance(
                 engineID: "rtl.test",
                 implementationID: implementationID,
                 implementationVersion: implementationVersion,

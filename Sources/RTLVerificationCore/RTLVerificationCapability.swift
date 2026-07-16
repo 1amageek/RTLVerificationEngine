@@ -1,4 +1,5 @@
 import Foundation
+import CircuiteFoundation
 
 public struct RTLVerificationCapability: Sendable, Hashable, Codable {
     public var engineID: String

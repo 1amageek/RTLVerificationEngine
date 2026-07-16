@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 
 public struct RTLVerificationCorpusRun: Sendable, Hashable, Codable {
@@ -6,15 +7,15 @@ public struct RTLVerificationCorpusRun: Sendable, Hashable, Codable {
     public var schemaVersion: Int
     public var runID: String
     public var evaluations: [RTLVerificationCorpusEvaluation]
-    public var resultArtifacts: [String: RTLArtifactReference]
-    public var summaryArtifact: RTLArtifactReference?
+    public var resultArtifacts: [String: ArtifactReference]
+    public var summaryArtifact: ArtifactReference?
     public var completedAt: Date
 
     public init(
         runID: String,
         evaluations: [RTLVerificationCorpusEvaluation],
-        resultArtifacts: [String: RTLArtifactReference],
-        summaryArtifact: RTLArtifactReference? = nil,
+        resultArtifacts: [String: ArtifactReference],
+        summaryArtifact: ArtifactReference? = nil,
         completedAt: Date = Date(),
         schemaVersion: Int = RTLVerificationCorpusRun.currentSchemaVersion
     ) {

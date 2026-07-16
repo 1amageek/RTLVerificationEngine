@@ -5,6 +5,7 @@ import RDCAnalysis
 import RTLLint
 import RTLVerificationCore
 import ToolQualification
+import CircuiteFoundation
 
 public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDCAnalyzing, FormalEquivalenceChecking, Sendable {
     public var descriptor: RTLExternalToolDescriptor
@@ -106,17 +107,17 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                     "External result request digest does not match the request."
                 )
             }
-            guard result.metadata.implementationID == descriptor.toolID else {
+            guard result.provenance.producer.build == descriptor.toolID else {
                 throw RTLVerificationExecutionError.invalidArtifact(
                     "External result implementation ID does not match the tool descriptor."
                 )
             }
-            guard result.metadata.implementationVersion == descriptor.version else {
+            guard result.provenance.producer.version == descriptor.version else {
                 throw RTLVerificationExecutionError.invalidArtifact(
                     "External result implementation version does not match the tool descriptor."
                 )
             }
-            guard result.metadata.engineID == request.analysis.stageID else {
+            guard result.provenance.producer.identifier == request.analysis.stageID else {
                 throw RTLVerificationExecutionError.invalidArtifact(
                     "External result engine ID does not match the requested analysis."
                 )
@@ -193,7 +194,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
     }
 
     private static func isProofArtifact(
-        _ artifact: RTLArtifactReference
+        _ artifact: ArtifactReference
     ) -> Bool {
         let artifactID = artifact.artifactID
         let sha256 = artifact.sha256
@@ -242,10 +243,18 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             runID: request.runID,
             status: .blocked,
             diagnostics: [diagnostic],
-            metadata: RTLExecutionMetadata(
-                engineID: request.analysis.stageID,
-                implementationID: descriptor.toolID,
-                implementationVersion: descriptor.version,
+            provenance: try ExecutionProvenance(
+                producer: ProducerIdentity(
+                    kind: .tool,
+                    identifier: request.analysis.stageID,
+                    version: descriptor.version,
+                    build: descriptor.toolID
+                ),
+                inputs: request.inputs + request.referenceInputs,
+                invocation: ExecutionInvocation.externalProcess(
+                    executable: descriptor.executablePath,
+                    arguments: additionalArguments
+                ),
                 startedAt: now,
                 completedAt: now
             ),

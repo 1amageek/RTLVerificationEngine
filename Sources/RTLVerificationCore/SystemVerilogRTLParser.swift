@@ -120,7 +120,7 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
         path: String,
         data: Data,
         format: ArtifactFormat
-    ) throws -> RTLArtifactReference {
+    ) throws -> ArtifactReference {
         ArtifactReference(
             id: ArtifactID(stableKey: "rtl-source:\(path)"),
             locator: ArtifactLocator(

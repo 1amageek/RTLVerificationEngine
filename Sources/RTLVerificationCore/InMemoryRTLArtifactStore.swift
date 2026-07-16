@@ -10,7 +10,7 @@ public actor InMemoryRTLArtifactStore: RTLArtifactWriting {
         _ data: Data,
         artifactID: String,
         runID: String
-    ) async throws -> RTLArtifactReference {
+    ) async throws -> ArtifactReference {
         let path = ".xcircuite/runs/\(runID)/\(artifactID).json"
         artifacts[path] = data
         return ArtifactReference(
@@ -26,7 +26,7 @@ public actor InMemoryRTLArtifactStore: RTLArtifactWriting {
         )
     }
 
-    public func data(for reference: RTLArtifactReference) -> Data? {
+    public func data(for reference: ArtifactReference) -> Data? {
         artifacts[reference.path]
     }
 }

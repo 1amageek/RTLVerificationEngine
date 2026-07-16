@@ -4,6 +4,7 @@ import LogicIR
 import RTLVerificationCore
 import RTLVerificationEngine
 import TimingCore
+import CircuiteFoundation
 
 @main
 struct RTLVerificationCLI {
@@ -46,10 +47,16 @@ struct RTLVerificationCLI {
                 message: "Use --analysis, --project-root, repeated --rtl/--reference, --top, --run-id, optional --constraint, frontend options, proof view, waivers, assumptions and --record-input.",
                 suggestedActions: ["run_rtl_verify"]
                 )],
-                metadata: RTLExecutionMetadata(
-                    engineID: "rtl.cli",
-                    implementationID: RTLVerificationExecutionSupport.implementationID,
-                    implementationVersion: RTLVerificationExecutionSupport.implementationVersion,
+                provenance: try ExecutionProvenance(
+                    producer: ProducerIdentity(
+                        kind: .engine,
+                        identifier: "rtl.cli",
+                        version: RTLVerificationExecutionSupport.implementationVersion,
+                        build: RTLVerificationExecutionSupport.implementationID
+                    ),
+                    invocation: ExecutionInvocation.inProcess(
+                        entryPoint: "RTLVerificationCLI.run"
+                    ),
                     startedAt: Date(),
                     completedAt: Date()
                 ),

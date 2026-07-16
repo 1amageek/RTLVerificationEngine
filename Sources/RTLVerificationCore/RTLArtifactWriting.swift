@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 
 public protocol RTLArtifactWriting: Sendable {
@@ -5,5 +6,5 @@ public protocol RTLArtifactWriting: Sendable {
         _ data: Data,
         artifactID: String,
         runID: String
-    ) async throws -> RTLArtifactReference
+    ) async throws -> ArtifactReference
 }

@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 import LogicIR
 import TimingCore
@@ -7,11 +8,11 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
 
     public var schemaVersion: Int
     public var runID: String
-    public var inputs: [RTLArtifactReference]
+    public var inputs: [ArtifactReference]
 
     public var design: LogicDesignReference
     public var referenceDesign: LogicDesignReference?
-    public var referenceInputs: [RTLArtifactReference]
+    public var referenceInputs: [ArtifactReference]
     public var constraints: RTLConstraintReference?
     public var analysis: RTLVerificationAnalysis
     public var policy: RTLVerificationPolicy
@@ -40,10 +41,10 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
 
     public init(
         runID: String,
-        inputs: [RTLArtifactReference],
+        inputs: [ArtifactReference],
         design: LogicDesignReference,
         referenceDesign: LogicDesignReference? = nil,
-        referenceInputs: [RTLArtifactReference] = [],
+        referenceInputs: [ArtifactReference] = [],
         constraints: RTLConstraintReference? = nil,
         analysis: RTLVerificationAnalysis = .lint,
         policy: RTLVerificationPolicy = RTLVerificationPolicy(),
@@ -81,10 +82,10 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
         }
         self.init(
             runID: try container.decode(String.self, forKey: .runID),
-            inputs: try container.decode([RTLArtifactReference].self, forKey: .inputs),
+            inputs: try container.decode([ArtifactReference].self, forKey: .inputs),
             design: try container.decode(LogicDesignReference.self, forKey: .design),
             referenceDesign: try container.decodeIfPresent(LogicDesignReference.self, forKey: .referenceDesign),
-            referenceInputs: try container.decode([RTLArtifactReference].self, forKey: .referenceInputs),
+            referenceInputs: try container.decode([ArtifactReference].self, forKey: .referenceInputs),
             constraints: try container.decodeIfPresent(RTLConstraintReference.self, forKey: .constraints),
             analysis: try container.decode(RTLVerificationAnalysis.self, forKey: .analysis),
             policy: try container.decode(RTLVerificationPolicy.self, forKey: .policy),

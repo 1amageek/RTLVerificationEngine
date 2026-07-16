@@ -10,7 +10,7 @@ public struct FileSystemRTLArtifactReader: RTLArtifactReading {
         self.verifier = LocalArtifactVerifier()
     }
 
-    public func read(_ reference: RTLArtifactReference) throws -> Data {
+    public func read(_ reference: ArtifactReference) throws -> Data {
         let integrity = verifier.verify(reference, relativeTo: projectRoot)
         guard integrity.isVerified else {
             throw RTLVerificationExecutionError.artifactReadFailed(

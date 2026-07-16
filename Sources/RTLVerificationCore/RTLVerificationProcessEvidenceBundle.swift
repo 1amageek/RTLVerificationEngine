@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 
 public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable {
@@ -8,7 +9,7 @@ public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable 
     public var evidenceSetID: String
     public var record: RTLVerificationProcessEvidenceRecord
     public var artifactIDs: [String]
-    public var artifacts: [RTLArtifactReference]
+    public var artifacts: [ArtifactReference]
     public var provenance: String
     public var recordedAt: Date
 
@@ -17,7 +18,7 @@ public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable 
         evidenceSetID: String,
         record: RTLVerificationProcessEvidenceRecord,
         artifactIDs: [String],
-        artifacts: [RTLArtifactReference] = [],
+        artifacts: [ArtifactReference] = [],
         provenance: String,
         recordedAt: Date = Date(),
         schemaVersion: Int = RTLVerificationProcessEvidenceBundle.currentSchemaVersion
@@ -46,7 +47,7 @@ public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable 
             && record.isComplete(at: recordedAt)
     }
 
-    private static func isDigestBound(_ artifact: RTLArtifactReference) -> Bool {
+    private static func isDigestBound(_ artifact: ArtifactReference) -> Bool {
         let artifactID = artifact.artifactID
         let sha256 = artifact.sha256
         guard !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -91,7 +92,7 @@ public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable 
         )
         self.artifactIDs = try container.decode([String].self, forKey: .artifactIDs)
         self.artifacts = try container.decode(
-            [RTLArtifactReference].self,
+            [ArtifactReference].self,
             forKey: .artifacts
         )
         self.provenance = try container.decode(String.self, forKey: .provenance)

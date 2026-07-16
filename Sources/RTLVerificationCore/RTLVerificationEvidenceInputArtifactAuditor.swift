@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 
 public struct RTLVerificationEvidenceInputArtifactAuditor: Sendable {
@@ -19,7 +20,7 @@ public struct RTLVerificationEvidenceInputArtifactAuditor: Sendable {
     }
 
     private func verify(
-        _ artifacts: [RTLArtifactReference],
+        _ artifacts: [ArtifactReference],
         reader: any RTLArtifactReading
     ) throws {
         for artifact in artifacts {

@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 
 public struct RTLVerificationProcessEvidenceBuilder: RTLVerificationProcessEvidenceBuilding {
@@ -193,7 +194,7 @@ public struct RTLVerificationProcessEvidenceBuilder: RTLVerificationProcessEvide
     }
 
     private func validateArtifacts(
-        _ artifacts: [RTLArtifactReference]
+        _ artifacts: [ArtifactReference]
     ) throws -> Set<String> {
         guard !artifacts.isEmpty else {
             throw RTLVerificationProcessEvidenceBuildError.invalidInput(

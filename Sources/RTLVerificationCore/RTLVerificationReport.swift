@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 
 public struct RTLVerificationReport: Sendable, Hashable, Codable {
@@ -7,7 +8,7 @@ public struct RTLVerificationReport: Sendable, Hashable, Codable {
     public var status: RTLExecutionStatus
     public var diagnostics: [RTLDiagnostic]
     public var payload: RTLVerificationPayload
-    public var inputArtifacts: [RTLArtifactReference]
+    public var inputArtifacts: [ArtifactReference]
     public var generatedAt: Date
 
     public init(
@@ -17,7 +18,7 @@ public struct RTLVerificationReport: Sendable, Hashable, Codable {
         status: RTLExecutionStatus,
         diagnostics: [RTLDiagnostic],
         payload: RTLVerificationPayload,
-        inputArtifacts: [RTLArtifactReference],
+        inputArtifacts: [ArtifactReference],
         generatedAt: Date
     ) {
         self.schemaVersion = schemaVersion

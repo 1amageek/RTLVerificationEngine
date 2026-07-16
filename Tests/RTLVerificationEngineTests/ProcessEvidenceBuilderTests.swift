@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 import Testing
 import RTLVerificationCore
@@ -166,7 +167,7 @@ struct ProcessEvidenceBuilderTests {
         id: String,
         path: String,
         fill: Character
-    ) -> RTLArtifactReference {
+    ) -> ArtifactReference {
         makeTestArtifactReference(
             artifactID: id,
             path: path,

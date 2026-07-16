@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 import LogicIR
 import Testing
@@ -97,7 +98,7 @@ struct EvidenceInputTests {
         #expect(mismatchedEnvelope.payload.record.evidence.map(\.kind) == [.corpus])
     }
 
-    private func jsonReference(artifactID: String, path: String, data: Data) -> RTLArtifactReference {
+    private func jsonReference(artifactID: String, path: String, data: Data) -> ArtifactReference {
         makeTestArtifactReference(
             artifactID: artifactID,
             path: path,
