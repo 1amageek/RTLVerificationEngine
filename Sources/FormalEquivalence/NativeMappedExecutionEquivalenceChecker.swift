@@ -245,7 +245,7 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
     ) throws {
         let hasher = RTLHasher()
         if reference.digest.algorithm == .sha256 {
-            let expectedSHA256 = reference.sha256
+            let expectedSHA256 = reference.digest.hexadecimalValue
             let actualSHA256 = hasher.sha256(data: data)
             guard expectedSHA256 == actualSHA256 else {
                 throw RTLVerificationExecutionError.artifactReadFailed(

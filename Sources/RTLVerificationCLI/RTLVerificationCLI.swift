@@ -81,7 +81,7 @@ struct RTLVerificationCLI {
         let design = LogicDesignReference(
             artifact: rtlReference,
             topDesignName: options.topModule,
-            designDigest: rtlReference.sha256
+            designDigest: rtlReference.digest.hexadecimalValue
         )
         let referenceReferences = try options.referencePaths.enumerated().map { index, referencePath in
             try referenceBuilder.reference(
@@ -97,7 +97,7 @@ struct RTLVerificationCLI {
             referenceDesign = LogicDesignReference(
                 artifact: reference,
                 topDesignName: options.topModule,
-                designDigest: reference.sha256
+                designDigest: reference.digest.hexadecimalValue
             )
         } else {
             referenceDesign = nil

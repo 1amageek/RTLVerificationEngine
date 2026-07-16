@@ -197,7 +197,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
         _ artifact: ArtifactReference
     ) -> Bool {
         let artifactID = artifact.artifactID
-        let sha256 = artifact.sha256
+        let sha256 = artifact.digest.hexadecimalValue
         guard !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !artifact.path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               artifact.digest.algorithm == .sha256,

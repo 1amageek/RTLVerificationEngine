@@ -64,9 +64,11 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
 
 private extension ArtifactReference {
     var isDigestBound: Bool {
-        guard !sha256.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              digest.algorithm == .sha256,
-              byteCount >= 0 else {
+        guard digest.algorithm == .sha256,
+              !digest.hexadecimalValue.trimmingCharacters(
+                in: .whitespacesAndNewlines
+              ).isEmpty,
+              byteCount > 0 else {
             return false
         }
         return !path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

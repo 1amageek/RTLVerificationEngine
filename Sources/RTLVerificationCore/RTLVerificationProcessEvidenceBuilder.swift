@@ -204,7 +204,7 @@ public struct RTLVerificationProcessEvidenceBuilder: RTLVerificationProcessEvide
         var artifactIDs = Set<String>()
         for artifact in artifacts {
             let artifactID = artifact.artifactID
-            let sha256 = artifact.sha256
+            let sha256 = artifact.digest.hexadecimalValue
             guard !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw RTLVerificationProcessEvidenceBuildError.invalidArtifact(artifact.path)
             }
@@ -215,7 +215,7 @@ public struct RTLVerificationProcessEvidenceBuilder: RTLVerificationProcessEvide
                   artifact.digest.algorithm == .sha256,
                   sha256.count == 64,
                   sha256.allSatisfy(\.isHexDigit),
-                  artifact.byteCount >= 0 else {
+                  artifact.byteCount > 0 else {
                 throw RTLVerificationProcessEvidenceBuildError.invalidArtifact(artifactID)
             }
         }
