@@ -688,7 +688,7 @@ struct ContractTests {
         let mappedDesign = LogicDesignReference(
             artifact: mappedReference,
             topDesignName: "top",
-            designDigest: mappedReference.sha256
+            designDigest: mappedReference.digest.hexadecimalValue
         )
         let request = RTLVerificationRequest(
             runID: "mapped-proof-pass",
@@ -756,7 +756,7 @@ struct ContractTests {
             referenceDesign: LogicDesignReference(
                 artifact: mappedReference,
                 topDesignName: "top",
-                designDigest: mappedReference.sha256
+                designDigest: mappedReference.digest.hexadecimalValue
             ),
             analysis: .formalEquivalence,
             proofView: .rtlToMappedExecutionStructural

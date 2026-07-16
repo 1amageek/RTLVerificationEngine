@@ -69,7 +69,7 @@ struct EvidenceInputTests {
             design: LogicDesignReference(
                 artifact: rtl,
                 topDesignName: "top",
-                designDigest: rtl.sha256
+                designDigest: rtl.digest.hexadecimalValue
             ),
             analysis: .lint,
             evidenceInput: evidenceInput

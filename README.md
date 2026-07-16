@@ -18,7 +18,7 @@ This repository is an implementation milestone, not a foundry signoff claim.
 |---|---|---|
 | Native package build | Passed | `swift build` |
 | Xcode package test scheme | Passed | Timeout-bounded `RTLVerificationEngine-Package` workspace verification |
-| CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
+| CLI smoke execution | Passed | Injected artifact root under `rtl-verification/cli-validation/rtl-verification-report.json` |
 | Independent oracle correlation | Contract hardened | Native/oracle envelopes, correlation reports and digest-bound evidence artifacts can be persisted; no external independently retained oracle result is attached |
 | Process evidence | Contract hardened | Process records require a current retained evidence artifact, a validity window, and corpus/oracle/implementation-matched health evidence IDs; the record is an observation input, not a trust decision |
 | Tool/process trust | External | ToolQualification evaluates retained observations and selects eligible implementations |
@@ -70,7 +70,8 @@ qualification or release policy into a Foundation concern.
 
 Project/run lifecycle is owned by `DesignFlowKernel`; this package emits only
 domain results, Foundation artifact evidence and diagnostics. Concrete
-`.xcircuite` persistence is supplied by `Xcircuite` through injected protocols.
+`.xcircuite` persistence is owned by `Xcircuite`. This package's stores receive
+only an artifact root and typed namespace.
 
 ```mermaid
 flowchart LR
@@ -97,7 +98,10 @@ Unsupported semantics are retained in `RTLVerificationCoverage` and block the re
 
 ## CLI
 
-The deterministic JSON CLI verifies a project-relative RTL artifact and writes the report under `.xcircuite/runs/<run-id>/`:
+The deterministic JSON CLI verifies a project-relative RTL artifact and writes
+the report under `<project-root>/artifacts/rtl-verification/<run-id>/`. Library
+consumers inject their own artifact root and namespace, so a composing runtime
+can select its storage layout without an adapter.
 
 ```bash
 swift run rtl-verify --analysis lint --project-root /path/to/project --rtl rtl/top.sv --top top --run-id rtl-lint-001

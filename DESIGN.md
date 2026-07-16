@@ -52,4 +52,14 @@ Kernel availability, corpus validation, oracle correlation, process-scoped quali
 
 All outputs are immutable run artifacts with format, digest, producer metadata and the input design/PDK revision needed to reproduce the result.
 
+`FileSystemRTLArtifactStore` receives an artifact root and
+`RTLArtifactNamespace`. It validates every namespace, run, and artifact path
+segments, rejects traversal and symbolic-link escapes, and creates each path
+once using a completed temporary file and an atomic hard-link create. The root
+is revalidated before and after directory creation so a late symbolic-link or
+non-directory replacement is rejected. Repeating identical bytes is a typed duplicate error; different bytes at
+the same path are a typed conflict. `InMemoryRTLArtifactStore` enforces the same
+immutability contract. Neither implementation owns `.xcircuite`, project
+manifests, run ledgers, approval, or resume state.
+
 Every execution persists a JSON report. Formal mismatches additionally persist counterexample JSON through the injected artifact writer. The report includes the canonical input references, findings, waivers, proof view, assumptions, raw evidence assessment, and semantic/constraint coverage. It does not encode a release verdict.

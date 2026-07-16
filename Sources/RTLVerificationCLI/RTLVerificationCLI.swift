@@ -154,7 +154,10 @@ struct RTLVerificationCLI {
         )
         let environment = RTLVerificationEnvironment(
             reader: FileSystemRTLArtifactReader(projectRoot: options.projectRoot),
-            writer: FileSystemRTLArtifactStore(projectRoot: options.projectRoot)
+            writer: try FileSystemRTLArtifactStore(
+                artifactRoot: options.projectRoot,
+                namespace: RTLArtifactNamespace(validating: "artifacts/rtl-verification")
+            )
         )
         return try await RTLVerificationEngine(environment: environment).execute(request)
     }
