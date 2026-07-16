@@ -100,3 +100,9 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
         )
     }
 }
+
+public extension RTLVerificationRequest {
+    func designObjectReference() throws -> DesignObjectReference {
+        try DesignObjectReference(kind: .cell, identifier: design.topDesignName)
+    }
+}

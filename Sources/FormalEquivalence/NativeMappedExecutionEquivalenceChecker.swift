@@ -58,15 +58,11 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
 
         do {
             let sourceData = try environment.reader.read(request.design.artifact)
-            if let sourceReference = request.inputs.first(where: { $0.locator == request.design.artifact }) {
-                try validateArtifactIntegrity(sourceData, reference: sourceReference)
-            }
+            try validateArtifactIntegrity(sourceData, reference: request.design.artifact)
             let sourceDocument = try loadSourceDocument(sourceData, request: request)
 
             let mappedData = try environment.reader.read(mappedReference.artifact)
-            if let mappedArtifactReference = request.referenceInputs.first(where: { $0.locator == mappedReference.artifact }) {
-                try validateArtifactIntegrity(mappedData, reference: mappedArtifactReference)
-            }
+            try validateArtifactIntegrity(mappedData, reference: mappedReference.artifact)
             let mappedDocument = try loadMappedDocument(mappedData, request: request)
 
             let comparison = compare(sourceDocument, mappedDocument)
@@ -268,7 +264,7 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
     }
 
     private func sourceArtifactReference(
-        _ reference: ArtifactLocator,
+        _ reference: ArtifactReference,
         data: Data,
         order: Int
     ) -> RTLVerificationSourceArtifact {

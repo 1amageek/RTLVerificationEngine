@@ -67,7 +67,7 @@ struct EvidenceInputTests {
             runID: "record-input",
             inputs: [rtl],
             design: LogicDesignReference(
-                artifact: rtl.locator,
+                artifact: rtl,
                 topDesignName: "top",
                 designDigest: rtl.sha256
             ),

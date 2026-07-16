@@ -176,7 +176,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                result.payload.proofStatus != "proved",
                result.status == .completed {
                 result.status = .blocked
-                result.diagnostics.append(RTLDiagnostic(
+                result.rtlDiagnostics.append(RTLDiagnostic(
                     severity: .error,
                     code: "RTL_EXTERNAL_PROOF_UNPROVEN",
                     message: "The external result did not prove the required equivalence relationship.",

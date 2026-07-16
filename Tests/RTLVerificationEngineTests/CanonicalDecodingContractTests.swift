@@ -79,7 +79,7 @@ struct CanonicalDecodingContractTests {
             runID: "canonical-request",
             inputs: [reference],
             design: LogicDesignReference(
-                artifact: reference.locator,
+                artifact: reference,
                 topDesignName: "top",
                 designDigest: "design-digest"
             )

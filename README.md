@@ -62,12 +62,11 @@ does not construct a process trust record or infer trust from non-empty IDs.
 
 ## CircuiteFoundation boundary
 
-`RTLVerificationExecuting` now refines `CircuiteFoundation.Engine`, so native
-and external implementations share the Foundation execution seam. The
-`RTLVerificationFoundationEvidence` projection exposes digest-bound
-`ArtifactReference` values and structured `DesignDiagnostic` values through
-`EvidenceProviding` and `DiagnosticReporting` without turning qualification
-or release policy into a Foundation concern.
+`RTLVerificationExecuting` refines `CircuiteFoundation.Engine`, so native and
+external implementations share the Foundation execution seam.
+`RTLVerificationResult` directly exposes digest-bound `ArtifactReference`,
+`EvidenceManifest`, and structured `DesignDiagnostic` values without turning
+qualification or release policy into a Foundation concern.
 
 Project/run lifecycle is owned by `DesignFlowKernel`; this package emits only
 domain results, Foundation artifact evidence and diagnostics. Concrete
@@ -76,8 +75,7 @@ domain results, Foundation artifact evidence and diagnostics. Concrete
 ```mermaid
 flowchart LR
     Engine["RTLVerificationExecuting\nFoundation.Engine"] --> Result["RTLVerificationResult"]
-    Result --> Evidence["RTLVerificationFoundationEvidence"]
-    Evidence --> Shared["EvidenceManifest +\nDesignDiagnostic"]
+    Result --> Shared["EvidenceManifest +\nDesignDiagnostic"]
     Shared --> Flow["Flow / human review / agent"]
 ```
 

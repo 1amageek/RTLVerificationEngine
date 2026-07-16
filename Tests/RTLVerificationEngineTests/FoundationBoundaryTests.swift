@@ -12,7 +12,7 @@ struct FoundationBoundaryTests {
     }
 
     @Test
-    func resultProjectsDigestBoundArtifactsAndDiagnostics() throws {
+    func resultExposesDigestBoundArtifactsAndDiagnostics() throws {
         let data = Data("rtl report".utf8)
         let digest = SHA256ContentDigester().sha256(data: data)
         let artifact = makeTestArtifactReference(
@@ -45,13 +45,11 @@ struct FoundationBoundaryTests {
             ),
             payload: RTLVerificationPayload(findingCount: 1)
         )
-        let projection = try RTLVerificationFoundationEvidence(result: envelope)
-
-        #expect(projection.evidence.artifacts.count == 1)
-        #expect(projection.evidence.artifacts[0].digest.hexadecimalValue == digest)
-        #expect(projection.diagnostics.count == 1)
-        #expect(projection.diagnostics[0].severity == .error)
-        #expect(projection.diagnostics[0].subject?.identifier == "top.u1")
+        #expect(envelope.evidence.artifacts.count == 1)
+        #expect(envelope.evidence.artifacts[0].digest.hexadecimalValue == digest)
+        #expect(envelope.diagnostics.count == 1)
+        #expect(envelope.diagnostics[0].severity == .error)
+        #expect(envelope.diagnostics[0].subject?.identifier == "top.u1")
     }
 
     @Test
@@ -77,9 +75,8 @@ struct FoundationBoundaryTests {
             ),
             payload: RTLVerificationPayload(findingCount: 0)
         )
-        let projection = try RTLVerificationFoundationEvidence(result: envelope)
-        #expect(projection.artifacts.count == 1)
-        #expect(projection.artifacts[0].digest.algorithm == .sha256)
+        #expect(envelope.artifacts.count == 1)
+        #expect(envelope.artifacts[0].digest.algorithm == .sha256)
     }
 
     private struct MockRTLVerificationEngine: RTLVerificationExecuting {

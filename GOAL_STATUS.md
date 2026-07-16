@@ -8,7 +8,7 @@
 |---|---|---|
 | Responsibility boundary | Complete | README.md and DESIGN.md |
 | Public package products | Implemented for current slice | Package.swift |
-| CircuiteFoundation execution/evidence boundary | Implemented for current slice | `RTLVerificationExecuting` refines `Engine`; `RTLVerificationFoundationEvidence` projects digest-bound artifacts and structured diagnostics |
+| CircuiteFoundation execution/evidence boundary | Implemented for current slice | `RTLVerificationExecuting` refines `Engine`; `RTLVerificationResult` directly provides digest-bound artifacts, evidence, and structured diagnostics |
 | Contract build | Passed | `swift build` |
 | Contract test | Passed | timeout-bounded Xcode test: evidence-input binding, mapped pass/mismatch, typed counterexample differences, persisted corpus runs, oracle evidence artifacts, evidence-input artifact integrity auditing, canonical frontend coverage, retained process evidence binding, external descriptor/request identity, proof artifact byte integrity, concurrent stdout/stderr draining and process-tree timeout cleanup fixtures included |
 | Domain implementation | Complete for native subset | Native lint, CDC, RDC and structural equivalence backends |

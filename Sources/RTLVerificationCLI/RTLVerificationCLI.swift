@@ -79,7 +79,7 @@ struct RTLVerificationCLI {
             throw RTLVerificationExecutionError.invalidRequest("At least one --rtl input is required.")
         }
         let design = LogicDesignReference(
-            artifact: rtlReference.locator,
+            artifact: rtlReference,
             topDesignName: options.topModule,
             designDigest: rtlReference.sha256
         )
@@ -95,7 +95,7 @@ struct RTLVerificationCLI {
         let referenceDesign: LogicDesignReference?
         if let reference = referenceReferences.first {
             referenceDesign = LogicDesignReference(
-                artifact: reference.locator,
+                artifact: reference,
                 topDesignName: options.topModule,
                 designDigest: reference.sha256
             )

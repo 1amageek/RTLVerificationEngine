@@ -16,7 +16,7 @@ struct ExternalAdapterTests {
             runID: "external-blocked",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -34,7 +34,7 @@ struct ExternalAdapterTests {
         )
         let result = try await engine.execute(request)
         #expect(result.status == .blocked)
-        #expect(result.diagnostics.first?.code == "RTL_EXTERNAL_TOOL_TRUST_REJECTED")
+        #expect(result.rtlDiagnostics.first?.code == "RTL_EXTERNAL_TOOL_TRUST_REJECTED")
     }
 
     @Test("qualified external tools return a validated envelope")
@@ -44,7 +44,7 @@ struct ExternalAdapterTests {
             runID: "external-qualified",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -75,7 +75,7 @@ struct ExternalAdapterTests {
             runID: "external-proof-view-mismatch",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -115,7 +115,7 @@ struct ExternalAdapterTests {
             runID: "external-identity-mismatch",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -153,7 +153,7 @@ struct ExternalAdapterTests {
             runID: "external-timeout",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -187,7 +187,7 @@ struct ExternalAdapterTests {
             runID: "external-invalid-timeout",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -208,7 +208,7 @@ struct ExternalAdapterTests {
         let result = try await engine.execute(request)
 
         #expect(result.status == .blocked)
-        #expect(result.diagnostics.first?.code == "RTL_EXTERNAL_TIMEOUT_INVALID")
+        #expect(result.rtlDiagnostics.first?.code == "RTL_EXTERNAL_TIMEOUT_INVALID")
     }
 
     @Test("external adapter executes a real process and binds the request digest")
@@ -218,7 +218,7 @@ struct ExternalAdapterTests {
             runID: "external-real-process",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -285,7 +285,7 @@ struct ExternalAdapterTests {
             runID: "external-real-timeout",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -306,7 +306,7 @@ struct ExternalAdapterTests {
         let result = try await engine.execute(request)
 
         #expect(result.status == .blocked)
-        #expect(result.diagnostics.first?.code == "RTL_EXTERNAL_TOOL_FAILED")
+        #expect(result.rtlDiagnostics.first?.code == "RTL_EXTERNAL_TOOL_FAILED")
     }
 
     @Test("external process drains stdout and stderr while the process is running")
@@ -388,7 +388,7 @@ struct ExternalAdapterTests {
             runID: "external-oracle",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -426,7 +426,7 @@ struct ExternalAdapterTests {
             runID: "external-oracle-self",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -462,7 +462,7 @@ struct ExternalAdapterTests {
             runID: "external-solver-artifact",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -502,7 +502,7 @@ struct ExternalAdapterTests {
             runID: "external-solver-artifact-valid",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -551,7 +551,7 @@ struct ExternalAdapterTests {
             runID: "external-solver-artifact-tampered",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),
@@ -636,7 +636,7 @@ struct ExternalAdapterTests {
             runID: "external-request-digest-mismatch",
             inputs: [artifact],
             design: LogicDesignReference(
-                artifact: artifact.locator,
+                artifact: artifact,
                 topDesignName: "top",
                 designDigest: "digest"
             ),

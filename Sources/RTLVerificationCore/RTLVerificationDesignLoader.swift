@@ -15,7 +15,7 @@ public struct RTLVerificationDesignLoader: Sendable {
     }
 
     public func load(_ request: RTLVerificationRequest) throws -> RTLVerificationParsedDesign {
-        let designReference = try materialize(request.design.artifact)
+        let designReference = request.design.artifact
         let references = uniqueReferences(
             [designReference] + request.inputs.filter { $0.locator.kind == .rtl }
         )
@@ -108,7 +108,7 @@ public struct RTLVerificationDesignLoader: Sendable {
         guard let referenceDesign = request.referenceDesign else {
             throw RTLVerificationExecutionError.invalidRequest("A reference design is required for formal equivalence.")
         }
-        let referenceReference = try materialize(referenceDesign.artifact)
+        let referenceReference = referenceDesign.artifact
         let references = uniqueReferences([referenceReference] + request.referenceInputs)
         let sourceInputs = try references.map { reference in
             RTLVerificationSourceInput(reference: reference, data: try reader.read(reference))
@@ -247,15 +247,5 @@ public struct RTLVerificationDesignLoader: Sendable {
     private func uniqueReferences(_ references: [ArtifactReference]) -> [ArtifactReference] {
         var seen: Set<String> = []
         return references.filter { seen.insert($0.path).inserted }
-    }
-
-    private func materialize(_ locator: ArtifactLocator) throws -> ArtifactReference {
-        let data = try reader.read(locator)
-        return ArtifactReference(
-            id: ArtifactID(stableKey: "rtl-locator:\(locator.location.storage.rawValue):\(locator.path)"),
-            locator: locator,
-            digest: try SHA256ContentDigester().digest(data: data),
-            byteCount: UInt64(data.count)
-        )
     }
 }

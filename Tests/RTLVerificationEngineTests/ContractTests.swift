@@ -272,7 +272,7 @@ struct ContractTests {
             runID: "run-001",
             inputs: [reference],
             design: LogicDesignReference(
-                artifact: reference.locator,
+                artifact: reference,
                 topDesignName: "top",
                 designDigest: "design-digest"
             ),
@@ -609,7 +609,7 @@ struct ContractTests {
         )
 
         #expect(envelope.status == .blocked)
-        #expect(envelope.diagnostics.contains { $0.code == "RDC_CLOCK_DOMAIN_UNRESOLVED" })
+        #expect(envelope.rtlDiagnostics.contains { $0.code == "RDC_CLOCK_DOMAIN_UNRESOLVED" })
     }
 
     @Test("formal mismatch persists a counterexample artifact", .timeLimit(.minutes(1)))
@@ -627,7 +627,7 @@ struct ContractTests {
             reference: implementationReference,
             analysis: .formalEquivalence,
             referenceDesign: LogicDesignReference(
-                artifact: referenceDesignReference.locator,
+                artifact: referenceDesignReference,
                 topDesignName: "top",
                 designDigest: "reference-digest"
             )
@@ -681,12 +681,12 @@ struct ContractTests {
         let mappedData = try encodeJSON(mappedDocument)
         let mappedReference = makeJSONReference(path: "mapped-design.json", kind: .netlist, data: mappedData)
         let sourceDesign = LogicDesignReference(
-            artifact: sourceReference.locator,
+            artifact: sourceReference,
             topDesignName: "top",
             designDigest: try #require(snapshot.designDigest)
         )
         let mappedDesign = LogicDesignReference(
-            artifact: mappedReference.locator,
+            artifact: mappedReference,
             topDesignName: "top",
             designDigest: mappedReference.sha256
         )
@@ -749,12 +749,12 @@ struct ContractTests {
             runID: "mapped-proof-mismatch",
             inputs: [sourceReference, mappedReference],
             design: LogicDesignReference(
-                artifact: sourceReference.locator,
+                artifact: sourceReference,
                 topDesignName: "top",
                 designDigest: try #require(snapshot.designDigest)
             ),
             referenceDesign: LogicDesignReference(
-                artifact: mappedReference.locator,
+                artifact: mappedReference,
                 topDesignName: "top",
                 designDigest: mappedReference.sha256
             ),
@@ -775,7 +775,7 @@ struct ContractTests {
         #expect(envelope.status == .blocked)
         #expect(envelope.payload.proofStatus == "unproven")
         #expect(envelope.payload.counterexampleArtifactIDs == ["formal-mapped-execution-counterexample"])
-        #expect(envelope.diagnostics.contains { $0.code == "FORMAL_MAPPED_EXECUTION_UNPROVEN" })
+        #expect(envelope.rtlDiagnostics.contains { $0.code == "FORMAL_MAPPED_EXECUTION_UNPROVEN" })
     }
 
     @Test("unassessed observation maturity does not claim execution authority", .timeLimit(.minutes(1)))
@@ -789,7 +789,7 @@ struct ContractTests {
 
         #expect(envelope.status == .completed)
         #expect(envelope.payload.record.maturity == .unassessed)
-        #expect(envelope.diagnostics.contains { $0.code == "RTL_QUALIFICATION_INSUFFICIENT" } == false)
+        #expect(envelope.rtlDiagnostics.contains { $0.code == "RTL_QUALIFICATION_INSUFFICIENT" } == false)
     }
 
     @Test("observation maturity is ordered without release semantics")
@@ -1268,7 +1268,7 @@ struct ContractTests {
             reference: implementation,
             analysis: .formalEquivalence,
             referenceDesign: LogicDesignReference(
-                artifact: reference.locator,
+                artifact: reference,
                 topDesignName: "top",
                 designDigest: "reference-digest"
             ),
@@ -1279,7 +1279,7 @@ struct ContractTests {
 
         #expect(envelope.status == .blocked)
         #expect(envelope.payload.proofView == .rtlToSynthesized)
-        #expect(envelope.diagnostics.contains { $0.code == "RTL_REQUEST_INVALID" })
+        #expect(envelope.rtlDiagnostics.contains { $0.code == "RTL_REQUEST_INVALID" })
     }
 
     @Test("retained corpus evaluator records deterministic mismatches", .timeLimit(.minutes(1)))
@@ -1405,12 +1405,12 @@ struct ContractTests {
             runID: "formal-reference-source-set",
             inputs: [implementationTop, implementationChild],
             design: LogicDesignReference(
-                artifact: implementationTop.locator,
+                artifact: implementationTop,
                 topDesignName: "top",
                 designDigest: "implementation-digest"
             ),
             referenceDesign: LogicDesignReference(
-                artifact: referenceTop.locator,
+                artifact: referenceTop,
                 topDesignName: "top",
                 designDigest: "reference-digest"
             ),
@@ -1483,7 +1483,7 @@ struct ContractTests {
             runID: "test-run",
             inputs: [reference],
             design: LogicDesignReference(
-                artifact: reference.locator,
+                artifact: reference,
                 topDesignName: "top",
                 designDigest: "design-digest"
             ),

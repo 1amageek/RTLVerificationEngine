@@ -33,7 +33,7 @@ func replacingRTLTestProducer(
         schemaVersion: result.schemaVersion,
         runID: result.runID,
         status: result.status,
-        diagnostics: result.diagnostics,
+        diagnostics: result.rtlDiagnostics,
         artifacts: result.artifacts,
         provenance: try makeRTLTestProvenance(
             engineID: result.provenance.producer.identifier,

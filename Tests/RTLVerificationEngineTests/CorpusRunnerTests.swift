@@ -26,7 +26,7 @@ struct CorpusRunnerTests {
             runID: "unused",
             inputs: [input],
             design: LogicDesignReference(
-                artifact: input.locator,
+                artifact: input,
                 topDesignName: "top",
                 designDigest: input.digest.hexadecimalValue
             ),
@@ -65,7 +65,7 @@ struct CorpusRunnerTests {
         let request = RTLVerificationRequest(
             runID: "unused",
             inputs: [input],
-            design: LogicDesignReference(artifact: input.locator, topDesignName: "top", designDigest: "digest")
+            design: LogicDesignReference(artifact: input, topDesignName: "top", designDigest: "digest")
         )
         let corpusCase = RTLVerificationCorpusCase(
             caseID: "duplicate",
