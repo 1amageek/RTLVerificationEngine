@@ -43,7 +43,7 @@ struct RTLVerificationCLI {
                 diagnostics: [RTLDiagnostic(
                     severity: .info,
                     code: "RTL_CLI_HELP",
-                message: "Use --analysis, --project-root, repeated --rtl/--reference, --top, --run-id, optional --constraint, frontend options, proof view, waivers, assumptions and --qualification-input.",
+                message: "Use --analysis, --project-root, repeated --rtl/--reference, --top, --run-id, optional --constraint, frontend options, proof view, waivers, assumptions and --record-input.",
                 suggestedActions: ["run_rtl_verify"]
                 )],
                 metadata: RTLExecutionMetadata(
@@ -74,7 +74,7 @@ struct RTLVerificationCLI {
         let design = LogicDesignReference(
             artifact: rtlReference.locator,
             topDesignName: options.topModule,
-            designDigest: rtlReference.sha256 ?? ""
+            designDigest: rtlReference.sha256
         )
         let referenceReferences = try options.referencePaths.enumerated().map { index, referencePath in
             try referenceBuilder.reference(
@@ -90,7 +90,7 @@ struct RTLVerificationCLI {
             referenceDesign = LogicDesignReference(
                 artifact: reference.locator,
                 topDesignName: options.topModule,
-                designDigest: reference.sha256 ?? ""
+                designDigest: reference.sha256
             )
         } else {
             referenceDesign = nil
@@ -115,9 +115,9 @@ struct RTLVerificationCLI {
         let assumptions = try options.assumptionsPath.map {
             try referenceBuilder.readJSON([RTLVerificationAssumption].self, named: $0, forProjectAt: options.projectRoot)
         } ?? []
-        let qualificationInput = try options.qualificationInputPath.map {
+        let evidenceInput = try options.evidenceInputPath.map {
             try referenceBuilder.readJSON(
-                RTLVerificationQualificationInput.self,
+                RTLVerificationEvidenceInput.self,
                 named: $0,
                 forProjectAt: options.projectRoot
             )
@@ -133,8 +133,7 @@ struct RTLVerificationCLI {
             policy: RTLVerificationPolicy(
                 requiredProof: options.requiredProof,
                 maximumUnsupportedConstructs: options.maximumUnsupportedConstructs,
-                allowWarnings: options.allowWarnings,
-                minimumQualification: options.minimumQualification
+                allowWarnings: options.allowWarnings
             ),
             waivers: waivers,
             frontend: RTLVerificationFrontendOptions(
@@ -144,7 +143,7 @@ struct RTLVerificationCLI {
             ),
             proofView: options.proofView,
             assumptions: assumptions,
-            qualificationInput: qualificationInput
+            evidenceInput: evidenceInput
         )
         let environment = RTLVerificationEnvironment(
             reader: FileSystemRTLArtifactReader(projectRoot: options.projectRoot),
@@ -178,12 +177,11 @@ struct RTLVerificationCLI {
         var constraintModes: [String] = []
         var waiversPath: String?
         var assumptionsPath: String?
-        var qualificationInputPath: String?
+        var evidenceInputPath: String?
         var preprocessorDefines: [String: String] = [:]
         var includeDirectories: [String] = []
         var language = "systemVerilog"
         var proofView: RTLVerificationProofView = .rtlToRtlStructural
-        var minimumQualification: RTLVerificationQualificationState = .unassessed
         var maximumUnsupportedConstructs = 0
         var allowWarnings = true
         var requiredProof = true
@@ -214,8 +212,8 @@ struct RTLVerificationCLI {
                     waiversPath = try next(arguments, index: &index)
                 case "--assumptions":
                     assumptionsPath = try next(arguments, index: &index)
-                case "--qualification-input":
-                    qualificationInputPath = try next(arguments, index: &index)
+                case "--record-input":
+                    evidenceInputPath = try next(arguments, index: &index)
                 case "--define":
                     let definition = try parseDefinition(next(arguments, index: &index))
                     preprocessorDefines[definition.name] = definition.value
@@ -225,8 +223,6 @@ struct RTLVerificationCLI {
                     language = try next(arguments, index: &index)
                 case "--proof-view":
                     proofView = try parseProofView(next(arguments, index: &index))
-                case "--minimum-qualification":
-                    minimumQualification = try parseQualification(next(arguments, index: &index))
                 case "--max-unsupported":
                     maximumUnsupportedConstructs = try parseNonNegativeInt(next(arguments, index: &index))
                 case "--deny-warnings":
@@ -268,13 +264,6 @@ struct RTLVerificationCLI {
                 throw RTLVerificationExecutionError.invalidRequest("Unsupported proof view \(value).")
             }
             return proofView
-        }
-
-        private func parseQualification(_ value: String) throws -> RTLVerificationQualificationState {
-            guard let state = RTLVerificationQualificationState(rawValue: value) else {
-                throw RTLVerificationExecutionError.invalidRequest("Unsupported qualification state \(value).")
-            }
-            return state
         }
 
         private func parseNonNegativeInt(_ value: String) throws -> Int {

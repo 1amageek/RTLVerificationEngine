@@ -68,6 +68,7 @@ let package = Package(
                 "RDCAnalysis",
                 "FormalEquivalence",
                 "RTLVerificationEngine",
+                .product(name: "ToolQualification", package: "ToolQualification"),
                 .product(name: "LogicEngineCore", package: "LogicEngine"),
                 .product(name: "LogicLowering", package: "LogicEngine"),
             ],

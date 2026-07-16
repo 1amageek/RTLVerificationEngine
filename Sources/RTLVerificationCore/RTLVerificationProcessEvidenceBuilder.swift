@@ -1,34 +1,34 @@
 import Foundation
 
-public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificationProcessQualificationEvidenceBuilding {
+public struct RTLVerificationProcessEvidenceBuilder: RTLVerificationProcessEvidenceBuilding {
     public init() {}
 
     public func build(
-        _ request: RTLVerificationProcessQualificationEvidenceBuildRequest,
+        _ request: RTLVerificationProcessEvidenceBuildRequest,
         at date: Date
-    ) throws -> RTLVerificationProcessQualificationEvidenceBuildResult {
-        guard request.schemaVersion == RTLVerificationProcessQualificationEvidenceBuildRequest.currentSchemaVersion else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.invalidInput(
+    ) throws -> RTLVerificationProcessEvidenceBuildResult {
+        guard request.schemaVersion == RTLVerificationProcessEvidenceBuildRequest.currentSchemaVersion else {
+            throw RTLVerificationProcessEvidenceBuildError.invalidInput(
                 "unsupported schema version \(request.schemaVersion)"
             )
         }
-        guard !request.qualificationID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+        guard !request.evidenceSetID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !request.requestDigest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !request.provenance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.invalidInput(
-                "qualificationID, requestDigest and provenance are required"
+            throw RTLVerificationProcessEvidenceBuildError.invalidInput(
+                "evidenceSetID, requestDigest and provenance are required"
             )
         }
         guard request.scope.isComplete else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.invalidInput(
+            throw RTLVerificationProcessEvidenceBuildError.invalidInput(
                 "complete PDK and analysis scope is required"
             )
         }
-        guard request.qualifiedAt < request.expiresAt else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.invalidValidityWindow
+        guard request.recordedAt < request.validUntil else {
+            throw RTLVerificationProcessEvidenceBuildError.invalidValidityWindow
         }
-        guard request.qualifiedAt <= date, date < request.expiresAt else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.notValidAt
+        guard request.recordedAt <= date, date < request.validUntil else {
+            throw RTLVerificationProcessEvidenceBuildError.notValidAt
         }
 
         let artifactIDs = try validateArtifacts(request.artifacts)
@@ -52,48 +52,48 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
                 + request.healthEvidence.flatMap(\.artifactIDs)
         )
         guard referencedArtifactIDs == artifactIDs else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.invalidInput(
-                "every retained artifact must be referenced by qualification evidence"
+            throw RTLVerificationProcessEvidenceBuildError.invalidInput(
+                "every retained artifact must be referenced by record evidence"
             )
         }
 
-        let qualification = RTLVerificationProcessQualificationRecord(
-            qualificationID: request.qualificationID,
+        let record = RTLVerificationProcessEvidenceRecord(
+            evidenceSetID: request.evidenceSetID,
             scope: request.scope,
-            status: .qualified,
+            status: .complete,
             corpusEvidenceIDs: corpusIDs,
             oracleEvidenceIDs: oracleIDs,
             healthEvidenceIDs: healthIDs,
             blockers: [],
-            qualifiedAt: request.qualifiedAt,
-            expiresAt: request.expiresAt
+            recordedAt: request.recordedAt,
+            validUntil: request.validUntil
         )
-        let evidence = RTLVerificationProcessQualificationEvidence(
-            evidenceID: "process-evidence:\(request.qualificationID)",
-            qualificationID: request.qualificationID,
-            qualification: qualification,
+        let evidence = RTLVerificationProcessEvidenceBundle(
+            evidenceID: "process-evidence:\(request.evidenceSetID)",
+            evidenceSetID: request.evidenceSetID,
+            record: record,
             artifactIDs: artifactIDs.sorted(),
             artifacts: request.artifacts,
             provenance: request.provenance,
             recordedAt: date
         )
         guard evidence.isAuditable else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.invalidInput(
+            throw RTLVerificationProcessEvidenceBuildError.invalidInput(
                 "the generated process evidence did not satisfy its audit contract"
             )
         }
-        return RTLVerificationProcessQualificationEvidenceBuildResult(
-            qualification: qualification,
+        return RTLVerificationProcessEvidenceBuildResult(
+            record: record,
             evidence: evidence
         )
     }
 
     private func validateCorpus(
-        _ evidence: [RTLVerificationQualificationEvidence],
+        _ evidence: [RTLVerificationEvidenceRecord],
         artifactIDs: Set<String>
     ) throws -> [String] {
         guard !evidence.isEmpty else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.missingEvidence(kind: .corpus)
+            throw RTLVerificationProcessEvidenceBuildError.missingEvidence(kind: .corpus)
         }
         let ids = try validateEvidenceGroup(
             evidence,
@@ -104,7 +104,7 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
             guard let scopeID = $0.scopeID else { return false }
             return $0.evidenceID == "corpus:\(scopeID)"
         }) else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.invalidInput(
+            throw RTLVerificationProcessEvidenceBuildError.invalidInput(
                 "corpus evidence IDs must be bound to corpus case IDs"
             )
         }
@@ -117,7 +117,7 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
         artifactIDs: Set<String>
     ) throws -> [String] {
         guard !evidence.isEmpty else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.missingEvidence(
+            throw RTLVerificationProcessEvidenceBuildError.missingEvidence(
                 kind: .oracleCorrelation
             )
         }
@@ -125,10 +125,10 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
         for item in evidence {
             guard item.requestDigest == requestDigest,
                   item.isAuditable else {
-                throw RTLVerificationProcessQualificationEvidenceBuildError.invalidEvidence(item.evidenceID)
+                throw RTLVerificationProcessEvidenceBuildError.invalidEvidence(item.evidenceID)
             }
             guard caseIDs.insert(item.caseID).inserted else {
-                throw RTLVerificationProcessQualificationEvidenceBuildError.invalidEvidence(item.caseID)
+                throw RTLVerificationProcessEvidenceBuildError.invalidEvidence(item.caseID)
             }
             try validateReferencedArtifacts(item.artifactIDs, available: artifactIDs)
         }
@@ -136,12 +136,12 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
     }
 
     private func validateHealth(
-        _ evidence: [RTLVerificationQualificationEvidence],
-        scope: RTLVerificationProcessQualificationScope,
+        _ evidence: [RTLVerificationEvidenceRecord],
+        scope: RTLVerificationProcessEvidenceScope,
         artifactIDs: Set<String>
     ) throws -> [String] {
         guard !evidence.isEmpty else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.missingEvidence(kind: .healthCheck)
+            throw RTLVerificationProcessEvidenceBuildError.missingEvidence(kind: .healthCheck)
         }
         var evidenceIDs = Set<String>()
         let ids = try evidence.map { item in
@@ -150,10 +150,10 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
                   item.implementationID == scope.implementationID,
                   item.implementationVersion == scope.algorithmVersion,
                   evidenceIDs.insert(item.evidenceID).inserted else {
-                throw RTLVerificationProcessQualificationEvidenceBuildError.invalidEvidence(item.evidenceID)
+                throw RTLVerificationProcessEvidenceBuildError.invalidEvidence(item.evidenceID)
             }
             guard !item.artifactIDs.isEmpty else {
-                throw RTLVerificationProcessQualificationEvidenceBuildError.invalidEvidence(item.evidenceID)
+                throw RTLVerificationProcessEvidenceBuildError.invalidEvidence(item.evidenceID)
             }
             try validateReferencedArtifacts(item.artifactIDs, available: artifactIDs)
             return item.evidenceID
@@ -162,8 +162,8 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
     }
 
     private func validateEvidenceGroup(
-        _ evidence: [RTLVerificationQualificationEvidence],
-        expectedKind: RTLVerificationQualificationEvidenceKind,
+        _ evidence: [RTLVerificationEvidenceRecord],
+        expectedKind: RTLVerificationEvidenceRecordKind,
         artifactIDs: Set<String>
     ) throws -> [String] {
         var evidenceIDs = Set<String>()
@@ -172,7 +172,7 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
                   item.isAuditable,
                   !item.artifactIDs.isEmpty,
                   evidenceIDs.insert(item.evidenceID).inserted else {
-                throw RTLVerificationProcessQualificationEvidenceBuildError.invalidEvidence(
+                throw RTLVerificationProcessEvidenceBuildError.invalidEvidence(
                     item.evidenceID
                 )
             }
@@ -187,7 +187,7 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
     ) throws {
         for reference in references {
             guard available.contains(reference) else {
-                throw RTLVerificationProcessQualificationEvidenceBuildError.missingArtifact(reference)
+                throw RTLVerificationProcessEvidenceBuildError.missingArtifact(reference)
             }
         }
     }
@@ -196,25 +196,26 @@ public struct RTLVerificationProcessQualificationEvidenceBuilder: RTLVerificatio
         _ artifacts: [RTLArtifactReference]
     ) throws -> Set<String> {
         guard !artifacts.isEmpty else {
-            throw RTLVerificationProcessQualificationEvidenceBuildError.invalidInput(
+            throw RTLVerificationProcessEvidenceBuildError.invalidInput(
                 "at least one retained artifact is required"
             )
         }
         var artifactIDs = Set<String>()
         for artifact in artifacts {
-            guard let artifactID = artifact.artifactID,
-                  !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                throw RTLVerificationProcessQualificationEvidenceBuildError.invalidArtifact(artifact.path)
+            let artifactID = artifact.artifactID
+            let sha256 = artifact.sha256
+            guard !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw RTLVerificationProcessEvidenceBuildError.invalidArtifact(artifact.path)
             }
             guard artifactIDs.insert(artifactID).inserted,
                   !artifact.path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                   !artifact.path.hasPrefix("/"),
                   !artifact.path.split(separator: "/").contains(".."),
-                  let sha256 = artifact.sha256,
+                  artifact.digest.algorithm == .sha256,
                   sha256.count == 64,
                   sha256.allSatisfy(\.isHexDigit),
                   artifact.byteCount >= 0 else {
-                throw RTLVerificationProcessQualificationEvidenceBuildError.invalidArtifact(artifactID)
+                throw RTLVerificationProcessEvidenceBuildError.invalidArtifact(artifactID)
             }
         }
         return artifactIDs

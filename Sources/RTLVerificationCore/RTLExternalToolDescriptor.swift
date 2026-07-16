@@ -6,8 +6,6 @@ public struct RTLExternalToolDescriptor: Sendable, Hashable, Codable {
     public var version: String
     public var supportedAnalyses: [RTLVerificationAnalysis]
     public var supportedProofViews: [RTLVerificationProofView]
-    public var qualified: Bool
-    public var qualification: RTLVerificationQualificationReport
     public var limitations: [String]
     public var timeoutSeconds: TimeInterval
 
@@ -17,8 +15,6 @@ public struct RTLExternalToolDescriptor: Sendable, Hashable, Codable {
         case version
         case supportedAnalyses
         case supportedProofViews
-        case qualified
-        case qualification
         case limitations
         case timeoutSeconds
     }
@@ -29,8 +25,6 @@ public struct RTLExternalToolDescriptor: Sendable, Hashable, Codable {
         version: String,
         supportedAnalyses: [RTLVerificationAnalysis],
         supportedProofViews: [RTLVerificationProofView] = RTLVerificationProofView.allCases,
-        qualified: Bool = false,
-        qualification: RTLVerificationQualificationReport = RTLVerificationQualificationReport(),
         limitations: [String] = [],
         timeoutSeconds: TimeInterval = 60
     ) {
@@ -39,8 +33,6 @@ public struct RTLExternalToolDescriptor: Sendable, Hashable, Codable {
         self.version = version
         self.supportedAnalyses = supportedAnalyses
         self.supportedProofViews = supportedProofViews
-        self.qualified = qualified
-        self.qualification = qualification
         self.limitations = limitations
         self.timeoutSeconds = timeoutSeconds
     }
@@ -56,11 +48,6 @@ public struct RTLExternalToolDescriptor: Sendable, Hashable, Codable {
                 [RTLVerificationProofView].self,
                 forKey: .supportedProofViews
             ) ?? RTLVerificationProofView.allCases,
-            qualified: try container.decodeIfPresent(Bool.self, forKey: .qualified) ?? false,
-            qualification: try container.decodeIfPresent(
-                RTLVerificationQualificationReport.self,
-                forKey: .qualification
-            ) ?? RTLVerificationQualificationReport(),
             limitations: try container.decodeIfPresent([String].self, forKey: .limitations) ?? [],
             timeoutSeconds: try container.decodeIfPresent(Double.self, forKey: .timeoutSeconds) ?? 60
         )

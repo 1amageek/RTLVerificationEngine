@@ -66,12 +66,11 @@ public enum RTLVerificationExecutionSupport {
         coverage: RTLVerificationCoverage,
         policy: RTLVerificationPolicy,
         proofStatus: String? = nil,
-        qualification: RTLVerificationQualificationReport = RTLVerificationQualificationReport()
+        assessment: RTLVerificationEvidenceAssessment = RTLVerificationEvidenceAssessment()
     ) -> RTLExecutionStatus {
         guard requested == .completed else { return requested }
         if policy.requiredProof, let proofStatus, proofStatus != "proved" { return .blocked }
         guard coverage.unsupportedConstructs.count <= policy.maximumUnsupportedConstructs else { return .blocked }
-        guard qualification.satisfies(policy.minimumQualification) else { return .blocked }
         if findings.contains(where: { $0.severity == .error && !$0.waived }) { return .failed }
         if !policy.allowWarnings, findings.contains(where: { $0.severity == .warning && !$0.waived }) { return .failed }
         return .completed
@@ -84,7 +83,7 @@ public enum RTLVerificationExecutionSupport {
         proofStatus: String?,
         counterexampleArtifactIDs: [String],
         appliedWaivers: [RTLVerificationWaiver],
-        qualification: RTLVerificationQualificationReport,
+        assessment: RTLVerificationEvidenceAssessment,
         proofView: RTLVerificationProofView,
         assumptions: [RTLVerificationAssumption]
     ) throws -> RTLVerificationPayload {
@@ -97,7 +96,7 @@ public enum RTLVerificationExecutionSupport {
             coverage: coverage,
             appliedWaivers: appliedWaivers,
             counterexampleArtifactIDs: counterexampleArtifactIDs,
-            qualification: qualification,
+            record: assessment,
             proofView: proofView,
             assumptions: assumptions
         )
@@ -135,7 +134,7 @@ public enum RTLVerificationExecutionSupport {
         let waiverResult = applyWaivers(analysisResult.findings, waivers: request.waivers)
         let findings = normalizeFindings(waiverResult.findings)
         let completedAt = Date()
-        let qualification = try makeQualification(
+        let assessment = try makeEvidenceAssessment(
             request: request,
             analysisResult: analysisResult,
             checkedAt: completedAt
@@ -146,7 +145,7 @@ public enum RTLVerificationExecutionSupport {
             coverage: analysisResult.coverage,
             policy: request.policy,
             proofStatus: analysisResult.proofStatus,
-            qualification: qualification
+            assessment: assessment
         )
         let payload: RTLVerificationPayload
         var artifacts: [RTLArtifactReference] = []
@@ -170,7 +169,7 @@ public enum RTLVerificationExecutionSupport {
             proofStatus: analysisResult.proofStatus,
             counterexampleArtifactIDs: counterexampleArtifactIDs,
             appliedWaivers: waiverResult.applied,
-            qualification: qualification,
+            assessment: assessment,
             proofView: request.proofView,
             assumptions: request.assumptions
         )
@@ -182,15 +181,6 @@ public enum RTLVerificationExecutionSupport {
                 code: "RTL_UNSUPPORTED_SEMANTICS",
                 message: "The requested analysis is blocked because the declared semantic coverage is insufficient.",
                 suggestedActions: ["reduce_unsupported_constructs", "select_qualified_external_backend"]
-            ))
-        }
-        if status == .blocked,
-           !qualification.satisfies(request.policy.minimumQualification) {
-            finalDiagnostics.append(RTLDiagnostic(
-                severity: .error,
-                code: "RTL_QUALIFICATION_INSUFFICIENT",
-                message: "The backend qualification state does not satisfy the requested verification policy.",
-                suggestedActions: ["attach_qualification_evidence", "select_qualified_backend", "lower_policy_for_exploration"]
             ))
         }
         let metadata = RTLExecutionMetadata(
@@ -234,28 +224,21 @@ public enum RTLVerificationExecutionSupport {
         return references.filter { paths.insert($0.path).inserted }
     }
 
-    private static func makeQualification(
+    private static func makeEvidenceAssessment(
         request: RTLVerificationRequest,
         analysisResult: RTLVerificationAnalysisResult,
         checkedAt: Date
-    ) throws -> RTLVerificationQualificationReport {
-        guard let input = request.qualificationInput else {
-            return analysisResult.qualification
+    ) throws -> RTLVerificationEvidenceAssessment {
+        guard let input = request.evidenceInput else {
+            return analysisResult.record
         }
-        return RTLVerificationQualificationEvaluator().evaluate(
-            implementationID: analysisResult.qualification.implementationID,
-            implementationVersion: analysisResult.qualification.implementationVersion,
-            healthEvidence: input.healthEvidence,
+        return RTLVerificationEvidenceEvaluator().evaluate(
+            implementationID: analysisResult.record.implementationID,
+            implementationVersion: analysisResult.record.implementationVersion,
             corpusEvaluations: input.corpusEvaluations,
             oracleReports: input.oracleReports,
             oracleEvidence: input.oracleEvidence,
-            processQualification: input.processQualification,
-            processEvidence: input.processEvidence,
-            releaseApproval: input.releaseApproval,
             expectedRequestDigest: input.expectedRequestDigest,
-            actualRequestDigest: try RTLVerificationRequestDigest.make(request),
-            analysis: request.analysis,
-            proofView: request.proofView,
             checkedAt: checkedAt
         )
     }

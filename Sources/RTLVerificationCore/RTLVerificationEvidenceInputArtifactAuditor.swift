@@ -1,24 +1,15 @@
 import Foundation
 
-public struct RTLVerificationQualificationInputArtifactAuditor: Sendable {
+public struct RTLVerificationEvidenceInputArtifactAuditor: Sendable {
     public init() {}
 
     public func audit(
-        _ input: RTLVerificationQualificationInput,
+        _ input: RTLVerificationEvidenceInput,
         reader: any RTLArtifactReading
     ) throws {
-        for (index, evidence) in input.processEvidence.enumerated() {
-            guard evidence.isAuditable else {
-                throw RTLVerificationQualificationInputArtifactAuditError.processEvidenceNotAuditable(
-                    index: index,
-                    evidenceID: evidence.evidenceID
-                )
-            }
-            try verify(evidence.artifacts, reader: reader)
-        }
         for (index, evidence) in input.oracleEvidence.enumerated() {
             guard evidence.isAuditable else {
-                throw RTLVerificationQualificationInputArtifactAuditError.oracleEvidenceNotAuditable(
+                throw RTLVerificationEvidenceInputArtifactAuditError.oracleEvidenceNotAuditable(
                     index: index,
                     evidenceID: evidence.evidenceID
                 )
@@ -32,11 +23,11 @@ public struct RTLVerificationQualificationInputArtifactAuditor: Sendable {
         reader: any RTLArtifactReading
     ) throws {
         for artifact in artifacts {
-            let artifactID = artifact.artifactID ?? "<missing-artifact-id>"
+            let artifactID = artifact.artifactID
             do {
                 _ = try reader.read(artifact)
             } catch {
-                throw RTLVerificationQualificationInputArtifactAuditError.artifactReadFailed(
+                throw RTLVerificationEvidenceInputArtifactAuditError.artifactReadFailed(
                     artifactID: artifactID,
                     path: artifact.path,
                     reason: error.localizedDescription

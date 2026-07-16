@@ -63,8 +63,8 @@ public struct RTLVerificationOracleEvidence: Sendable, Hashable, Codable {
 
 private extension RTLArtifactReference {
     var isDigestBound: Bool {
-        guard let sha256,
-              !sha256.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+        guard !sha256.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              digest.algorithm == .sha256,
               byteCount >= 0 else {
             return false
         }

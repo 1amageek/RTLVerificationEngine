@@ -28,7 +28,7 @@ struct OracleEvidenceBuilderTests {
         #expect(await writer.data(for: result.evidenceArtifact) != nil)
     }
 
-    @Test("builder retains mismatched oracle correlation without producing qualification evidence")
+    @Test("builder retains mismatched oracle correlation without producing record evidence")
     func builderRetainsMismatch() async throws {
         let writer = InMemoryRTLArtifactStore()
         let native = envelope(implementationID: "native-rtl-verification", implementationVersion: "1.0.0")

@@ -47,7 +47,7 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
                 resetReleaseDomains: analysis.resetReleaseDomains,
                 proofScope: "reset-domain-crossing",
                 limitations: parsed.unsupportedConstructs.map { "Unsupported construct: \($0)" }
-                    + ["Reset release evidence is limited to a conservative structural synchronizer pattern; temporal and process qualification remain separate."]
+                    + ["Reset release evidence is limited to a conservative structural synchronizer pattern; temporal and process record remain separate."]
                     + (constraintContext.exceptionCount > 0
                         ? ["SDC path exceptions are recorded for audit; native RDC does not treat them as safety waivers."]
                         : []),

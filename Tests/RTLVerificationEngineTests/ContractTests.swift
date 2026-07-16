@@ -280,8 +280,7 @@ struct ContractTests {
             waivers: [RTLVerificationWaiver(
                 waiverID: "waiver-001",
                 code: "CDC_UNSAFE_CROSSING",
-                reason: "Reviewed by design owner.",
-                approvedBy: "verification"
+                reason: "Reviewed by design owner."
             )]
         )
         let data = try JSONEncoder().encode(request)
@@ -322,7 +321,7 @@ struct ContractTests {
           assign q = sync2;
         endmodule
         """
-        let reference = makeReference(path: "top.sv", format: .systemVerilog)
+        let reference = makeReference(path: "top.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
         let engine = NativeRTLLintEngine(reader: reader)
         let envelope = try await engine.execute(makeRequest(reference: reference, analysis: .lint))
@@ -342,14 +341,13 @@ struct ContractTests {
           assign q = a;
         endmodule
         """
-        let reference = makeReference(path: "negative.sv", format: .systemVerilog)
+        let reference = makeReference(path: "negative.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
         let waiver = RTLVerificationWaiver(
             waiverID: "waiver-width",
             code: "RTL_WIDTH_MISMATCH",
             entity: "top.q",
-            reason: "Intentional extension documented in the design review.",
-            approvedBy: "verification"
+            reason: "Intentional extension documented in the design review."
         )
         let request = makeRequest(reference: reference, analysis: .lint, waivers: [waiver])
         let envelope = try await NativeRTLLintEngine(reader: reader).execute(request)
@@ -368,7 +366,7 @@ struct ContractTests {
           end
         endmodule
         """
-        let reference = makeReference(path: "cdc-negative.sv", format: .systemVerilog)
+        let reference = makeReference(path: "cdc-negative.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
         let envelope = try await NativeCDCAnalyzer(reader: reader).execute(makeRequest(reference: reference, analysis: .cdc))
         #expect(envelope.status == .failed)
@@ -388,7 +386,7 @@ struct ContractTests {
           end
         endmodule
         """
-        let reference = makeReference(path: "cdc-order.sv", format: .systemVerilog)
+        let reference = makeReference(path: "cdc-order.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
         let envelope = try await NativeCDCAnalyzer(reader: reader).execute(
             makeRequest(reference: reference, analysis: .cdc)
@@ -408,7 +406,7 @@ struct ContractTests {
           end
         endmodule
         """
-        let reference = makeReference(path: "rdc.sv", format: .systemVerilog)
+        let reference = makeReference(path: "rdc.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
         let envelope = try await NativeRDCAnalyzer(reader: reader).execute(makeRequest(reference: reference, analysis: .rdc))
         #expect(envelope.status == .completed)
@@ -425,11 +423,12 @@ struct ContractTests {
           end
         endmodule
         """
-        let rtl = makeReference(path: "rdc-constrained.sv", format: .systemVerilog)
-        let sdc = makeTestArtifactReference(path: "rdc.sdc", kind: .constraint, format: .sdc)
+        let constraintData = Data("create_clock -name clk -period 10 [get_ports clk]".utf8)
+        let rtl = makeReference(path: "rdc-constrained.sv", format: .systemVerilog, data: Data(source.utf8))
+        let sdc = makeTestArtifactReference(path: "rdc.sdc", kind: .constraint, format: .sdc, data: constraintData)
         let reader = InMemoryRTLArtifactReader(artifacts: [
             rtl.path: Data(source.utf8),
-            sdc.path: Data("create_clock -name clk -period 10 [get_ports clk]".utf8)
+            sdc.path: constraintData
         ])
         var request = makeRequest(
             reference: rtl,
@@ -456,11 +455,12 @@ struct ContractTests {
           end
         endmodule
         """
-        let rtl = makeReference(path: "rdc-unconstrained.sv", format: .systemVerilog)
-        let sdc = makeTestArtifactReference(path: "rdc-unconstrained.sdc", kind: .constraint, format: .sdc)
+        let constraintData = Data("create_clock -name clk -period 10 [get_ports clk]".utf8)
+        let rtl = makeReference(path: "rdc-unconstrained.sv", format: .systemVerilog, data: Data(source.utf8))
+        let sdc = makeTestArtifactReference(path: "rdc-unconstrained.sdc", kind: .constraint, format: .sdc, data: constraintData)
         let reader = InMemoryRTLArtifactReader(artifacts: [
             rtl.path: Data(source.utf8),
-            sdc.path: Data("create_clock -name clk -period 10 [get_ports clk]".utf8)
+            sdc.path: constraintData
         ])
         var request = makeRequest(
             reference: rtl,
@@ -506,7 +506,7 @@ struct ContractTests {
           assign q_b = b_sync2;
         endmodule
         """
-        let reference = makeReference(path: "rdc-reset-sync.sv", format: .systemVerilog)
+        let reference = makeReference(path: "rdc-reset-sync.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
 
         let envelope = try await NativeRDCAnalyzer(reader: reader).execute(
@@ -552,7 +552,7 @@ struct ContractTests {
           assign q_b = b_sync2;
         endmodule
         """
-        let reference = makeReference(path: "rdc-reset-mixed.sv", format: .systemVerilog)
+        let reference = makeReference(path: "rdc-reset-mixed.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
 
         let envelope = try await NativeRDCAnalyzer(reader: reader).execute(
@@ -578,7 +578,7 @@ struct ContractTests {
           end
         endmodule
         """
-        let reference = makeReference(path: "rdc-reset-crossing.sv", format: .systemVerilog)
+        let reference = makeReference(path: "rdc-reset-crossing.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
 
         let envelope = try await NativeRDCAnalyzer(reader: reader).execute(
@@ -600,7 +600,7 @@ struct ContractTests {
           end
         endmodule
         """
-        let reference = makeReference(path: "rdc-unresolved.sv", format: .systemVerilog)
+        let reference = makeReference(path: "rdc-unresolved.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
 
         let envelope = try await NativeRDCAnalyzer(reader: reader).execute(
@@ -615,8 +615,8 @@ struct ContractTests {
     func formalCounterexampleFixture() async throws {
         let implementation = "module top(input logic a, output logic q); assign q = a; endmodule"
         let referenceSource = "module top(input logic a, output logic q); assign q = ~a; endmodule"
-        let implementationReference = makeReference(path: "implementation.sv", format: .systemVerilog)
-        let referenceDesignReference = makeReference(path: "reference.sv", format: .systemVerilog)
+        let implementationReference = makeReference(path: "implementation.sv", format: .systemVerilog, data: Data(implementation.utf8))
+        let referenceDesignReference = makeReference(path: "reference.sv", format: .systemVerilog, data: Data(referenceSource.utf8))
         let store = InMemoryRTLArtifactStore()
         let reader = InMemoryRTLArtifactReader(artifacts: [
             implementationReference.path: Data(implementation.utf8),
@@ -687,7 +687,7 @@ struct ContractTests {
         let mappedDesign = LogicDesignReference(
             artifact: mappedReference.locator,
             topDesignName: "top",
-            designDigest: try #require(mappedReference.sha256)
+            designDigest: mappedReference.sha256
         )
         let request = RTLVerificationRequest(
             runID: "mapped-proof-pass",
@@ -755,7 +755,7 @@ struct ContractTests {
             referenceDesign: LogicDesignReference(
                 artifact: mappedReference.locator,
                 topDesignName: "top",
-                designDigest: try #require(mappedReference.sha256)
+                designDigest: mappedReference.sha256
             ),
             analysis: .formalEquivalence,
             proofView: .rtlToMappedExecutionStructural
@@ -777,76 +777,29 @@ struct ContractTests {
         #expect(envelope.diagnostics.contains { $0.code == "FORMAL_MAPPED_EXECUTION_UNPROVEN" })
     }
 
-    @Test("minimum qualification blocks an otherwise executable native result", .timeLimit(.minutes(1)))
-    func qualificationGateBlocksNativeExecution() async throws {
+    @Test("unassessed observation maturity does not claim execution authority", .timeLimit(.minutes(1)))
+    func unassessedObservationDoesNotBlockExecution() async throws {
         let source = "module top(input logic a, output logic q); assign q = a; endmodule"
-        let reference = makeReference(path: "qualification.sv", format: .systemVerilog)
+        let reference = makeReference(path: "record.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
-        let request = makeRequest(
-            reference: reference,
-            analysis: .lint,
-            policy: RTLVerificationPolicy(minimumQualification: .processQualified)
-        )
+        let request = makeRequest(reference: reference, analysis: .lint)
 
         let envelope = try await NativeRTLLintEngine(reader: reader).execute(request)
 
-        #expect(envelope.status == .blocked)
-        #expect(envelope.payload.qualification.state == .unassessed)
-        #expect(envelope.diagnostics.contains { $0.code == "RTL_QUALIFICATION_INSUFFICIENT" })
+        #expect(envelope.status == .completed)
+        #expect(envelope.payload.record.maturity == .unassessed)
+        #expect(envelope.diagnostics.contains { $0.code == "RTL_QUALIFICATION_INSUFFICIENT" } == false)
     }
 
-    @Test("release eligibility requires an empty blocker set")
-    func releaseEligibilityRequiresEvidence() {
-        let report = RTLVerificationQualificationReport(
-            state: .releaseEligible,
-            blockers: ["missing_approval"],
-            limitations: []
-        )
-
-        #expect(!report.isReleaseEligible)
-        #expect(!report.satisfies(.releaseEligible))
-
-        let processReport = RTLVerificationQualificationReport(
-            state: .processQualified,
-            blockers: ["missing_freshness"],
-            limitations: []
-        )
-        #expect(!processReport.satisfies(.processQualified))
-
-        let scope = RTLVerificationProcessQualificationScope(
-            implementationID: "native-rtl-verification",
-            binaryDigest: "binary-digest",
-            algorithmVersion: "1.0.0",
-            processProfileID: "process-1",
-            pdkID: "pdk-1",
-            pdkDigest: "pdk-digest",
-            deckDigest: "deck-digest",
-            analyses: [.lint]
-        )
-        let qualifiedRecord = RTLVerificationProcessQualificationRecord(
-            qualificationID: "qualification-1",
-            scope: scope,
-            status: .qualified,
-            corpusEvidenceIDs: ["corpus-1"],
-            oracleEvidenceIDs: ["oracle-1"],
-            healthEvidenceIDs: ["health-1"],
-            blockers: [],
-            qualifiedAt: Date(timeIntervalSince1970: 1),
-            expiresAt: Date(timeIntervalSince1970: 2)
-        )
-        let releaseReport = RTLVerificationQualificationReport(
-            state: .releaseEligible,
-            blockers: [],
-            limitations: [],
-            processQualification: qualifiedRecord,
-            checkedAt: Date(timeIntervalSince1970: 1)
-        )
-        #expect(releaseReport.isReleaseEligible)
-        #expect(releaseReport.satisfies(.releaseEligible))
+    @Test("observation maturity is ordered without release semantics")
+    func observationMaturityIsOrdered() {
+        #expect(RTLVerificationEvidenceMaturity.unassessed < .smokeObserved)
+        #expect(RTLVerificationEvidenceMaturity.smokeObserved < .corpusObserved)
+        #expect(RTLVerificationEvidenceMaturity.corpusObserved < .oracleCorrelated)
     }
 
-    @Test("qualification evaluator advances only with independent evidence")
-    func qualificationEvaluator() {
+    @Test("observation evaluator advances only with independent artifact-bound evidence")
+    func observationEvaluator() {
         let corpus = RTLVerificationCorpusEvaluation(
             caseID: "lint-positive",
             matched: true,
@@ -862,47 +815,6 @@ struct ContractTests {
             oracleImplementationVersion: "1",
             independenceVerified: true,
             matched: true
-        )
-        let scope = RTLVerificationProcessQualificationScope(
-            implementationID: "native",
-            binaryDigest: "binary",
-            algorithmVersion: "1",
-            processProfileID: "profile",
-            pdkID: "pdk",
-            pdkDigest: "pdk-digest",
-            deckDigest: "deck-digest",
-            analyses: [.lint]
-        )
-        let process = RTLVerificationProcessQualificationRecord(
-            qualificationID: "process-1",
-            scope: scope,
-            status: .qualified,
-            corpusEvidenceIDs: ["corpus:lint-positive"],
-            oracleEvidenceIDs: ["oracle:lint-positive"],
-            healthEvidenceIDs: ["health:lint"],
-            blockers: [],
-            qualifiedAt: Date(timeIntervalSince1970: 1),
-            expiresAt: Date(timeIntervalSince1970: 2)
-        )
-        let processEvidence = RTLVerificationProcessQualificationEvidence(
-            evidenceID: "process-evidence:process-1",
-            qualificationID: process.qualificationID,
-            qualification: process,
-            artifactIDs: ["process-qualification-record"],
-            artifacts: [makeJSONReference(
-                path: "process-qualification.json",
-                kind: .report,
-                data: Data("process-qualification".utf8),
-                artifactID: "process-qualification-record"
-            )],
-            provenance: "retained-process-qualification",
-            recordedAt: Date(timeIntervalSince1970: 1)
-        )
-        let approval = RTLVerificationQualificationEvidence(
-            evidenceID: "approval-1",
-            kind: .releaseApproval,
-            summary: "Approved by verification owner.",
-            checkedAt: Date(timeIntervalSince1970: 1)
         )
         let oracleEvidence = RTLVerificationOracleEvidence(
             evidenceID: "oracle:lint-positive",
@@ -927,124 +839,55 @@ struct ContractTests {
             recordedAt: Date(timeIntervalSince1970: 1)
         )
         #expect(oracleEvidence.isAuditable)
-        let healthEvidence = RTLVerificationQualificationEvidence(
-            evidenceID: "health:lint",
-            kind: .healthCheck,
+        let report = RTLVerificationEvidenceEvaluator().evaluate(
             implementationID: "native",
             implementationVersion: "1",
-            summary: "Native lint health check passed.",
-            checkedAt: Date(timeIntervalSince1970: 1)
-        )
-
-        let report = RTLVerificationQualificationEvaluator().evaluate(
-            implementationID: "native",
-            implementationVersion: "1",
-            healthEvidence: [healthEvidence],
             corpusEvaluations: [corpus],
             oracleReports: [oracle],
             oracleEvidence: [oracleEvidence],
-            processQualification: process,
-            processEvidence: [processEvidence],
-            releaseApproval: approval,
             expectedRequestDigest: "request-digest",
             checkedAt: Date(timeIntervalSince1970: 1)
         )
 
-        #expect(report.state == .releaseEligible)
-        #expect(report.isReleaseEligible)
-        #expect(report.blockers.isEmpty)
+        #expect(report.maturity == .oracleCorrelated)
+        #expect(report.limitations.isEmpty)
         #expect(report.evidence.map(\.evidenceID) == [
-            "approval-1",
             "corpus:lint-positive",
-            "health:lint",
-            "oracle:lint-positive",
-            "process:process-1"
+            "oracle:lint-positive"
         ])
     }
 
-    @Test("process qualification requires a retained process evidence artifact")
-    func processQualificationRequiresEvidenceArtifact() {
-        let now = Date(timeIntervalSince1970: 1)
-        let scope = RTLVerificationProcessQualificationScope(
+    @Test("observation evaluator does not synthesize process authority")
+    func observationEvaluatorDoesNotSynthesizeProcessAuthority() {
+        let report = RTLVerificationEvidenceEvaluator().evaluate(
             implementationID: "native",
-            binaryDigest: "binary",
-            algorithmVersion: "1",
-            processProfileID: "profile",
-            pdkID: "pdk",
-            pdkDigest: "pdk-digest",
-            deckDigest: "deck-digest",
-            analyses: [.lint]
-        )
-        let process = RTLVerificationProcessQualificationRecord(
-            qualificationID: "process-without-artifact",
-            scope: scope,
-            status: .qualified,
-            corpusEvidenceIDs: ["corpus:lint"],
-            oracleEvidenceIDs: ["oracle:lint"],
-            healthEvidenceIDs: ["health:lint"],
-            qualifiedAt: now,
-            expiresAt: now.addingTimeInterval(60)
+            implementationVersion: "1",
+            corpusEvaluations: [],
+            oracleReports: []
         )
 
-        let report = RTLVerificationQualificationEvaluator().evaluate(
+        #expect(report.maturity == .unassessed)
+        #expect(report.evidence.isEmpty)
+    }
+
+    @Test("observation assessment retains the evaluated implementation identity")
+    func observationAssessmentRetainsImplementationIdentity() {
+        let now = Date(timeIntervalSince1970: 1)
+        let report = RTLVerificationEvidenceEvaluator().evaluate(
             implementationID: "native",
             implementationVersion: "1",
             corpusEvaluations: [],
             oracleReports: [],
-            processQualification: process,
             checkedAt: now
         )
 
-        #expect(report.blockers.contains("process:process_evidence_artifact_required"))
-        #expect(report.state == .unassessed)
+        #expect(report.implementationID == "native")
+        #expect(report.implementationVersion == "1")
+        #expect(report.checkedAt == now)
     }
 
-    @Test("qualification rejects health evidence from another implementation")
-    func qualificationRejectsMismatchedHealthEvidence() {
-        let now = Date(timeIntervalSince1970: 1)
-        let scope = RTLVerificationProcessQualificationScope(
-            implementationID: "native",
-            binaryDigest: "binary",
-            algorithmVersion: "1",
-            processProfileID: "profile",
-            pdkID: "pdk",
-            pdkDigest: "pdk-digest",
-            deckDigest: "deck-digest",
-            analyses: [.lint]
-        )
-        let process = RTLVerificationProcessQualificationRecord(
-            qualificationID: "process-health-binding",
-            scope: scope,
-            status: .qualified,
-            corpusEvidenceIDs: ["corpus:lint"],
-            oracleEvidenceIDs: ["oracle:lint"],
-            healthEvidenceIDs: ["health:lint"],
-            qualifiedAt: now.addingTimeInterval(-1),
-            expiresAt: now.addingTimeInterval(1)
-        )
-        let report = RTLVerificationQualificationEvaluator().evaluate(
-            implementationID: "native",
-            implementationVersion: "1",
-            healthEvidence: [RTLVerificationQualificationEvidence(
-                evidenceID: "health:lint",
-                kind: .healthCheck,
-                implementationID: "other-implementation",
-                implementationVersion: "1",
-                summary: "Health check from another implementation.",
-                checkedAt: now
-            )],
-            corpusEvaluations: [],
-            oracleReports: [],
-            processQualification: process,
-            checkedAt: now
-        )
-
-        #expect(report.blockers.contains("process:health_evidence_implementation_mismatch:health:lint"))
-        #expect(report.state == .unassessed)
-    }
-
-    @Test("qualification binds process evidence IDs to retained evidence")
-    func qualificationRequiresProcessEvidenceBinding() {
+    @Test("oracle correlation requires matching retained evidence")
+    func oracleCorrelationRequiresMatchingRetainedEvidence() {
         let now = Date(timeIntervalSince1970: 1)
         let corpus = RTLVerificationCorpusEvaluation(
             caseID: "lint-positive",
@@ -1085,49 +928,26 @@ struct ContractTests {
             oracleProvenance: "retained-independent-oracle",
             recordedAt: now
         )
-        let scope = RTLVerificationProcessQualificationScope(
-            implementationID: "native",
-            binaryDigest: "binary",
-            algorithmVersion: "1",
-            processProfileID: "profile",
-            pdkID: "pdk",
-            pdkDigest: "pdk-digest",
-            deckDigest: "deck-digest",
-            analyses: [.lint]
-        )
-        let process = RTLVerificationProcessQualificationRecord(
-            qualificationID: "process-binding",
-            scope: scope,
-            status: .qualified,
-            corpusEvidenceIDs: ["corpus:other"],
-            oracleEvidenceIDs: ["oracle:other"],
-            healthEvidenceIDs: ["health:lint"],
-            qualifiedAt: now,
-            expiresAt: now.addingTimeInterval(60)
-        )
+        var mismatchedEvidence = oracleEvidence
+        mismatchedEvidence.requestDigest = "different-request-digest"
 
-        let report = RTLVerificationQualificationEvaluator().evaluate(
+        let report = RTLVerificationEvidenceEvaluator().evaluate(
             implementationID: "native",
             implementationVersion: "1",
             corpusEvaluations: [corpus],
             oracleReports: [oracle],
-            oracleEvidence: [oracleEvidence],
-            processQualification: process,
+            oracleEvidence: [mismatchedEvidence],
             expectedRequestDigest: "request-digest",
-            analysis: .lint,
             checkedAt: now
         )
 
-        #expect(report.state == .oracleCorrelated)
-        #expect(report.blockers.contains("process:corpus_evidence_binding_missing:corpus:lint-positive"))
-        #expect(report.blockers.contains("process:oracle_evidence_binding_missing:oracle:lint-positive"))
-        #expect(report.blockers.contains("process:health_evidence_artifact_missing:health:lint"))
-        #expect(!report.isReleaseEligible)
+        #expect(report.maturity == .corpusObserved)
+        #expect(report.evidence.map(\.kind) == [.corpus])
     }
 
-    @Test("qualification rejects an expired process record")
+    @Test("record rejects an expired process record")
     func expiredProcessQualificationIsRejected() {
-        let scope = RTLVerificationProcessQualificationScope(
+        let scope = RTLVerificationProcessEvidenceScope(
             implementationID: "native",
             binaryDigest: "binary",
             algorithmVersion: "1",
@@ -1137,26 +957,25 @@ struct ContractTests {
             deckDigest: "deck-digest",
             analyses: [.lint]
         )
-        let record = RTLVerificationProcessQualificationRecord(
-            qualificationID: "expired-process",
+        let record = RTLVerificationProcessEvidenceRecord(
+            evidenceSetID: "expired-process",
             scope: scope,
-            status: .qualified,
+            status: .complete,
             corpusEvidenceIDs: ["corpus"],
             oracleEvidenceIDs: ["oracle"],
             healthEvidenceIDs: ["health"],
-            qualifiedAt: Date(timeIntervalSince1970: 1),
-            expiresAt: Date(timeIntervalSince1970: 2)
+            recordedAt: Date(timeIntervalSince1970: 1),
+            validUntil: Date(timeIntervalSince1970: 2)
         )
 
-        #expect(record.isQualified(at: Date(timeIntervalSince1970: 1.5)))
-        #expect(!record.isQualified(at: Date(timeIntervalSince1970: 2)))
+        #expect(record.isComplete(at: Date(timeIntervalSince1970: 1.5)))
+        #expect(!record.isComplete(at: Date(timeIntervalSince1970: 2)))
         #expect(!record.isFresh(at: Date(timeIntervalSince1970: 3)))
     }
 
-    @Test("qualification rejects a process record scoped to another implementation")
-    func processQualificationScopeMustMatchRequest() {
-        let now = Date()
-        let scope = RTLVerificationProcessQualificationScope(
+    @Test("process evidence scope remains descriptive rather than authoritative")
+    func processEvidenceScopeIsDescriptive() {
+        let scope = RTLVerificationProcessEvidenceScope(
             implementationID: "other-implementation",
             binaryDigest: "binary",
             algorithmVersion: "other-version",
@@ -1166,32 +985,9 @@ struct ContractTests {
             deckDigest: "deck-digest",
             analyses: [.cdc]
         )
-        let process = RTLVerificationProcessQualificationRecord(
-            qualificationID: "mismatched-process",
-            scope: scope,
-            status: .qualified,
-            corpusEvidenceIDs: ["corpus:lint"],
-            oracleEvidenceIDs: ["oracle:lint"],
-            healthEvidenceIDs: ["health:lint"],
-            qualifiedAt: now.addingTimeInterval(-60),
-            expiresAt: now.addingTimeInterval(60)
-        )
-
-        let report = RTLVerificationQualificationEvaluator().evaluate(
-            implementationID: "native-rtl-verification",
-            implementationVersion: "1.0.0",
-            corpusEvaluations: [],
-            oracleReports: [],
-            processQualification: process,
-            analysis: .lint,
-            proofView: .rtlToRtlStructural,
-            checkedAt: now
-        )
-
-        #expect(report.blockers.contains("process:scope_implementation_mismatch"))
-        #expect(report.blockers.contains("process:scope_algorithm_version_mismatch"))
-        #expect(report.blockers.contains("process:scope_analysis_mismatch"))
-        #expect(!report.evidence.contains { $0.kind == .processQualification })
+        #expect(scope.implementationID == "other-implementation")
+        #expect(scope.algorithmVersion == "other-version")
+        #expect(scope.analyses == [.cdc])
     }
 
     @Test("oracle evidence rejects unmatched correlation")
@@ -1232,7 +1028,7 @@ struct ContractTests {
         }
     }
 
-    @Test("oracle qualification requires the expected request digest")
+    @Test("oracle record requires the expected request digest")
     func oracleQualificationRequiresRequestDigest() {
         let report = RTLVerificationOracleCorrelationReport(
             caseID: "oracle-case",
@@ -1265,7 +1061,7 @@ struct ContractTests {
             oracleProvenance: "retained-independent-oracle"
         )
 
-        let qualification = RTLVerificationQualificationEvaluator().evaluate(
+        let record = RTLVerificationEvidenceEvaluator().evaluate(
             implementationID: "native",
             implementationVersion: "1",
             corpusEvaluations: [RTLVerificationCorpusEvaluation(
@@ -1276,12 +1072,11 @@ struct ContractTests {
                 mismatches: []
             )],
             oracleReports: [report],
-            oracleEvidence: [evidence],
-            processQualification: nil
+            oracleEvidence: [evidence]
         )
 
-        #expect(qualification.blockers.contains("oracle_request_digest_required"))
-        #expect(!qualification.blockers.isEmpty)
+        #expect(record.maturity == .corpusObserved)
+        #expect(record.evidence.map(\.kind) == [.corpus])
         #expect(throws: RTLVerificationOracleEvidenceValidationError.requestDigestMismatch(
             expected: "other-request-digest",
             observed: "request-digest"
@@ -1293,23 +1088,18 @@ struct ContractTests {
         }
     }
 
-    @Test("qualification evaluator retains missing evidence as blockers")
-    func qualificationEvaluatorRetainsBlockers() {
-        let report = RTLVerificationQualificationEvaluator().evaluate(
+    @Test("observation evaluator represents missing observations as unassessed")
+    func observationEvaluatorRepresentsMissingObservations() {
+        let report = RTLVerificationEvidenceEvaluator().evaluate(
             implementationID: "native",
             implementationVersion: "1",
             corpusEvaluations: [],
-            oracleReports: [],
-            processQualification: nil
+            oracleReports: []
         )
 
-        #expect(report.state == .unassessed)
-        #expect(report.blockers == [
-            "independent_corpus_validation_required",
-            "oracle_correlation_required",
-            "process_qualification_required"
-        ])
-        #expect(!report.isReleaseEligible)
+        #expect(report.maturity == .unassessed)
+        #expect(report.evidence.isEmpty)
+        #expect(report.limitations.isEmpty)
     }
 
     @Test("frontend preserves source provenance and applies deterministic defines", .timeLimit(.minutes(1)))
@@ -1321,7 +1111,7 @@ struct ContractTests {
         module disabled(input logic a, output logic q); assign q = a; endmodule
         `endif
         """
-        let reference = makeReference(path: "preprocessed.sv", format: .systemVerilog)
+        let reference = makeReference(path: "preprocessed.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
         let request = makeRequest(
             reference: reference,
@@ -1349,7 +1139,7 @@ struct ContractTests {
         module fallback(input logic a, output logic q); assign q = a; endmodule
         `endif
         """
-        let reference = makeReference(path: "elsif.sv", format: .systemVerilog)
+        let reference = makeReference(path: "elsif.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
         var request = makeRequest(reference: reference, analysis: .lint)
         request.design.topDesignName = "second"
@@ -1367,7 +1157,7 @@ struct ContractTests {
         `include \"missing.svh\"
         module top(input logic a, output logic q); assign q = a; endmodule
         """
-        let reference = makeReference(path: "include.sv", format: .systemVerilog)
+        let reference = makeReference(path: "include.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
         let envelope = try await NativeRTLLintEngine(reader: reader).execute(
             makeRequest(reference: reference, analysis: .lint)
@@ -1379,13 +1169,13 @@ struct ContractTests {
 
     @Test("frontend resolves source-set includes and shares compile definitions", .timeLimit(.minutes(1)))
     func frontendResolvesIncludes() async throws {
-        let header = makeReference(path: "defs.svh", format: .systemVerilog)
-        let top = makeReference(path: "included-top.sv", format: .systemVerilog)
         let headerSource = "`define SOURCE_SIGNAL a"
         let topSource = """
         `include \"defs.svh\"
         module top(input logic a, output logic q); assign q = `SOURCE_SIGNAL; endmodule
         """
+        let header = makeReference(path: "defs.svh", format: .systemVerilog, data: Data(headerSource.utf8))
+        let top = makeReference(path: "included-top.sv", format: .systemVerilog, data: Data(topSource.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [
             header.path: Data(headerSource.utf8),
             top.path: Data(topSource.utf8)
@@ -1402,17 +1192,19 @@ struct ContractTests {
 
     @Test("included RTL declarations retain their original source path")
     func includedSourceLocationProvenance() throws {
-        let headerReference = makeReference(path: "child-module.svh", format: .systemVerilog)
-        let topReference = makeReference(path: "include-location.sv", format: .systemVerilog)
+        let topData = Data("`include \"child-module.svh\"\nmodule top; endmodule".utf8)
+        let headerData = Data("module child(input logic a, output logic q); assign q = a; endmodule".utf8)
+        let headerReference = makeReference(path: "child-module.svh", format: .systemVerilog, data: headerData)
+        let topReference = makeReference(path: "include-location.sv", format: .systemVerilog, data: topData)
         let parsed = try SystemVerilogRTLParser().parse(
             sources: [
                 RTLVerificationSourceInput(
                     reference: topReference,
-                    data: Data("`include \"child-module.svh\"\nmodule top; endmodule".utf8)
+                    data: topData
                 ),
                 RTLVerificationSourceInput(
                     reference: headerReference,
-                    data: Data("module child(input logic a, output logic q); assign q = a; endmodule".utf8)
+                    data: headerData
                 )
             ],
             topModuleName: "top",
@@ -1430,15 +1222,16 @@ struct ContractTests {
           always_ff @(posedge clk) q <= 1'b0;
         endmodule
         """
-        let rtl = makeReference(path: "constrained.sv", format: .systemVerilog)
-        let sdc = makeTestArtifactReference(path: "constraints.sdc", kind: .constraint, format: .sdc)
-        let reader = InMemoryRTLArtifactReader(artifacts: [
-            rtl.path: Data(source.utf8),
-            sdc.path: Data("""
+        let constraintData = Data("""
             create_clock -name other -period 10 [get_ports other]
             set_false_path -from [get_clocks clk] -to [get_clocks other]
             set_clock_groups -asynchronous -group [get_clocks clk] -group [get_clocks other]
             """.utf8)
+        let rtl = makeReference(path: "constrained.sv", format: .systemVerilog, data: Data(source.utf8))
+        let sdc = makeTestArtifactReference(path: "constraints.sdc", kind: .constraint, format: .sdc, data: constraintData)
+        let reader = InMemoryRTLArtifactReader(artifacts: [
+            rtl.path: Data(source.utf8),
+            sdc.path: constraintData
         ])
         var request = makeRequest(
             reference: rtl,
@@ -1464,8 +1257,8 @@ struct ContractTests {
     @Test("native formal blocks proof views outside its declared scope", .timeLimit(.minutes(1)))
     func nativeFormalProofViewBoundary() async throws {
         let source = "module top(input logic a, output logic q); assign q = a; endmodule"
-        let implementation = makeReference(path: "implementation-view.sv", format: .systemVerilog)
-        let reference = makeReference(path: "reference-view.sv", format: .systemVerilog)
+        let implementation = makeReference(path: "implementation-view.sv", format: .systemVerilog, data: Data(source.utf8))
+        let reference = makeReference(path: "reference-view.sv", format: .systemVerilog, data: Data(source.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [
             implementation.path: Data(source.utf8),
             reference.path: Data(source.utf8)
@@ -1491,7 +1284,7 @@ struct ContractTests {
     @Test("retained corpus evaluator records deterministic mismatches", .timeLimit(.minutes(1)))
     func corpusEvaluator() async throws {
         let source = "module top(input logic a, output logic q); assign q = a; endmodule"
-        let reference = makeReference(path: "corpus.sv", format: .systemVerilog)
+        let reference = makeReference(path: "corpus.sv", format: .systemVerilog, data: Data(source.utf8))
         let request = makeRequest(reference: reference, analysis: .lint)
         let corpusCase = RTLVerificationCorpusCase(
             caseID: "lint-positive",
@@ -1514,7 +1307,7 @@ struct ContractTests {
     @Test("oracle correlation requires an independent implementation", .timeLimit(.minutes(1)))
     func oracleCorrelationRequiresIndependence() async throws {
         let source = "module top(input logic a, output logic q); assign q = a; endmodule"
-        let reference = makeReference(path: "oracle.sv", format: .systemVerilog)
+        let reference = makeReference(path: "oracle.sv", format: .systemVerilog, data: Data(source.utf8))
         let request = makeRequest(reference: reference, analysis: .lint)
         let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
         let native = try await NativeRTLLintEngine(reader: reader).execute(request)
@@ -1530,9 +1323,10 @@ struct ContractTests {
 
         #expect(report.matched)
         #expect(report.independenceVerified)
-        #expect(report.qualificationEvidence(
+        #expect(report.evidenceRecord(
             evidenceID: "oracle-correlation-1",
-            artifactIDs: ["native-result", "oracle-result"]
+            artifactIDs: ["native-result", "oracle-result"],
+            scopeID: "lint-positive"
         ) != nil)
 
         var selfOracle = native
@@ -1546,9 +1340,13 @@ struct ContractTests {
         #expect(selfReport.mismatches.contains { $0.kind == .oracleNotIndependent })
     }
 
-    @Test("tool qualification operation IDs include the formal proof view")
+    @Test("tool record operation IDs include the formal proof view")
     func qualificationOperationID() {
-        let reference = makeReference(path: "qualification-operation.sv", format: .systemVerilog)
+        let reference = makeReference(
+            path: "record-operation.sv",
+            format: .systemVerilog,
+            data: Data("module top; endmodule".utf8)
+        )
         let request = makeRequest(
             reference: reference,
             analysis: .formalEquivalence,
@@ -1556,7 +1354,7 @@ struct ContractTests {
         )
 
         #expect(
-            RTLVerificationToolQualificationAdapter().operationID(for: request)
+            RTLVerificationToolTrustPolicy().operationID(for: request)
                 == "rtl.equivalence.synthesizedToDFT"
         )
     }
@@ -1565,8 +1363,8 @@ struct ContractTests {
     func multiFileProvenance() async throws {
         let childSource = "module child(input logic a, output logic y); assign y = a; endmodule"
         let topSource = "module top(input logic a, output logic q); child u(.a(a), .y(q)); endmodule"
-        let top = makeReference(path: "top-multi.sv", format: .systemVerilog)
-        let child = makeReference(path: "child-multi.sv", format: .systemVerilog)
+        let top = makeReference(path: "top-multi.sv", format: .systemVerilog, data: Data(topSource.utf8))
+        let child = makeReference(path: "child-multi.sv", format: .systemVerilog, data: Data(childSource.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [
             top.path: Data(topSource.utf8),
             child.path: Data(childSource.utf8)
@@ -1582,13 +1380,13 @@ struct ContractTests {
 
     @Test("formal reference inputs use the same source-set frontend", .timeLimit(.minutes(1)))
     func formalReferenceSourceSet() async throws {
-        let implementationTop = makeReference(path: "formal-implementation.sv", format: .systemVerilog)
-        let implementationChild = makeReference(path: "formal-implementation-child.sv", format: .systemVerilog)
-        let referenceTop = makeReference(path: "formal-reference.sv", format: .systemVerilog)
-        let referenceChild = makeReference(path: "formal-reference-child.svh", format: .systemVerilog)
         let topSource = "module top(input logic a, output logic q); child u(.a(a), .y(q)); endmodule"
         let childSource = "module child(input logic a, output logic y); assign y = a; endmodule"
         let referenceTopSource = "`include \"formal-reference-child.svh\"\nmodule top(input logic a, output logic q); child u(.a(a), .y(q)); endmodule"
+        let implementationTop = makeReference(path: "formal-implementation.sv", format: .systemVerilog, data: Data(topSource.utf8))
+        let implementationChild = makeReference(path: "formal-implementation-child.sv", format: .systemVerilog, data: Data(childSource.utf8))
+        let referenceTop = makeReference(path: "formal-reference.sv", format: .systemVerilog, data: Data(referenceTopSource.utf8))
+        let referenceChild = makeReference(path: "formal-reference-child.svh", format: .systemVerilog, data: Data(childSource.utf8))
         let reader = InMemoryRTLArtifactReader(artifacts: [
             implementationTop.path: Data(topSource.utf8),
             implementationChild.path: Data(childSource.utf8),
@@ -1637,8 +1435,8 @@ struct ContractTests {
         ])
     }
 
-    private func makeReference(path: String, format: ArtifactFormat) -> RTLArtifactReference {
-        makeTestArtifactReference(path: path, kind: .rtl, format: format)
+    private func makeReference(path: String, format: ArtifactFormat, data: Data) -> RTLArtifactReference {
+        makeTestArtifactReference(path: path, kind: .rtl, format: format, data: data)
     }
 
     private func encodeJSON<Value: Encodable>(_ value: Value) throws -> Data {

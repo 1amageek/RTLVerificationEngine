@@ -15,6 +15,19 @@ public struct InMemoryRTLArtifactReader: RTLArtifactReading {
                 reason: "The in-memory artifact is not registered."
             )
         }
+        let observedDigest = try SHA256ContentDigester().digest(data: data, using: .sha256)
+        guard observedDigest == reference.digest else {
+            throw RTLVerificationExecutionError.artifactReadFailed(
+                path: reference.path,
+                reason: "The in-memory artifact digest does not match its reference."
+            )
+        }
+        guard UInt64(data.count) == reference.byteCount else {
+            throw RTLVerificationExecutionError.artifactReadFailed(
+                path: reference.path,
+                reason: "The in-memory artifact byte count does not match its reference."
+            )
+        }
         return data
     }
 

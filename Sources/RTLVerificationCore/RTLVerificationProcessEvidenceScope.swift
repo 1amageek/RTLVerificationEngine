@@ -1,6 +1,6 @@
 import Foundation
 
-public struct RTLVerificationProcessQualificationScope: Sendable, Hashable, Codable {
+public struct RTLVerificationProcessEvidenceScope: Sendable, Hashable, Codable {
     public var implementationID: String
     public var binaryDigest: String
     public var algorithmVersion: String

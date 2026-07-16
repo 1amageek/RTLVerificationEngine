@@ -1,13 +1,15 @@
 import Foundation
+import Darwin
 import LogicIR
 import Testing
 import RTLVerificationCore
 import RTLVerificationEngine
+import ToolQualification
 
 @Suite("RTL external adapter")
 struct ExternalAdapterTests {
-    @Test("unqualified external tools are blocked")
-    func unqualifiedToolIsBlocked() async throws {
+    @Test("ToolQualification-rejected external tools are blocked")
+    func rejectedToolIsBlocked() async throws {
         let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-blocked",
@@ -26,11 +28,12 @@ struct ExternalAdapterTests {
                 version: "unknown",
                 supportedAnalyses: [.lint]
             ),
+            trustDecision: ToolTrustDecision(toolID: "unqualified-tool", status: .rejected),
             runner: NeverCalledRunner()
         )
         let result = try await engine.execute(request)
         #expect(result.status == .blocked)
-        #expect(result.diagnostics.first?.code == "RTL_EXTERNAL_TOOL_UNQUALIFIED")
+        #expect(result.diagnostics.first?.code == "RTL_EXTERNAL_TOOL_TRUST_REJECTED")
     }
 
     @Test("qualified external tools return a validated envelope")
@@ -53,8 +56,8 @@ struct ExternalAdapterTests {
                 executablePath: "/qualified/tool",
                 version: "1",
                 supportedAnalyses: [.lint],
-                qualified: true
             ),
+            trustDecision: ToolTrustDecision(toolID: "qualified-tool", status: .eligible),
             runner: StaticOutputRunner(output: try JSONEncoder().encode(output))
         )
 
@@ -91,8 +94,8 @@ struct ExternalAdapterTests {
                 version: "1",
                 supportedAnalyses: [.formalEquivalence],
                 supportedProofViews: [.rtlToSynthesized],
-                qualified: true
             ),
+            trustDecision: ToolTrustDecision(toolID: "qualified-formal-tool", status: .eligible),
             runner: StaticOutputRunner(output: encoded)
         )
 
@@ -125,8 +128,8 @@ struct ExternalAdapterTests {
                 executablePath: "/qualified/tool",
                 version: "1",
                 supportedAnalyses: [.lint],
-                qualified: true
             ),
+            trustDecision: ToolTrustDecision(toolID: "qualified-tool", status: .eligible),
             runner: StaticOutputRunner(output: try JSONEncoder().encode(output))
         )
 
@@ -161,9 +164,9 @@ struct ExternalAdapterTests {
                 executablePath: "/qualified/timed-tool",
                 version: "1",
                 supportedAnalyses: [.lint],
-                qualified: true,
                 timeoutSeconds: 0.25
             ),
+            trustDecision: ToolTrustDecision(toolID: "timed-tool", status: .eligible),
             runner: TimeoutAssertingRunner(expectedTimeout: 0.25, output: output)
         )
 
@@ -191,9 +194,9 @@ struct ExternalAdapterTests {
                 executablePath: "/invalid/timeout-tool",
                 version: "1",
                 supportedAnalyses: [.lint],
-                qualified: true,
                 timeoutSeconds: 0
             ),
+            trustDecision: ToolTrustDecision(toolID: "invalid-timeout-tool", status: .eligible),
             runner: NeverCalledRunner()
         )
 
@@ -257,9 +260,9 @@ struct ExternalAdapterTests {
                 executablePath: scriptURL.path,
                 version: "1",
                 supportedAnalyses: [.lint],
-                qualified: true,
                 timeoutSeconds: 5
             ),
+            trustDecision: ToolTrustDecision(toolID: "real-tool", status: .eligible),
             additionalArguments: [templateURL.path]
         )
 
@@ -289,9 +292,9 @@ struct ExternalAdapterTests {
                 executablePath: "/bin/sh",
                 version: "1",
                 supportedAnalyses: [.lint],
-                qualified: true,
                 timeoutSeconds: 0.05
             ),
+            trustDecision: ToolTrustDecision(toolID: "real-timeout-tool", status: .eligible),
             additionalArguments: ["-c", "exec sleep 1"]
         )
 
@@ -299,6 +302,78 @@ struct ExternalAdapterTests {
 
         #expect(result.status == .blocked)
         #expect(result.diagnostics.first?.code == "RTL_EXTERNAL_TOOL_FAILED")
+    }
+
+    @Test("external process drains stdout and stderr while the process is running")
+    func externalProcessDrainsBothStreams() async throws {
+        let runner = FoundationRTLExternalToolProcessRunner()
+        let output = try await runner.run(
+            executableURL: URL(filePath: "/bin/sh"),
+            arguments: [
+                "-c",
+                "i=0; while [ $i -lt 4096 ]; do printf 'stdout-%s\\n' \"$i\"; printf 'stderr-%s\\n' \"$i\" >&2; i=$((i+1)); done; cat >/dev/null; printf 'complete\\n'"
+            ],
+            standardInput: Data(repeating: 0x61, count: 256 * 1024),
+            timeout: 5
+        )
+        #expect(String(decoding: output, as: UTF8.self).hasSuffix("complete\n"))
+    }
+
+    @Test("external process timeout terminates its process tree")
+    func externalProcessTimeoutTerminatesTree() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(
+            path: "rtl-process-tree-\(UUID().uuidString)"
+        )
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let childPIDPath = directory.appending(path: "child.pid")
+        let command = "sleep 10 & child=$!; printf '%s' \"$child\" > \"\(childPIDPath.path(percentEncoded: false))\"; wait"
+        do {
+            _ = try await FoundationRTLExternalToolProcessRunner().run(
+                executableURL: URL(filePath: "/bin/sh"),
+                arguments: ["-c", command],
+                standardInput: Data(),
+                timeout: 0.2
+            )
+            Issue.record("The process tree fixture must time out.")
+        } catch is RTLVerificationExecutionError {
+            // Expected timeout.
+        }
+        let childPIDText = try String(contentsOf: childPIDPath, encoding: .utf8)
+        let childPID = try #require(pid_t(childPIDText))
+        #expect(kill(childPID, 0) == -1)
+        #expect(errno == ESRCH)
+    }
+
+    @Test("external process cancellation terminates its process tree")
+    func externalProcessCancellationTerminatesTree() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(
+            path: "rtl-process-cancellation-\(UUID().uuidString)"
+        )
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let childPIDPath = directory.appending(path: "child.pid")
+        let command = "sleep 10 & child=$!; printf '%s' \"$child\" > \"\(childPIDPath.path(percentEncoded: false))\"; wait"
+        let task = Task {
+            try await FoundationRTLExternalToolProcessRunner().run(
+                executableURL: URL(filePath: "/bin/sh"),
+                arguments: ["-c", command],
+                standardInput: Data(),
+                timeout: 30
+            )
+        }
+        for _ in 0..<100 where !FileManager.default.fileExists(atPath: childPIDPath.path) {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        task.cancel()
+        do {
+            _ = try await task.value
+            Issue.record("Cancelling the external process task must throw CancellationError.")
+        } catch is CancellationError {
+            // Expected cancellation after process-tree cleanup.
+        }
+        let childPIDText = try String(contentsOf: childPIDPath, encoding: .utf8)
+        let childPID = try #require(pid_t(childPIDText))
+        #expect(kill(childPID, 0) == -1)
+        #expect(errno == ESRCH)
     }
 
     @Test("independent oracle executor binds the oracle to the native request")
@@ -328,8 +403,8 @@ struct ExternalAdapterTests {
                 executablePath: "/qualified/oracle",
                 version: "1",
                 supportedAnalyses: [.lint],
-                qualified: true
             ),
+            trustDecision: ToolTrustDecision(toolID: "independent-oracle", status: .eligible),
             runner: StaticOutputRunner(output: try JSONEncoder().encode(oracle))
         )
 
@@ -360,8 +435,8 @@ struct ExternalAdapterTests {
                 executablePath: "/qualified/oracle",
                 version: "1",
                 supportedAnalyses: [.lint],
-                qualified: true
             ),
+            trustDecision: ToolTrustDecision(toolID: "same-tool", status: .eligible),
             runner: StaticOutputRunner(output: try JSONEncoder().encode(oracle))
         )
 
@@ -400,8 +475,8 @@ struct ExternalAdapterTests {
                 version: "1",
                 supportedAnalyses: [.formalEquivalence],
                 supportedProofViews: [.rtlToSynthesized],
-                qualified: true
             ),
+            trustDecision: ToolTrustDecision(toolID: "qualified-solver", status: .eligible),
             runner: StaticOutputRunner(output: try JSONEncoder().encode(output))
         )
 
@@ -410,7 +485,7 @@ struct ExternalAdapterTests {
             Issue.record("A solver-backed proof without a retained certificate must be rejected.")
         } catch let error as RTLVerificationExecutionError {
             #expect(error == .invalidArtifact(
-                "A solver-backed proof result must retain at least one digest-bound proof artifact."
+                "A solver-backed proof result must identify at least one unique proof artifact."
             ))
         }
     }
@@ -433,15 +508,18 @@ struct ExternalAdapterTests {
             request: request,
             implementationID: "qualified-solver"
         )
-        output.artifacts = [makeTestArtifactReference(
+        let proofData = Data("verified-proof".utf8)
+        let proofArtifact = makeTestArtifactReference(
             artifactID: "solver-proof-certificate",
             path: "proof/certificate.json",
             kind: .report,
             format: .json,
             role: .output,
-            sha256: String(repeating: "a", count: 64),
-            byteCount: 1
-        )]
+            sha256: SHA256ContentDigester().sha256(data: proofData),
+            byteCount: Int64(proofData.count)
+        )
+        output.artifacts = [proofArtifact]
+        output.payload.proofArtifactIDs = [proofArtifact.id.rawValue]
         let engine = ExternalRTLVerificationEngine(
             descriptor: RTLExternalToolDescriptor(
                 toolID: "qualified-solver",
@@ -449,15 +527,68 @@ struct ExternalAdapterTests {
                 version: "1",
                 supportedAnalyses: [.formalEquivalence],
                 supportedProofViews: [.rtlToSynthesized],
-                qualified: true
             ),
-            runner: StaticOutputRunner(output: try JSONEncoder().encode(output))
+            trustDecision: ToolTrustDecision(toolID: "qualified-solver", status: .eligible),
+            runner: StaticOutputRunner(output: try JSONEncoder().encode(output)),
+            artifactReader: InMemoryRTLArtifactReader(artifacts: [proofArtifact.path: proofData])
         )
 
         let result = try await engine.execute(request)
 
         #expect(result.status == .completed)
         #expect(result.artifacts.first?.artifactID == "solver-proof-certificate")
+    }
+
+    @Test("solver-backed external proof rejects bytes that do not match the retained artifact")
+    func solverBackedExternalProofRejectsTamperedArtifact() async throws {
+        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let request = RTLVerificationRequest(
+            runID: "external-solver-artifact-tampered",
+            inputs: [artifact],
+            design: LogicDesignReference(
+                artifact: artifact.locator,
+                topDesignName: "top",
+                designDigest: "digest"
+            ),
+            analysis: .formalEquivalence,
+            proofView: .rtlToSynthesized
+        )
+        let declaredData = Data("declared-proof".utf8)
+        let tamperedData = Data("tampered-proof".utf8)
+        let proofArtifact = makeTestArtifactReference(
+            artifactID: "solver-proof-certificate",
+            path: "proof/certificate.json",
+            kind: .report,
+            format: .json,
+            role: .output,
+            sha256: SHA256ContentDigester().sha256(data: declaredData),
+            byteCount: Int64(declaredData.count)
+        )
+        var output = try makeEnvelope(
+            request: request,
+            implementationID: "qualified-solver"
+        )
+        output.artifacts = [proofArtifact]
+        output.payload.proofArtifactIDs = [proofArtifact.id.rawValue]
+        let engine = ExternalRTLVerificationEngine(
+            descriptor: RTLExternalToolDescriptor(
+                toolID: "qualified-solver",
+                executablePath: "/qualified/solver",
+                version: "1",
+                supportedAnalyses: [.formalEquivalence],
+                supportedProofViews: [.rtlToSynthesized],
+            ),
+            trustDecision: ToolTrustDecision(toolID: "qualified-solver", status: .eligible),
+            runner: StaticOutputRunner(output: try JSONEncoder().encode(output)),
+            artifactReader: InMemoryRTLArtifactReader(artifacts: [proofArtifact.path: tamperedData])
+        )
+
+        do {
+            _ = try await engine.execute(request)
+            Issue.record("Tampered proof bytes must be rejected.")
+        } catch is RTLVerificationExecutionError {
+            // Expected typed integrity failure.
+        }
     }
 
     private func makeEnvelope(
@@ -482,11 +613,10 @@ struct ExternalAdapterTests {
                 requestDigest: try RTLVerificationRequestDigest.make(request),
                 proofStatus: request.analysis == .formalEquivalence ? "proved" : nil,
                 analysis: request.analysis,
-                qualification: RTLVerificationQualificationReport(
+                record: RTLVerificationEvidenceAssessment(
                     implementationID: implementationID,
                     implementationVersion: implementationVersion,
-                    state: .unassessed,
-                    blockers: []
+                    maturity: .unassessed
                 ),
                 proofView: request.proofView,
                 assumptions: request.assumptions
@@ -515,8 +645,8 @@ struct ExternalAdapterTests {
                 executablePath: "/qualified/tool",
                 version: "1",
                 supportedAnalyses: [.lint],
-                qualified: true
             ),
+            trustDecision: ToolTrustDecision(toolID: "qualified-tool", status: .eligible),
             runner: StaticOutputRunner(output: try JSONEncoder().encode(output))
         )
 
@@ -529,7 +659,7 @@ struct ExternalAdapterTests {
     }
 
     private struct NeverCalledRunner: RTLExternalToolProcessRunning {
-        func run(executableURL: URL, arguments: [String], standardInput: Data) throws -> Data {
+        func run(executableURL: URL, arguments: [String], standardInput: Data) async throws -> Data {
             throw RTLVerificationExecutionError.externalToolFailed(
                 tool: executableURL.path,
                 reason: "The runner must not be called for an unqualified tool."
@@ -540,7 +670,7 @@ struct ExternalAdapterTests {
     private struct StaticOutputRunner: RTLExternalToolProcessRunning {
         let output: Data
 
-        func run(executableURL: URL, arguments: [String], standardInput: Data) throws -> Data {
+        func run(executableURL: URL, arguments: [String], standardInput: Data) async throws -> Data {
             output
         }
     }
@@ -554,7 +684,7 @@ struct ExternalAdapterTests {
             arguments: [String],
             standardInput: Data,
             timeout: TimeInterval
-        ) throws -> Data {
+        ) async throws -> Data {
             guard timeout == expectedTimeout else {
                 throw RTLVerificationExecutionError.externalToolFailed(
                     tool: executableURL.path,
@@ -564,7 +694,7 @@ struct ExternalAdapterTests {
             return output
         }
 
-        func run(executableURL: URL, arguments: [String], standardInput: Data) throws -> Data {
+        func run(executableURL: URL, arguments: [String], standardInput: Data) async throws -> Data {
             output
         }
     }

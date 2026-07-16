@@ -1,8 +1,8 @@
 import Foundation
 
-public struct RTLVerificationQualificationEvidence: Sendable, Hashable, Codable {
+public struct RTLVerificationEvidenceRecord: Sendable, Hashable, Codable {
     public var evidenceID: String
-    public var kind: RTLVerificationQualificationEvidenceKind
+    public var kind: RTLVerificationEvidenceRecordKind
     public var artifactIDs: [String]
     public var scopeID: String?
     public var implementationID: String?
@@ -12,7 +12,7 @@ public struct RTLVerificationQualificationEvidence: Sendable, Hashable, Codable 
 
     public init(
         evidenceID: String,
-        kind: RTLVerificationQualificationEvidenceKind,
+        kind: RTLVerificationEvidenceRecordKind,
         artifactIDs: [String] = [],
         scopeID: String? = nil,
         implementationID: String? = nil,

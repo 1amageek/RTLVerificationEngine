@@ -11,7 +11,7 @@ public struct RTLVerificationReviewArtifact: Sendable, Hashable, Codable {
     public var findings: [RTLVerificationFinding]
     public var diagnostics: [RTLDiagnostic]
     public var appliedWaivers: [RTLVerificationWaiver]
-    public var qualification: RTLVerificationQualificationReport
+    public var record: RTLVerificationEvidenceAssessment
     public var approvalRequired: Bool
     public var suggestedActions: [String]
     public var generatedAt: Date
@@ -24,7 +24,7 @@ public struct RTLVerificationReviewArtifact: Sendable, Hashable, Codable {
         findings: [RTLVerificationFinding],
         diagnostics: [RTLDiagnostic],
         appliedWaivers: [RTLVerificationWaiver],
-        qualification: RTLVerificationQualificationReport,
+        record: RTLVerificationEvidenceAssessment,
         approvalRequired: Bool,
         suggestedActions: [String] = [],
         generatedAt: Date = Date(),
@@ -38,7 +38,7 @@ public struct RTLVerificationReviewArtifact: Sendable, Hashable, Codable {
         self.findings = findings
         self.diagnostics = diagnostics
         self.appliedWaivers = appliedWaivers
-        self.qualification = qualification
+        self.record = record
         self.approvalRequired = approvalRequired
         self.suggestedActions = suggestedActions
         self.generatedAt = generatedAt

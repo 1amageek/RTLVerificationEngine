@@ -1,7 +1,7 @@
 import Foundation
 @_exported import CircuiteFoundation
 
-/// Errors raised when the legacy RTL result cannot be represented by the
+/// Errors raised when an RTL domain result cannot be represented by the
 /// Foundation evidence boundary without losing integrity or diagnostic data.
 public enum RTLVerificationFoundationBoundaryError: Error, Sendable, Equatable, LocalizedError {
     case missingDigest(String)
@@ -35,7 +35,7 @@ public enum RTLVerificationFoundationBoundaryError: Error, Sendable, Equatable, 
 /// Foundation evidence projection for an RTL verification execution.
 ///
 /// This value exposes only the cross-domain evidence and diagnostic surfaces
-/// and deliberately carries no qualification verdict.
+/// and deliberately carries no record verdict.
 public struct RTLVerificationFoundationEvidence: Sendable, Hashable, Codable, ArtifactProducing,
     EvidenceProviding, DiagnosticReporting
 {

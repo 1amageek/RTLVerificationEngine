@@ -8,7 +8,7 @@ public struct RTLVerificationStageAuditRecord: Sendable, Hashable, Codable {
     public var runID: String
     public var requestDigest: String
     public var status: RTLExecutionStatus
-    public var qualificationState: RTLVerificationQualificationState
+    public var evidenceMaturity: RTLVerificationEvidenceMaturity
     public var artifactIDs: [String]
     public var resumable: Bool
     public var nextActions: [String]
@@ -19,7 +19,7 @@ public struct RTLVerificationStageAuditRecord: Sendable, Hashable, Codable {
         runID: String,
         requestDigest: String,
         status: RTLExecutionStatus,
-        qualificationState: RTLVerificationQualificationState,
+        evidenceMaturity: RTLVerificationEvidenceMaturity,
         artifactIDs: [String],
         resumable: Bool,
         nextActions: [String] = [],
@@ -31,7 +31,7 @@ public struct RTLVerificationStageAuditRecord: Sendable, Hashable, Codable {
         self.runID = runID
         self.requestDigest = requestDigest
         self.status = status
-        self.qualificationState = qualificationState
+        self.evidenceMaturity = evidenceMaturity
         self.artifactIDs = artifactIDs.sorted()
         self.resumable = resumable
         self.nextActions = nextActions

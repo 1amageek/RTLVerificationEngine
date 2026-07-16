@@ -38,13 +38,13 @@ public struct RTLVerificationOracleCorrelationReport: Sendable, Hashable, Codabl
         self.checkedAt = checkedAt
     }
 
-    public func qualificationEvidence(
+    public func evidenceRecord(
         evidenceID: String,
         artifactIDs: [String] = [],
         scopeID: String? = nil
-    ) -> RTLVerificationQualificationEvidence? {
+    ) -> RTLVerificationEvidenceRecord? {
         guard matched, independenceVerified, !artifactIDs.isEmpty else { return nil }
-        return RTLVerificationQualificationEvidence(
+        return RTLVerificationEvidenceRecord(
             evidenceID: evidenceID,
             kind: .oracleCorrelation,
             artifactIDs: artifactIDs,

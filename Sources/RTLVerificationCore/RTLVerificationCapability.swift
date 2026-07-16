@@ -7,7 +7,7 @@ public struct RTLVerificationCapability: Sendable, Hashable, Codable {
     public var supportedOutputFormats: [ArtifactFormat]
     public var features: [String]
     public var limitations: [String]
-    public var qualification: RTLVerificationQualificationReport
+    public var record: RTLVerificationEvidenceAssessment
 
     private enum CodingKeys: String, CodingKey {
         case engineID
@@ -16,7 +16,7 @@ public struct RTLVerificationCapability: Sendable, Hashable, Codable {
         case supportedOutputFormats
         case features
         case limitations
-        case qualification
+        case record
     }
 
     public init(
@@ -26,7 +26,7 @@ public struct RTLVerificationCapability: Sendable, Hashable, Codable {
         supportedOutputFormats: [ArtifactFormat],
         features: [String],
         limitations: [String],
-        qualification: RTLVerificationQualificationReport = RTLVerificationQualificationReport()
+        record: RTLVerificationEvidenceAssessment = RTLVerificationEvidenceAssessment()
     ) {
         self.engineID = engineID
         self.contractVersion = contractVersion
@@ -34,7 +34,7 @@ public struct RTLVerificationCapability: Sendable, Hashable, Codable {
         self.supportedOutputFormats = supportedOutputFormats
         self.features = features
         self.limitations = limitations
-        self.qualification = qualification
+        self.record = record
     }
 
     public init(from decoder: Decoder) throws {
@@ -46,10 +46,10 @@ public struct RTLVerificationCapability: Sendable, Hashable, Codable {
             supportedOutputFormats: try container.decode([ArtifactFormat].self, forKey: .supportedOutputFormats),
             features: try container.decodeIfPresent([String].self, forKey: .features) ?? [],
             limitations: try container.decodeIfPresent([String].self, forKey: .limitations) ?? [],
-            qualification: try container.decodeIfPresent(
-                RTLVerificationQualificationReport.self,
-                forKey: .qualification
-            ) ?? RTLVerificationQualificationReport()
+            record: try container.decodeIfPresent(
+                RTLVerificationEvidenceAssessment.self,
+                forKey: .record
+            ) ?? RTLVerificationEvidenceAssessment()
         )
     }
 }

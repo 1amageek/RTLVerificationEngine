@@ -2,7 +2,7 @@ import Foundation
 import RTLVerificationCore
 import ToolQualification
 
-public struct RTLVerificationToolQualificationAdapter: Sendable {
+public struct RTLVerificationToolTrustPolicy: Sendable {
     public init() {}
 
     public func requirement(
@@ -18,10 +18,11 @@ public struct RTLVerificationToolQualificationAdapter: Sendable {
             requiredOutputFormats: [.json],
             requiredEvidenceKinds: [.healthCheck],
             requiredQualifiedEvidenceKinds: minimumLevel == .productionEligible
-                ? [.corpus, .oracle, .productionApproval]
+                ? [.corpus, .oracle]
                 : [],
             requirePassingHealthCheck: true,
-            qualificationScope: qualificationScope
+            qualificationScope: qualificationScope,
+            requireIndependentQualificationEvidence: minimumLevel == .productionEligible
         )
     }
 
@@ -31,9 +32,10 @@ public struct RTLVerificationToolQualificationAdapter: Sendable {
         health: ToolHealthCheckResult?,
         minimumLevel: ToolQualificationLevel = .productionEligible,
         qualificationScope: ToolQualificationScope? = nil,
+        artifactReader: (any ToolQualificationArtifactReading)? = nil,
         evaluatedAt: Date = Date()
-    ) -> ToolTrustDecision {
-        ToolTrustEvaluator().evaluate(
+    ) async -> ToolTrustDecision {
+        await ToolTrustEvaluator().evaluate(
             descriptor: descriptor,
             requirement: requirement(
                 for: request,
@@ -41,6 +43,7 @@ public struct RTLVerificationToolQualificationAdapter: Sendable {
                 qualificationScope: qualificationScope
             ),
             health: health,
+            artifactReader: artifactReader,
             evaluatedAt: evaluatedAt
         )
     }
@@ -61,8 +64,8 @@ public struct RTLVerificationToolQualificationAdapter: Sendable {
         deckDigest: String,
         solverID: String? = nil,
         solverVersion: String? = nil
-    ) -> RTLVerificationProcessQualificationScope {
-        RTLVerificationProcessQualificationScope(
+    ) -> RTLVerificationProcessEvidenceScope {
+        RTLVerificationProcessEvidenceScope(
             implementationID: RTLVerificationExecutionSupport.implementationID,
             binaryDigest: binaryDigest,
             algorithmVersion: RTLVerificationExecutionSupport.implementationVersion,

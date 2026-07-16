@@ -8,15 +8,17 @@ func makeTestArtifactReference(
     kind: ArtifactKind,
     format: ArtifactFormat,
     role: ArtifactRole = .input,
+    data: Data? = nil,
     sha256: String? = nil,
     byteCount: Int64? = nil
 ) -> ArtifactReference {
     do {
         let location = try ArtifactLocation(workspaceRelativePath: path)
-        let bytes = UInt64(max(0, byteCount ?? 0))
+        let canonicalData = data ?? Data()
+        let bytes = UInt64(max(0, byteCount ?? Int64(canonicalData.count)))
         let digest = try ContentDigest(
             algorithm: .sha256,
-            hexadecimalValue: sha256 ?? String(repeating: "0", count: 64)
+            hexadecimalValue: sha256 ?? SHA256ContentDigester().sha256(data: canonicalData)
         )
         let identifier: ArtifactID?
         if let artifactID {

@@ -6,7 +6,7 @@ Static RTL quality, clock/reset-domain analysis and formal equivalence contracts
 
 The package provides deterministic native implementations for the declared SystemVerilog subset, a canonical `SystemVerilogFrontend` integration with include resolution, object-like and function-like macro expansion, hierarchy elaboration and provenance, a versioned lint rule catalog with repair actions, qualified external and independent-oracle executors bound to the exact request digest, immutable Foundation artifacts, a JSON CLI, persisted retained-corpus, oracle-evidence and process-qualification artifacts, a typed process-qualification evidence builder with a digest-bound artifact manifest, and a runtime qualification-input artifact auditor.
 
-Native formal equivalence is intentionally scoped to exact canonical structural equivalence for RTL-to-RTL and mapped execution graphs. Mismatch artifacts retain both the legacy human-readable messages and typed difference records containing the difference kind, affected entity and canonical implementation/reference values. The external proof contract requires a digest-bound proof artifact for solver-backed results, but does not claim that an actual temporal solver has been qualified. Process-specific qualification remains blocked until independent tool and process evidence is supplied.
+Native formal equivalence is intentionally scoped to exact canonical structural equivalence for RTL-to-RTL and mapped execution graphs. Mismatch artifacts retain typed difference records containing the difference kind, affected entity and canonical implementation/reference values. The external proof contract requires explicit proof artifact IDs bound to output-role evidence/report artifacts from the same run; every referenced byte stream is reopened and checked against its SHA-256 digest and byte count. This does not claim that an actual temporal solver has been qualified. Process-specific qualification remains blocked until independent tool and process evidence is supplied.
 
 The delivery plan is milestone-based and recorded in [MILESTONES.md](MILESTONES.md). Execution status and qualification state are separate: a successful native execution does not imply corpus validation, oracle correlation, process qualification or release eligibility.
 
@@ -17,15 +17,13 @@ This repository is an implementation milestone, not a foundry signoff claim.
 | Gate | Status | Evidence |
 |---|---|---|
 | Native package build | Passed | `swift build` |
-| SwiftPM contract suite | Passed | 80 tests in 9 suites |
-| Xcode package test scheme | Passed | `xcodebuild test -scheme RTLVerificationEngine-Package` — 80 tests in 9 suites |
+| Xcode package test scheme | Passed | Timeout-bounded `RTLVerificationEngine-Package` workspace verification |
 | CLI smoke execution | Passed | `.xcircuite/runs/cli-validation/rtl-verification-report.json` |
-| Xcircuite library target | Passed | `swift build --target Xcircuite` in the sibling integration package |
 | Independent oracle correlation | Contract hardened | Native/oracle envelopes, correlation reports and digest-bound evidence artifacts can be persisted; no external independently retained oracle result is attached |
 | Process/PDK qualification | Contract hardened | Process records require a current retained process-qualification evidence artifact, a validity window, and corpus/oracle/implementation-matched auditable health evidence IDs; no PDK-scoped qualification record is attached |
 | Release eligibility | Blocked | Qualification and headless integration evidence remain incomplete |
 
-The Xcircuite library target and the focused RTL/LogicEngine adapter tests have passed in retained integration evidence. The current focused RTL flow suite passes 7 tests in 1 suite, including runtime qualification-input artifact integrity blocking before engine execution. The previously recorded serial Xcircuite regression also passes 550 tests in 59 suites, including the RTL stage, independent-oracle/process-evidence flow, LogicEngine bridge, review/resume, PDK corpus and end-to-end flow contracts. A full workspace rerun is not treated as signoff evidence while unrelated concurrent SwiftPM changes are present; full workspace qualification remains separate from this package evidence.
+Cross-package flow verification is owned and reported by the composing package. This repository's release claim is limited to its standalone typed API, CLI, artifacts, diagnostics and timeout-bounded package tests.
 
 ## Scope and trust boundary
 
@@ -35,7 +33,7 @@ flowchart LR
     Frontend --> IR["Canonical LogicIR + provenance"]
     IR --> Native["Lint / CDC / RDC / structural formal"]
     Native --> Result["RTLVerificationResult"]
-    Envelope --> Qualification["Corpus / oracle / process gates"]
+    Result --> Qualification["Corpus / oracle / process gates"]
     Qualification --> Review["Xcircuite review / audit / resume"]
 ```
 
@@ -45,7 +43,10 @@ Native RDC records `resetReleaseDomains` only when every process using a reset i
 
 Native formal proves only exact canonical structural equivalence for `rtlToRtlStructural` and the explicitly limited `rtlToMappedExecutionStructural` graph contract. The mapped view lowers a retained LogicIR snapshot into a LogicEngine document and compares it with a retained mapped document; it does not prove temporal execution behavior. Requests for synthesized or DFT proof views, or assumptions that the native backend cannot interpret, are blocked. A mismatch persists a typed counterexample difference artifact for agent inspection and human review. A waiver preserves the original finding and records its scope, reason and approver.
 
-Process qualification is bound to a retained `RTLVerificationProcessQualificationEvidence` artifact and to the corpus, oracle and health evidence IDs used by the evaluator. The `RTLVerificationProcessQualificationEvidenceBuilder` requires complete PDK scope, current validity, independent request-bound oracle evidence, implementation-bound health evidence and a fully referenced digest/byte-count artifact manifest. `RTLVerificationQualificationInputArtifactAuditor` re-verifies every retained process manifest and native/oracle result reference through the injected artifact reader before an Xcircuite stage invokes the verification engine, so a modified or missing file cannot be treated as qualification input. A process record with stale, mismatched or unrelated evidence IDs remains blocked even when its scope and validity window are otherwise complete. Health evidence is represented as auditable qualification evidence with `kind=healthCheck`, implementation ID and implementation version; an ID in a process record is not sufficient by itself.
+RTLVerificationEngine emits digest-bound corpus results, oracle correlation
+reports, health observations, and implementation identity. ToolQualification
+re-reads those artifacts and owns the trust decision. The verification engine
+does not construct a process trust record or infer trust from non-empty IDs.
 
 ## Products
 
@@ -130,9 +131,9 @@ The parser does not claim complete IEEE SystemVerilog elaboration. Unsupported d
 
 For a formal run, repeat `--reference` to provide additional reference RTL/header inputs. Use `--reference` only for the reference source set; implementation inputs belong to repeated `--rtl` options.
 
-## Xcircuite integration
+## Flow integration
 
-Xcircuite runs each verification product as an independent gate. The RTL stage adapter persists the raw result, qualification report, review bundle and audit record, and reuses a completed or blocked result only when the request digest and audit identity match. Missing proof, insufficient solver qualification and unsupported semantics remain blocked rather than passed. A solver-backed external proof must retain an artifact produced by the same run, with a SHA-256 digest and byte count, before it can be considered a completed proof envelope.
+A protocol-conforming flow consumer runs each verification product as an independent gate and owns result, qualification, review and audit persistence. Missing proof, insufficient solver qualification and unsupported semantics remain blocked rather than passed. A solver-backed external proof must name every proof artifact explicitly in `proofArtifactIDs`; each ID must resolve exactly once to a same-run output-role evidence/report artifact. The injected artifact reader reopens the bytes and verifies SHA-256 and byte count before the proof can be considered completed. The Foundation process runner drains stdout and stderr concurrently, starts each tool in an isolated process group, terminates the full tree on timeout or task cancellation, reaps the process and only then finalizes pipe draining.
 
 The library does not depend on the Xcircuite runtime. Flow ownership supplies artifact persistence, qualification gates, repair loops and human approval.
 
@@ -150,12 +151,6 @@ The package has local SwiftPM dependencies on `LogicDesign`, `LogicEngine`, `Tim
 perl -e 'alarm 60; exec @ARGV' -- xcodebuild test -quiet -scheme RTLVerificationEngine-Package -destination 'platform=macOS,arch=arm64' -parallel-testing-enabled NO -maximum-parallel-testing-workers 1
 ```
 
-For SwiftPM-only checkouts, the equivalent package test command is:
-
-```bash
-perl -e 'alarm 60; exec @ARGV' -- swift test --filter RTLVerificationEngineTests
-```
-
-The test suite covers request/payload compatibility, the versioned repair-oriented lint rule catalog, canonical RTL frontend parameters/case statements, function-like macro expansion, nested arguments, malformed invocation and recursion blocking, bounded conditional expressions and unsupported-expression blocking, connected hierarchy flattening, conditional `elsif` selection, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution, conservative reset-release synchronizer recognition and mixed-domain blockers, mapped execution graph proof and typed mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, canonical request digest binding, digest-bound oracle evidence artifacts, independent oracle execution and self-correlation rejection, real external-process execution and timeout blocking, process qualification evidence building with artifact-manifest rejection, qualification-input artifact integrity auditing, process qualification evidence freshness/scope binding, qualified external-tool envelopes with descriptor identity and exact request-digest binding, solver proof artifact requirements, proof-view validation, process timeout forwarding and deterministic release blocking.
+The test suite covers request/payload round trips, the versioned repair-oriented lint rule catalog, canonical RTL frontend parameters/case statements, function-like macro expansion, nested arguments, malformed invocation and recursion blocking, bounded conditional expressions and unsupported-expression blocking, connected hierarchy flattening, conditional `elsif` selection, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution, conservative reset-release synchronizer recognition and mixed-domain blockers, mapped execution graph proof and typed mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, canonical request digest binding, digest-bound oracle evidence artifacts, independent oracle execution and self-correlation rejection, real external-process execution, cancellation and process-tree timeout cleanup, process qualification evidence building with artifact-manifest rejection, qualification-input artifact integrity auditing, process qualification evidence freshness/scope binding, qualified external-tool results with descriptor identity and exact request-digest binding, explicit solver proof artifact IDs with byte integrity, proof-view validation, process timeout forwarding and deterministic release blocking.
 
 See `DESIGN.md`, `INTERFACES.md`, `IMPLEMENTATION_PLAN.md`, `MILESTONES.md` and `GOAL_STATUS.md` before implementing a backend or interpreting a result as qualified.

@@ -1,5 +1,6 @@
 import Foundation
 import RTLVerificationCore
+import ToolQualification
 
 public struct ExternalRTLVerificationOracleExecutor: RTLVerificationOracleExecuting, Sendable {
     public var engine: ExternalRTLVerificationEngine
@@ -10,12 +11,16 @@ public struct ExternalRTLVerificationOracleExecutor: RTLVerificationOracleExecut
 
     public init(
         descriptor: RTLExternalToolDescriptor,
+        trustDecision: ToolTrustDecision,
         runner: any RTLExternalToolProcessRunning = FoundationRTLExternalToolProcessRunner(),
+        artifactReader: any RTLArtifactReading = InMemoryRTLArtifactReader(artifacts: [:]),
         additionalArguments: [String] = []
     ) {
         self.init(engine: ExternalRTLVerificationEngine(
             descriptor: descriptor,
+            trustDecision: trustDecision,
             runner: runner,
+            artifactReader: artifactReader,
             additionalArguments: additionalArguments
         ))
     }

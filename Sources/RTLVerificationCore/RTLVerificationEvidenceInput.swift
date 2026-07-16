@@ -1,37 +1,25 @@
 import Foundation
 
-public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
+public struct RTLVerificationEvidenceInput: Sendable, Hashable, Codable {
     public static let currentSchemaVersion = 1
 
     public var schemaVersion: Int
-    public var healthEvidence: [RTLVerificationQualificationEvidence]
     public var corpusEvaluations: [RTLVerificationCorpusEvaluation]
     public var oracleReports: [RTLVerificationOracleCorrelationReport]
     public var oracleEvidence: [RTLVerificationOracleEvidence]
-    public var processQualification: RTLVerificationProcessQualificationRecord?
-    public var processEvidence: [RTLVerificationProcessQualificationEvidence]
-    public var releaseApproval: RTLVerificationQualificationEvidence?
     public var expectedRequestDigest: String?
 
     public init(
-        healthEvidence: [RTLVerificationQualificationEvidence] = [],
         corpusEvaluations: [RTLVerificationCorpusEvaluation] = [],
         oracleReports: [RTLVerificationOracleCorrelationReport] = [],
         oracleEvidence: [RTLVerificationOracleEvidence] = [],
-        processQualification: RTLVerificationProcessQualificationRecord? = nil,
-        processEvidence: [RTLVerificationProcessQualificationEvidence] = [],
-        releaseApproval: RTLVerificationQualificationEvidence? = nil,
         expectedRequestDigest: String? = nil,
-        schemaVersion: Int = RTLVerificationQualificationInput.currentSchemaVersion
+        schemaVersion: Int = RTLVerificationEvidenceInput.currentSchemaVersion
     ) {
         self.schemaVersion = schemaVersion
-        self.healthEvidence = healthEvidence
         self.corpusEvaluations = corpusEvaluations
         self.oracleReports = oracleReports
         self.oracleEvidence = oracleEvidence
-        self.processQualification = processQualification
-        self.processEvidence = processEvidence
-        self.releaseApproval = releaseApproval
         self.expectedRequestDigest = expectedRequestDigest
     }
 
@@ -43,14 +31,10 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
             throw DecodingError.dataCorruptedError(
                 forKey: .schemaVersion,
                 in: container,
-                debugDescription: "Unsupported RTL verification qualification input schema version \(schemaVersion)."
+                debugDescription: "Unsupported RTL verification record input schema version \(schemaVersion)."
             )
         }
         self.init(
-            healthEvidence: try container.decodeIfPresent(
-                [RTLVerificationQualificationEvidence].self,
-                forKey: .healthEvidence
-            ) ?? [],
             corpusEvaluations: try container.decodeIfPresent(
                 [RTLVerificationCorpusEvaluation].self,
                 forKey: .corpusEvaluations
@@ -63,18 +47,6 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
                 [RTLVerificationOracleEvidence].self,
                 forKey: .oracleEvidence
             ) ?? [],
-            processQualification: try container.decodeIfPresent(
-                RTLVerificationProcessQualificationRecord.self,
-                forKey: .processQualification
-            ),
-            processEvidence: try container.decodeIfPresent(
-                [RTLVerificationProcessQualificationEvidence].self,
-                forKey: .processEvidence
-            ) ?? [],
-            releaseApproval: try container.decodeIfPresent(
-                RTLVerificationQualificationEvidence.self,
-                forKey: .releaseApproval
-            ),
             expectedRequestDigest: try container.decodeIfPresent(String.self, forKey: .expectedRequestDigest),
             schemaVersion: schemaVersion
         )
@@ -82,13 +54,9 @@ public struct RTLVerificationQualificationInput: Sendable, Hashable, Codable {
 
     private enum CodingKeys: String, CodingKey {
         case schemaVersion
-        case healthEvidence
         case corpusEvaluations
         case oracleReports
         case oracleEvidence
-        case processQualification
-        case processEvidence
-        case releaseApproval
         case expectedRequestDigest
     }
 }

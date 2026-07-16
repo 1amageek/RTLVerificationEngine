@@ -4,19 +4,26 @@ import Foundation
 import RDCAnalysis
 import RTLLint
 import RTLVerificationCore
+import ToolQualification
 
 public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDCAnalyzing, FormalEquivalenceChecking, Sendable {
     public var descriptor: RTLExternalToolDescriptor
     public var runner: any RTLExternalToolProcessRunning
+    public var artifactReader: any RTLArtifactReading
     public var additionalArguments: [String]
+    public var trustDecision: ToolTrustDecision
 
     public init(
         descriptor: RTLExternalToolDescriptor,
+        trustDecision: ToolTrustDecision,
         runner: any RTLExternalToolProcessRunning = FoundationRTLExternalToolProcessRunner(),
+        artifactReader: any RTLArtifactReading = InMemoryRTLArtifactReader(artifacts: [:]),
         additionalArguments: [String] = []
     ) {
         self.descriptor = descriptor
+        self.trustDecision = trustDecision
         self.runner = runner
+        self.artifactReader = artifactReader
         self.additionalArguments = additionalArguments
     }
 
@@ -39,20 +46,13 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                 actions: ["select_supported_proof_view", "select_qualified_solver"]
             )
         }
-        guard descriptor.qualified else {
+        guard trustDecision.status == .eligible,
+              trustDecision.toolID == descriptor.toolID else {
             return try blockedResult(
                 request: request,
-                code: "RTL_EXTERNAL_TOOL_UNQUALIFIED",
-                message: "The external tool is not process-qualified.",
-                actions: ["attach_process_qualification", "select_native_backend"]
-            )
-        }
-        guard descriptor.qualification.satisfies(request.policy.minimumQualification) else {
-            return try blockedResult(
-                request: request,
-                code: "RTL_EXTERNAL_QUALIFICATION_INSUFFICIENT",
-                message: "The external tool qualification state does not satisfy the requested verification policy.",
-                actions: ["attach_qualification_evidence", "select_qualified_backend"]
+                code: "RTL_EXTERNAL_TOOL_TRUST_REJECTED",
+                message: "ToolQualification did not accept the external implementation for this operation.",
+                actions: ["evaluate_tool_qualification", "select_native_backend"]
             )
         }
         guard descriptor.timeoutSeconds.isFinite, descriptor.timeoutSeconds > 0 else {
@@ -70,19 +70,21 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             let executableURL = URL(fileURLWithPath: descriptor.executablePath)
             let arguments = additionalArguments + ["--analysis", request.analysis.rawValue]
             if let timedRunner = runner as? any RTLExternalToolProcessRunningWithTimeout {
-                output = try timedRunner.run(
+                output = try await timedRunner.run(
                     executableURL: executableURL,
                     arguments: arguments,
                     standardInput: input,
                     timeout: descriptor.timeoutSeconds
                 )
             } else {
-                output = try runner.run(
+                output = try await runner.run(
                     executableURL: executableURL,
                     arguments: arguments,
                     standardInput: input
                 )
             }
+        } catch is CancellationError {
+            throw CancellationError()
         } catch let error as RTLVerificationExecutionError {
             return try blockedResult(
                 request: request,
@@ -128,31 +130,44 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             guard result.payload.assumptions == request.assumptions else {
                 throw RTLVerificationExecutionError.invalidArtifact("External result assumptions do not match the request.")
             }
-            guard result.payload.qualification.state <= descriptor.qualification.state else {
+            guard result.payload.record.implementationID == descriptor.toolID else {
                 throw RTLVerificationExecutionError.invalidArtifact(
-                    "External result qualification exceeds the descriptor qualification state."
+                    "External result record implementation ID does not match the tool descriptor."
                 )
             }
-            guard result.payload.qualification.implementationID == descriptor.toolID else {
+            guard result.payload.record.implementationVersion == descriptor.version else {
                 throw RTLVerificationExecutionError.invalidArtifact(
-                    "External result qualification implementation ID does not match the tool descriptor."
-                )
-            }
-            guard result.payload.qualification.implementationVersion == descriptor.version else {
-                throw RTLVerificationExecutionError.invalidArtifact(
-                    "External result qualification implementation version does not match the tool descriptor."
+                    "External result record implementation version does not match the tool descriptor."
                 )
             }
             if request.proofView.requiresSolver,
                request.policy.requiredProof,
                result.status == .completed,
                result.payload.proofStatus == "proved" {
-                guard result.artifacts.contains(where: {
-                    Self.isDigestBoundProofArtifact($0)
-                }) else {
+                let proofArtifactIDs = result.payload.proofArtifactIDs
+                guard !proofArtifactIDs.isEmpty,
+                      Set(proofArtifactIDs).count == proofArtifactIDs.count else {
                     throw RTLVerificationExecutionError.invalidArtifact(
-                        "A solver-backed proof result must retain at least one digest-bound proof artifact."
+                        "A solver-backed proof result must identify at least one unique proof artifact."
                     )
+                }
+                let proofArtifacts = result.artifacts.filter { artifact in
+                    proofArtifactIDs.contains(artifact.id.rawValue)
+                }
+                guard proofArtifacts.count == proofArtifactIDs.count,
+                      proofArtifacts.allSatisfy(Self.isProofArtifact) else {
+                    throw RTLVerificationExecutionError.invalidArtifact(
+                        "Every declared proof artifact must be a digest-bound output evidence artifact."
+                    )
+                }
+                for artifact in proofArtifacts {
+                    do {
+                        _ = try artifactReader.read(artifact)
+                    } catch {
+                        throw RTLVerificationExecutionError.invalidArtifact(
+                            "External proof artifact integrity verification failed for \(artifact.path): \(error.localizedDescription)"
+                        )
+                    }
                 }
             }
             if request.analysis == .formalEquivalence,
@@ -177,18 +192,20 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
         }
     }
 
-    private static func isDigestBoundProofArtifact(
+    private static func isProofArtifact(
         _ artifact: RTLArtifactReference
     ) -> Bool {
-        guard let artifactID = artifact.artifactID,
-              !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+        let artifactID = artifact.artifactID
+        let sha256 = artifact.sha256
+        guard !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !artifact.path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              let sha256 = artifact.sha256,
+              artifact.digest.algorithm == .sha256,
               sha256.count == 64,
               sha256.allSatisfy(\.isHexDigit) else {
             return false
         }
-        return true
+        return artifact.locator.role == .output
+            && (artifact.locator.kind == .evidence || artifact.locator.kind == .report)
     }
 
     private func blockedResult(
@@ -213,7 +230,10 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                 proofScope: request.proofView.rawValue,
                 limitations: [message]
             ),
-            qualification: descriptor.qualification,
+            record: RTLVerificationEvidenceAssessment(
+                implementationID: descriptor.toolID,
+                implementationVersion: descriptor.version
+            ),
             proofView: request.proofView,
             assumptions: request.assumptions
         )

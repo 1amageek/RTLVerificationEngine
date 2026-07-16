@@ -6,5 +6,5 @@ public protocol RTLExternalToolProcessRunningWithTimeout: RTLExternalToolProcess
         arguments: [String],
         standardInput: Data,
         timeout: TimeInterval
-    ) throws -> Data
+    ) async throws -> Data
 }

@@ -1,35 +1,35 @@
 import Foundation
 
-public struct RTLVerificationProcessQualificationEvidenceBuildRequest: Sendable, Hashable, Codable {
+public struct RTLVerificationProcessEvidenceBuildRequest: Sendable, Hashable, Codable {
     public static let currentSchemaVersion = 1
 
     public var schemaVersion: Int
-    public var qualificationID: String
+    public var evidenceSetID: String
     public var requestDigest: String
-    public var scope: RTLVerificationProcessQualificationScope
-    public var corpusEvidence: [RTLVerificationQualificationEvidence]
+    public var scope: RTLVerificationProcessEvidenceScope
+    public var corpusEvidence: [RTLVerificationEvidenceRecord]
     public var oracleEvidence: [RTLVerificationOracleEvidence]
-    public var healthEvidence: [RTLVerificationQualificationEvidence]
+    public var healthEvidence: [RTLVerificationEvidenceRecord]
     public var artifacts: [RTLArtifactReference]
     public var provenance: String
-    public var qualifiedAt: Date
-    public var expiresAt: Date
+    public var recordedAt: Date
+    public var validUntil: Date
 
     public init(
-        qualificationID: String,
+        evidenceSetID: String,
         requestDigest: String,
-        scope: RTLVerificationProcessQualificationScope,
-        corpusEvidence: [RTLVerificationQualificationEvidence],
+        scope: RTLVerificationProcessEvidenceScope,
+        corpusEvidence: [RTLVerificationEvidenceRecord],
         oracleEvidence: [RTLVerificationOracleEvidence],
-        healthEvidence: [RTLVerificationQualificationEvidence],
+        healthEvidence: [RTLVerificationEvidenceRecord],
         artifacts: [RTLArtifactReference],
         provenance: String,
-        qualifiedAt: Date,
-        expiresAt: Date,
+        recordedAt: Date,
+        validUntil: Date,
         schemaVersion: Int = Self.currentSchemaVersion
     ) {
         self.schemaVersion = schemaVersion
-        self.qualificationID = qualificationID
+        self.evidenceSetID = evidenceSetID
         self.requestDigest = requestDigest
         self.scope = scope
         self.corpusEvidence = corpusEvidence
@@ -37,7 +37,7 @@ public struct RTLVerificationProcessQualificationEvidenceBuildRequest: Sendable,
         self.healthEvidence = healthEvidence
         self.artifacts = artifacts
         self.provenance = provenance
-        self.qualifiedAt = qualifiedAt
-        self.expiresAt = expiresAt
+        self.recordedAt = recordedAt
+        self.validUntil = validUntil
     }
 }

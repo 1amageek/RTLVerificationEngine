@@ -1,12 +1,12 @@
 import Foundation
 
-public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, Codable {
+public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable {
     public static let currentSchemaVersion = 1
 
     public var schemaVersion: Int
     public var evidenceID: String
-    public var qualificationID: String
-    public var qualification: RTLVerificationProcessQualificationRecord
+    public var evidenceSetID: String
+    public var record: RTLVerificationProcessEvidenceRecord
     public var artifactIDs: [String]
     public var artifacts: [RTLArtifactReference]
     public var provenance: String
@@ -14,18 +14,18 @@ public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, C
 
     public init(
         evidenceID: String,
-        qualificationID: String,
-        qualification: RTLVerificationProcessQualificationRecord,
+        evidenceSetID: String,
+        record: RTLVerificationProcessEvidenceRecord,
         artifactIDs: [String],
         artifacts: [RTLArtifactReference] = [],
         provenance: String,
         recordedAt: Date = Date(),
-        schemaVersion: Int = RTLVerificationProcessQualificationEvidence.currentSchemaVersion
+        schemaVersion: Int = RTLVerificationProcessEvidenceBundle.currentSchemaVersion
     ) {
         self.schemaVersion = schemaVersion
         self.evidenceID = evidenceID
-        self.qualificationID = qualificationID
-        self.qualification = qualification
+        self.evidenceSetID = evidenceSetID
+        self.record = record
         self.artifactIDs = artifactIDs.sorted()
         self.artifacts = artifacts
         self.provenance = provenance
@@ -34,25 +34,26 @@ public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, C
 
     public var isAuditable: Bool {
         !evidenceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && qualificationID == qualification.qualificationID
+            && evidenceSetID == record.evidenceSetID
             && !artifactIDs.isEmpty
             && artifactIDs.allSatisfy {
                 !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             }
             && Set(artifactIDs).count == artifactIDs.count
-            && artifactIDs == artifacts.compactMap(\.artifactID).sorted()
+            && artifactIDs == artifacts.map(\.artifactID).sorted()
             && artifacts.allSatisfy(Self.isDigestBound)
             && !provenance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && qualification.isQualified(at: recordedAt)
+            && record.isComplete(at: recordedAt)
     }
 
     private static func isDigestBound(_ artifact: RTLArtifactReference) -> Bool {
-        guard let artifactID = artifact.artifactID,
-              !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+        let artifactID = artifact.artifactID
+        let sha256 = artifact.sha256
+        guard !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !artifact.path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !artifact.path.hasPrefix("/"),
               !artifact.path.split(separator: "/").contains(".."),
-              let sha256 = artifact.sha256,
+              artifact.digest.algorithm == .sha256,
               sha256.count == 64,
               sha256.allSatisfy(\.isHexDigit),
               artifact.byteCount >= 0 else {
@@ -64,8 +65,8 @@ public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, C
     private enum CodingKeys: String, CodingKey {
         case schemaVersion
         case evidenceID
-        case qualificationID
-        case qualification
+        case evidenceSetID
+        case record
         case artifactIDs
         case artifacts
         case provenance
@@ -76,10 +77,10 @@ public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, C
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
         self.evidenceID = try container.decode(String.self, forKey: .evidenceID)
-        self.qualificationID = try container.decode(String.self, forKey: .qualificationID)
-        self.qualification = try container.decode(
-            RTLVerificationProcessQualificationRecord.self,
-            forKey: .qualification
+        self.evidenceSetID = try container.decode(String.self, forKey: .evidenceSetID)
+        self.record = try container.decode(
+            RTLVerificationProcessEvidenceRecord.self,
+            forKey: .record
         )
         self.artifactIDs = try container.decode([String].self, forKey: .artifactIDs)
         self.artifacts = try container.decodeIfPresent(
@@ -91,11 +92,11 @@ public struct RTLVerificationProcessQualificationEvidence: Sendable, Hashable, C
     }
 
     public func matches(
-        _ record: RTLVerificationProcessQualificationRecord,
+        _ record: RTLVerificationProcessEvidenceRecord,
         at date: Date
     ) -> Bool {
         isAuditable
-            && qualification == record
-            && qualification.isQualified(at: date)
+            && self.record == record
+            && record.isComplete(at: date)
     }
 }

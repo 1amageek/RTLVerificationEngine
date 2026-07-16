@@ -9,8 +9,9 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
     public var coverage: RTLVerificationCoverage
     public var appliedWaivers: [RTLVerificationWaiver]
     public var counterexampleArtifactIDs: [String]
+    public var proofArtifactIDs: [String]
     public var reportVersion: Int
-    public var qualification: RTLVerificationQualificationReport
+    public var record: RTLVerificationEvidenceAssessment
     public var proofView: RTLVerificationProofView
     public var assumptions: [RTLVerificationAssumption]
 
@@ -23,8 +24,9 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
         case coverage
         case appliedWaivers
         case counterexampleArtifactIDs
+        case proofArtifactIDs
         case reportVersion
-        case qualification
+        case record
         case proofView
         case assumptions
     }
@@ -38,8 +40,9 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
         coverage: RTLVerificationCoverage = RTLVerificationCoverage(),
         appliedWaivers: [RTLVerificationWaiver] = [],
         counterexampleArtifactIDs: [String] = [],
+        proofArtifactIDs: [String] = [],
         reportVersion: Int = 1,
-        qualification: RTLVerificationQualificationReport = RTLVerificationQualificationReport(),
+        record: RTLVerificationEvidenceAssessment = RTLVerificationEvidenceAssessment(),
         proofView: RTLVerificationProofView = .rtlToRtlStructural,
         assumptions: [RTLVerificationAssumption] = []
     ) {
@@ -51,8 +54,9 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
         self.coverage = coverage
         self.appliedWaivers = appliedWaivers
         self.counterexampleArtifactIDs = counterexampleArtifactIDs
+        self.proofArtifactIDs = proofArtifactIDs
         self.reportVersion = reportVersion
-        self.qualification = qualification
+        self.record = record
         self.proofView = proofView
         self.assumptions = assumptions
     }
@@ -68,11 +72,12 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
             coverage: try container.decodeIfPresent(RTLVerificationCoverage.self, forKey: .coverage) ?? RTLVerificationCoverage(),
             appliedWaivers: try container.decodeIfPresent([RTLVerificationWaiver].self, forKey: .appliedWaivers) ?? [],
             counterexampleArtifactIDs: try container.decodeIfPresent([String].self, forKey: .counterexampleArtifactIDs) ?? [],
+            proofArtifactIDs: try container.decodeIfPresent([String].self, forKey: .proofArtifactIDs) ?? [],
             reportVersion: try container.decodeIfPresent(Int.self, forKey: .reportVersion) ?? 1,
-            qualification: try container.decodeIfPresent(
-                RTLVerificationQualificationReport.self,
-                forKey: .qualification
-            ) ?? RTLVerificationQualificationReport(),
+            record: try container.decodeIfPresent(
+                RTLVerificationEvidenceAssessment.self,
+                forKey: .record
+            ) ?? RTLVerificationEvidenceAssessment(),
             proofView: try container.decodeIfPresent(RTLVerificationProofView.self, forKey: .proofView) ?? .rtlToRtlStructural,
             assumptions: try container.decodeIfPresent([RTLVerificationAssumption].self, forKey: .assumptions) ?? []
         )

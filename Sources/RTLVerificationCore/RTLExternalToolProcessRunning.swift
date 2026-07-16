@@ -5,5 +5,5 @@ public protocol RTLExternalToolProcessRunning: Sendable {
         executableURL: URL,
         arguments: [String],
         standardInput: Data
-    ) throws -> Data
+    ) async throws -> Data
 }

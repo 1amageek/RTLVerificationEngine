@@ -5,20 +5,17 @@ public struct RTLVerificationWaiver: Sendable, Hashable, Codable {
     public var code: String
     public var entity: String?
     public var reason: String
-    public var approvedBy: String
 
     public init(
         waiverID: String,
         code: String,
         entity: String? = nil,
-        reason: String,
-        approvedBy: String
+        reason: String
     ) {
         self.waiverID = waiverID
         self.code = code
         self.entity = entity
         self.reason = reason
-        self.approvedBy = approvedBy
     }
 
     public func applies(to findingCode: String, entity findingEntity: String?) -> Bool {
