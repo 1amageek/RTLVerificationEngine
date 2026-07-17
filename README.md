@@ -150,10 +150,10 @@ GitHub revision. No Xcircuite or other umbrella checkout is used as a switch.
 | Dependency | Local sibling | Remote fallback revision |
 |---|---|---|
 | CircuiteFoundation | `../CircuiteFoundation` | `2ec6ee13a89ac6885be3c26b41a9ee0ef89948ac` |
-| LogicDesign | `../LogicDesign` | `8e0c8c2c63152aa45bf12d943fa034bb1aba0f1e` |
-| TimingEngine | `../TimingEngine` | `5b2f711d355af8a204819c6ed33f98ef722e379c` |
-| ToolQualification | `../ToolQualification` | `32b031b5322f1ccb0ef78466faab0f895d47c4fd` |
-| LogicEngine | `../LogicEngine` | `5cccdb82e7272b407642aae0708966d62ceffba4` |
+| LogicDesign | `../LogicDesign` | `09768ed203d97d1d0f79f786f9988fcb2cd39155` |
+| TimingEngine | `../TimingEngine` | `81898ed51ab05c62712ebca5b1b03869b89f7682` |
+| ToolQualification | `../ToolQualification` | `f6cacdbf64038a35ab62d70f575a8dd8349e5604` |
+| LogicEngine | `../LogicEngine` | `52c24ed6b5e6406fd462b9276cf449ffd50003d4` |
 
 ```bash
 perl -e 'alarm 60; exec @ARGV' -- swift build
