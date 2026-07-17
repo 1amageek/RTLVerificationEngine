@@ -7,7 +7,7 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
     public var proofStatus: String?
     public var findings: [RTLVerificationFinding]
     public var coverage: RTLVerificationCoverage
-    public var appliedWaivers: [RTLVerificationWaiver]
+    public var waiverMatches: [RTLVerificationWaiverMatch]
     public var counterexampleArtifactIDs: [String]
     public var proofArtifactIDs: [String]
     public var reportVersion: Int
@@ -22,7 +22,7 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
         analysis: RTLVerificationAnalysis = .lint,
         findings: [RTLVerificationFinding] = [],
         coverage: RTLVerificationCoverage = RTLVerificationCoverage(),
-        appliedWaivers: [RTLVerificationWaiver] = [],
+        waiverMatches: [RTLVerificationWaiverMatch] = [],
         counterexampleArtifactIDs: [String] = [],
         proofArtifactIDs: [String] = [],
         reportVersion: Int = 1,
@@ -36,7 +36,7 @@ public struct RTLVerificationPayload: Sendable, Hashable, Codable {
         self.proofStatus = proofStatus
         self.findings = findings
         self.coverage = coverage
-        self.appliedWaivers = appliedWaivers
+        self.waiverMatches = waiverMatches
         self.counterexampleArtifactIDs = counterexampleArtifactIDs
         self.proofArtifactIDs = proofArtifactIDs
         self.reportVersion = reportVersion

@@ -13,7 +13,7 @@ Block structurally unsafe RTL and prove required equivalence relationships befor
 | RDC analysis | Identify reset domains, reset sequencing and unsafe reset crossings. | P1 |
 | Formal equivalence | Prove RTL-to-synthesized and synthesized-to-DFT equivalence under declared assumptions. | P0 |
 | Counterexample artifacts | Persist machine-readable counterexamples and affected design entities. | P0 |
-| Waiver support | Apply scoped, reviewable waivers without deleting findings. | P1 |
+| Waiver support | Match scoped domain waivers to raw findings without applying a flow disposition. | P1 |
 | Coverage reporting | Report analyzed and unsupported language, clock, reset and proof scope. | P0 |
 | Frontend provenance | Record ordered input artifacts, digests, preprocessing decisions and top-module selection. | P0 |
 | Proof-view contract | Distinguish RTL-to-RTL structural, RTL-to-synthesized and synthesized-to-DFT proof; block unsupported native claims. | P0 |

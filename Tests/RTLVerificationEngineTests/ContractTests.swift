@@ -302,7 +302,11 @@ struct ContractTests {
                 clockDomains: ["clk"],
                 resetReleaseDomains: ["rst_n@clk"]
             ),
-            appliedWaivers: request.waivers,
+            waiverMatches: [RTLVerificationWaiverMatch(
+                waiverID: "waiver-001",
+                findingCode: "CDC_UNSAFE_CROSSING",
+                findingEntity: "top.q"
+            )],
             counterexampleArtifactIDs: [],
             reportVersion: 1
         )
@@ -332,7 +336,7 @@ struct ContractTests {
         #expect(envelope.artifacts.count == 1)
     }
 
-    @Test("native lint retains negative findings and applies scoped waivers", .timeLimit(.minutes(1)))
+    @Test("native lint retains negative findings and reports scoped waiver matches", .timeLimit(.minutes(1)))
     func nativeLintNegativeFixture() async throws {
         let source = """
         module top(input logic a, input logic b, output logic [7:0] q);
@@ -354,8 +358,12 @@ struct ContractTests {
         let envelope = try await NativeRTLLintEngine(reader: reader).execute(request)
         #expect(envelope.status == .failed)
         #expect(envelope.payload.findings.contains { $0.code == "RTL_MULTIPLE_DRIVER" })
-        #expect(envelope.payload.findings.contains { $0.code == "RTL_WIDTH_MISMATCH" && $0.waived })
-        #expect(envelope.payload.appliedWaivers == [waiver])
+        #expect(envelope.payload.findings.contains { $0.code == "RTL_WIDTH_MISMATCH" })
+        #expect(envelope.payload.waiverMatches == [RTLVerificationWaiverMatch(
+            waiverID: waiver.waiverID,
+            findingCode: "RTL_WIDTH_MISMATCH",
+            findingEntity: "top.q"
+        )])
     }
 
     @Test("CDC blocks an unsynchronized asynchronous input", .timeLimit(.minutes(1)))

@@ -98,10 +98,10 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
             unsupportedDirectives.append(contentsOf: preprocessed.unsupportedDirectives)
             emittedSourceIndex += 1
         }
-        let sourceFiles = sources.enumerated().map { index, source in
+        let sourceFiles = try sources.map { source in
             LogicSourceFile(
                 path: source.path,
-                sha256: RTLHasher().sha256(data: source.data),
+                sha256: try SHA256ContentDigester().digest(data: source.data).hexadecimalValue,
                 byteCount: Int64(source.data.count)
             )
         }

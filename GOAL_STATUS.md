@@ -28,7 +28,7 @@
 | RDC analysis | Contract + native backend | Implemented for structural reset-release subset | Retained reset, unconstrained-clock, cross-domain and mixed-domain fixtures | No waveform/UPF/process qualification |
 | Formal equivalence | Contract + RTL/mapped structural backends | Implemented in declared scope | RTL mismatch, LogicDesignSnapshot lowering, mapped graph pass/mismatch, typed counterexample fixtures and digest-bound external proof artifact gate | No actual temporal solver/process qualification |
 | Counterexample artifacts | Contract + JSON persistence | Implemented | Formal mismatch fixture with typed difference records | No process qualification |
-| Waiver support | Scoped retained waivers | Implemented | Negative lint fixture | No process qualification |
+| Waiver support | Raw finding-to-waiver matches | Implemented | Negative lint fixture | Acceptance and approval remain flow-owned |
 | Coverage reporting | Typed coverage + blocked gate | Implemented | Parser/unsupported-path coverage | No process qualification |
 | Process evidence | Typed builder + retained artifact manifest | Implemented for observation scope | Valid build and missing/mismatched/unreferenced artifact fixtures | ToolQualification decision external |
 

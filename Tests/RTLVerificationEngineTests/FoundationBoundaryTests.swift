@@ -50,6 +50,13 @@ struct FoundationBoundaryTests {
         #expect(envelope.diagnostics.count == 1)
         #expect(envelope.diagnostics[0].severity == .error)
         #expect(envelope.diagnostics[0].subject?.identifier == "top.u1")
+        let evidenceID = envelope.evidence.id
+        #expect(envelope.evidence.id == evidenceID)
+        let decoded = try JSONDecoder().decode(
+            RTLVerificationResult.self,
+            from: JSONEncoder().encode(envelope)
+        )
+        #expect(decoded.evidence.id == evidenceID)
     }
 
     @Test

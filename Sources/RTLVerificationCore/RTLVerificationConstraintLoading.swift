@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 import TimingCore
 
@@ -17,7 +18,7 @@ public struct RTLVerificationConstraintLoader: Sendable {
                 sets,
                 sourceArtifact: RTLVerificationSourceArtifact(
                     path: reference.artifact.path,
-                    sha256: RTLHasher().sha256(data: data),
+                    sha256: try SHA256ContentDigester().digest(data: data).hexadecimalValue,
                     byteCount: Int64(data.count),
                     order: 0
                 )

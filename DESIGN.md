@@ -62,4 +62,4 @@ the same path are a typed conflict. `InMemoryRTLArtifactStore` enforces the same
 immutability contract. Neither implementation owns `.xcircuite`, project
 manifests, run ledgers, approval, or resume state.
 
-Every execution persists a JSON report. Formal mismatches additionally persist counterexample JSON through the injected artifact writer. The report includes the canonical input references, findings, waivers, proof view, assumptions, raw evidence assessment, and semantic/constraint coverage. It does not encode a release verdict.
+Every execution persists a JSON report. Formal mismatches additionally persist counterexample JSON through the injected artifact writer. The report includes the canonical input references, raw findings, domain waiver matches, proof view, assumptions, raw evidence assessment, and semantic/constraint coverage. It does not encode a release verdict or an applied waiver disposition.

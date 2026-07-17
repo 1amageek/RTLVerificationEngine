@@ -1,3 +1,4 @@
+import CircuiteFoundation
 import Foundation
 
 public enum RTLVerificationRequestDigest {
@@ -13,6 +14,6 @@ public enum RTLVerificationRequestDigest {
     }
 
     public static func make(_ request: RTLVerificationRequest) throws -> String {
-        RTLHasher().sha256(data: try encode(request))
+        try SHA256ContentDigester().digest(data: encode(request)).hexadecimalValue
     }
 }

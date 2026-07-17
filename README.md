@@ -43,7 +43,7 @@ The native frontend adapts the canonical `SystemVerilogFrontend` into the verifi
 
 Native RDC records `resetReleaseDomains` only when every process using a reset in a domain matches a conservative structural pattern: at least two non-blocking reset stages, common asserted constants, a release constant with the opposite value, and a stage-to-stage dependency. Cross-domain resets that do not satisfy this pattern in every consuming domain remain `RDC_UNSAFE_RESET_CROSSING` errors. This is structural evidence, not waveform, UPF or process qualification.
 
-Native formal proves only exact canonical structural equivalence for `rtlToRtlStructural` and the explicitly limited `rtlToMappedExecutionStructural` graph contract. The mapped view lowers a retained LogicIR snapshot into a LogicEngine document and compares it with a retained mapped document; it does not prove temporal execution behavior. Requests for synthesized or DFT proof views, or assumptions that the native backend cannot interpret, are blocked. A mismatch persists a typed counterexample difference artifact for agent inspection and human review. A waiver preserves the original finding and records its scope, reason and approver.
+Native formal proves only exact canonical structural equivalence for `rtlToRtlStructural` and the explicitly limited `rtlToMappedExecutionStructural` graph contract. The mapped view lowers a retained LogicIR snapshot into a LogicEngine document and compares it with a retained mapped document; it does not prove temporal execution behavior. Requests for synthesized or DFT proof views, or assumptions that the native backend cannot interpret, are blocked. A mismatch persists a typed counterexample difference artifact for agent inspection and human review. Domain waivers are matched to raw findings, while the composing flow owns acceptance and approval.
 
 RTLVerificationEngine emits digest-bound corpus results, oracle correlation
 reports, health observations, and implementation identity. ToolQualification
@@ -94,7 +94,7 @@ Every executing product uses:
 
 Native implementations are `NativeRTLLintEngine`, `NativeCDCAnalyzer`, `NativeRDCAnalyzer` and `NativeFormalEquivalenceChecker`. They share `RTLVerificationEnvironment`, `RTLVerificationDesignLoader`, the canonical `LogicIR` model, and the result finalizer.
 
-Unsupported semantics are retained in `RTLVerificationCoverage` and block the result when they exceed the request policy. Findings are never deleted by waivers; a scoped waiver is recorded on the finding and in the payload. Oracle correlation is not qualification evidence until `RTLVerificationOracleEvidence` binds the matched report to a request digest, two digest-bearing result artifacts and independent provenance. `ExternalRTLVerificationOracleExecutor` executes the independent lane and rejects self-correlation or payload digest drift. Process qualification is not current until its retained evidence artifact, scope, corpus/oracle/implementation-matched health evidence IDs, qualification timestamp and expiration timestamp are valid at evaluation time.
+Unsupported semantics are retained in `RTLVerificationCoverage` and block the result when they exceed the request policy. Findings remain raw; the payload records domain waiver matches without applying a flow disposition. Oracle correlation is not qualification evidence until `RTLVerificationOracleEvidence` binds the matched report to a request digest, two digest-bearing result artifacts and independent provenance. `ExternalRTLVerificationOracleExecutor` executes the independent lane and rejects self-correlation or payload digest drift. Process qualification is not current until its retained evidence artifact, scope, corpus/oracle/implementation-matched health evidence IDs, qualification timestamp and expiration timestamp are valid at evaluation time.
 
 ## CLI
 
@@ -149,11 +149,11 @@ GitHub revision. No Xcircuite or other umbrella checkout is used as a switch.
 
 | Dependency | Local sibling | Remote fallback revision |
 |---|---|---|
-| CircuiteFoundation | `../CircuiteFoundation` | `2ec6ee13a89ac6885be3c26b41a9ee0ef89948ac` |
-| LogicDesign | `../LogicDesign` | `09768ed203d97d1d0f79f786f9988fcb2cd39155` |
-| TimingEngine | `../TimingEngine` | `81898ed51ab05c62712ebca5b1b03869b89f7682` |
-| ToolQualification | `../ToolQualification` | `f6cacdbf64038a35ab62d70f575a8dd8349e5604` |
-| LogicEngine | `../LogicEngine` | `52c24ed6b5e6406fd462b9276cf449ffd50003d4` |
+| CircuiteFoundation | `../CircuiteFoundation` | `7abcac83517935c9b9f7553d7016d62cffde259d` |
+| LogicDesign | `../LogicDesign` | `b9aa25b0b78e6168befa25df3bfe8309bd020a6d` |
+| TimingEngine | `../TimingEngine` | `baada25223ccc1225afefa672120ba0d7d1d5d41` |
+| ToolQualification | `../ToolQualification` | `d572d950a9dccb699413cd5157d901812354444f` |
+| LogicEngine | `../LogicEngine` | `749ebcef427ae0f3304f0574e733d2e7116ae049` |
 
 ```bash
 perl -e 'alarm 60; exec @ARGV' -- swift build
@@ -165,6 +165,6 @@ perl -e 'alarm 60; exec @ARGV' -- swift build
 perl -e 'alarm 60; exec @ARGV' -- xcodebuild test -quiet -scheme RTLVerificationEngine-Package -destination 'platform=macOS,arch=arm64' -parallel-testing-enabled NO -maximum-parallel-testing-workers 1
 ```
 
-The test suite covers request/payload round trips, the versioned repair-oriented lint rule catalog, canonical RTL frontend parameters/case statements, function-like macro expansion, nested arguments, malformed invocation and recursion blocking, bounded conditional expressions and unsupported-expression blocking, connected hierarchy flattening, conditional `elsif` selection, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution, conservative reset-release synchronizer recognition and mixed-domain blockers, mapped execution graph proof and typed mismatch counterexamples, waiver persistence, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, canonical request digest binding, digest-bound oracle evidence artifacts, independent oracle execution and self-correlation rejection, real external-process execution, cancellation and process-tree timeout cleanup, process evidence building with artifact-manifest rejection, evidence-input artifact integrity auditing, process evidence freshness/scope binding, ToolQualification-gated external results with descriptor identity and exact request-digest binding, explicit solver proof artifact IDs with byte integrity, proof-view validation, and process timeout forwarding.
+The test suite covers request/payload round trips, the versioned repair-oriented lint rule catalog, canonical RTL frontend parameters/case statements, function-like macro expansion, nested arguments, malformed invocation and recursion blocking, bounded conditional expressions and unsupported-expression blocking, connected hierarchy flattening, conditional `elsif` selection, top-module policy and provenance, native lint/CDC/RDC/formal behavior including process-order-independent CDC domain resolution, conservative reset-release synchronizer recognition and mixed-domain blockers, mapped execution graph proof and typed mismatch counterexamples, raw waiver matching, source-set preprocessing, reference provenance, SDC coverage, corpus expectations and persisted corpus runs, canonical request digest binding, digest-bound oracle evidence artifacts, independent oracle execution and self-correlation rejection, real external-process execution, cancellation and process-tree timeout cleanup, process evidence building with artifact-manifest rejection, evidence-input artifact integrity auditing, process evidence freshness/scope binding, ToolQualification-gated external results with descriptor identity and exact request-digest binding, explicit solver proof artifact IDs with byte integrity, proof-view validation, and process timeout forwarding.
 
 See `DESIGN.md`, `INTERFACES.md`, `IMPLEMENTATION_PLAN.md`, `MILESTONES.md` and `GOAL_STATUS.md` before implementing a backend or interpreting a result as qualified.

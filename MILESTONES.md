@@ -42,7 +42,7 @@ flowchart LR
   or LogicDesignDocument, lowers snapshots through LogicEngine, compares the
   canonical execution graph, and persists a counterexample on mismatch.
 - Unsupported language, missing clock/reset declarations, missing assumptions, stale evidence, and absent process scope remain structured blockers.
-- Waivers retain the original finding and record the approving identity and reason.
+- Domain waiver declarations are matched to original findings without changing severity; the composing flow owns acceptance and approval records.
 
 ## Evidence ledger required for M5–M8
 

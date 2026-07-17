@@ -43,22 +43,20 @@ public enum RTLVerificationExecutionSupport {
         )
     }
 
-    public static func applyWaivers(
+    public static func matchWaivers(
         _ findings: [RTLVerificationFinding],
         waivers: [RTLVerificationWaiver]
-    ) -> (findings: [RTLVerificationFinding], applied: [RTLVerificationWaiver]) {
-        var appliedIDs: Set<String> = []
-        let updated = findings.map { finding -> RTLVerificationFinding in
-            guard let waiver = waivers.first(where: { $0.applies(to: finding.code, entity: finding.entity) }) else {
-                return finding
+    ) -> [RTLVerificationWaiverMatch] {
+        findings.flatMap { finding in
+            waivers.compactMap { waiver in
+                guard waiver.applies(to: finding.code, entity: finding.entity) else { return nil }
+                return RTLVerificationWaiverMatch(
+                    waiverID: waiver.waiverID,
+                    findingCode: finding.code,
+                    findingEntity: finding.entity
+                )
             }
-            appliedIDs.insert(waiver.waiverID)
-            var result = finding
-            result.waived = true
-            result.waiverID = waiver.waiverID
-            return result
         }
-        return (updated, waivers.filter { appliedIDs.contains($0.waiverID) })
     }
 
     public static func status(
@@ -72,8 +70,8 @@ public enum RTLVerificationExecutionSupport {
         guard requested == .completed else { return requested }
         if policy.requiredProof, let proofStatus, proofStatus != "proved" { return .blocked }
         guard coverage.unsupportedConstructs.count <= policy.maximumUnsupportedConstructs else { return .blocked }
-        if findings.contains(where: { $0.severity == .error && !$0.waived }) { return .failed }
-        if !policy.allowWarnings, findings.contains(where: { $0.severity == .warning && !$0.waived }) { return .failed }
+        if findings.contains(where: { $0.severity == .error }) { return .failed }
+        if !policy.allowWarnings, findings.contains(where: { $0.severity == .warning }) { return .failed }
         return .completed
     }
 
@@ -83,7 +81,7 @@ public enum RTLVerificationExecutionSupport {
         coverage: RTLVerificationCoverage,
         proofStatus: String?,
         counterexampleArtifactIDs: [String],
-        appliedWaivers: [RTLVerificationWaiver],
+        waiverMatches: [RTLVerificationWaiverMatch],
         assessment: RTLVerificationEvidenceAssessment,
         proofView: RTLVerificationProofView,
         assumptions: [RTLVerificationAssumption]
@@ -95,7 +93,7 @@ public enum RTLVerificationExecutionSupport {
             analysis: request.analysis,
             findings: findings,
             coverage: coverage,
-            appliedWaivers: appliedWaivers,
+            waiverMatches: waiverMatches,
             counterexampleArtifactIDs: counterexampleArtifactIDs,
             record: assessment,
             proofView: proofView,
@@ -132,8 +130,8 @@ public enum RTLVerificationExecutionSupport {
         diagnostics: [RTLDiagnostic],
         analysisResult: RTLVerificationAnalysisResult
     ) async throws -> RTLVerificationResult {
-        let waiverResult = applyWaivers(analysisResult.findings, waivers: request.waivers)
-        let findings = normalizeFindings(waiverResult.findings)
+        let findings = normalizeFindings(analysisResult.findings)
+        let waiverMatches = matchWaivers(findings, waivers: request.waivers)
         let completedAt = Date()
         let assessment = try makeEvidenceAssessment(
             request: request,
@@ -169,7 +167,7 @@ public enum RTLVerificationExecutionSupport {
             coverage: analysisResult.coverage,
             proofStatus: analysisResult.proofStatus,
             counterexampleArtifactIDs: counterexampleArtifactIDs,
-            appliedWaivers: waiverResult.applied,
+            waiverMatches: waiverMatches,
             assessment: assessment,
             proofView: request.proofView,
             assumptions: request.assumptions

@@ -66,8 +66,8 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
             let mappedDocument = try loadMappedDocument(mappedData, request: request)
 
             let comparison = compare(sourceDocument, mappedDocument)
-            let sourceArtifact = sourceArtifactReference(request.design.artifact, data: sourceData, order: 0)
-            let mappedArtifact = sourceArtifactReference(mappedReference.artifact, data: mappedData, order: 1)
+            let sourceArtifact = try sourceArtifactReference(request.design.artifact, data: sourceData, order: 0)
+            let mappedArtifact = try sourceArtifactReference(mappedReference.artifact, data: mappedData, order: 1)
             let coverage = RTLVerificationCoverage(
                 totalConstructs: sourceDocument.nodes.count + mappedDocument.nodes.count,
                 analyzedConstructs: sourceDocument.nodes.count + mappedDocument.nodes.count,
@@ -201,7 +201,7 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
                     "source design top \(document.topDesignName) does not match request top \(request.design.topDesignName)"
                 )
             }
-            let digest = RTLHasher().sha256(data: data)
+            let digest = try SHA256ContentDigester().digest(data: data).hexadecimalValue
             guard request.design.designDigest == digest else {
                 throw RTLVerificationExecutionError.invalidArtifact(
                     "source design document digest does not match the request design reference"
@@ -243,10 +243,9 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
         _ data: Data,
         reference: ArtifactReference
     ) throws {
-        let hasher = RTLHasher()
         if reference.digest.algorithm == .sha256 {
             let expectedSHA256 = reference.digest.hexadecimalValue
-            let actualSHA256 = hasher.sha256(data: data)
+            let actualSHA256 = try SHA256ContentDigester().digest(data: data).hexadecimalValue
             guard expectedSHA256 == actualSHA256 else {
                 throw RTLVerificationExecutionError.artifactReadFailed(
                     path: reference.path,
@@ -267,10 +266,10 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
         _ reference: ArtifactReference,
         data: Data,
         order: Int
-    ) -> RTLVerificationSourceArtifact {
+    ) throws -> RTLVerificationSourceArtifact {
         RTLVerificationSourceArtifact(
             path: reference.path,
-            sha256: RTLHasher().sha256(data: data),
+            sha256: try SHA256ContentDigester().digest(data: data).hexadecimalValue,
             byteCount: Int64(data.count),
             order: order
         )

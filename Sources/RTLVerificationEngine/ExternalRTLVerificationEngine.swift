@@ -65,7 +65,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             )
         }
         let input = try RTLVerificationRequestDigest.encode(request)
-        let requestDigest = RTLHasher().sha256(data: input)
+        let requestDigest = try SHA256ContentDigester().digest(data: input).hexadecimalValue
         let output: Data
         do {
             let executableURL = URL(fileURLWithPath: descriptor.executablePath)
