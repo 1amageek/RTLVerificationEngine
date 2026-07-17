@@ -316,12 +316,6 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
                 ifTrue: ifTrue.map { remap($0, linePaths: linePaths, fallbackPath: fallbackPath) },
                 ifFalse: ifFalse.map { remap($0, linePaths: linePaths, fallbackPath: fallbackPath) }
             )
-        case .caseStatement(let expression, let items, let defaults):
-            return .caseStatement(
-                expression: expression,
-                items: items.map { remap($0, linePaths: linePaths, fallbackPath: fallbackPath) },
-                defaultStatements: defaults.map { remap($0, linePaths: linePaths, fallbackPath: fallbackPath) }
-            )
         case .typedCaseStatement(let kind, let expression, let items, let defaults):
             return .typedCaseStatement(
                 kind: kind,

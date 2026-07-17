@@ -43,8 +43,6 @@ public enum RTLVerificationAnalysisHelpers {
                 return assignments(in: children)
             case .conditional(_, let ifTrue, let ifFalse):
                 return assignments(in: ifTrue) + assignments(in: ifFalse)
-            case .caseStatement(_, let items, let defaults):
-                return items.flatMap { assignments(in: $0.statements) } + assignments(in: defaults)
             case .typedCaseStatement(_, _, let items, let defaults):
                 return items.flatMap { assignments(in: $0.statements) } + assignments(in: defaults)
             case .null:

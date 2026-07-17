@@ -222,8 +222,7 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
                 if containsResetReleaseSynchronizer(in: children, reset: reset) {
                     return true
                 }
-            case .caseStatement(_, let items, let defaults),
-                 .typedCaseStatement(_, _, let items, let defaults):
+            case .typedCaseStatement(_, _, let items, let defaults):
                 if items.contains(where: { containsResetReleaseSynchronizer(in: $0.statements, reset: reset) })
                     || containsResetReleaseSynchronizer(in: defaults, reset: reset) {
                     return true
