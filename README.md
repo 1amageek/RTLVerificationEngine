@@ -153,7 +153,7 @@ GitHub revision. No Xcircuite or other umbrella checkout is used as a switch.
 | LogicDesign | `../LogicDesign` | `b9aa25b0b78e6168befa25df3bfe8309bd020a6d` |
 | TimingEngine | `../TimingEngine` | `baada25223ccc1225afefa672120ba0d7d1d5d41` |
 | ToolQualification | `../ToolQualification` | `d572d950a9dccb699413cd5157d901812354444f` |
-| LogicEngine | `../LogicEngine` | `749ebcef427ae0f3304f0574e733d2e7116ae049` |
+| LogicEngine | `../LogicEngine` | `ceafbb9dab29561ebcbf22508a39c712489df8c3` |
 
 ```bash
 perl -e 'alarm 60; exec @ARGV' -- swift build

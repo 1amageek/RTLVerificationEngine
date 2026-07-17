@@ -37,7 +37,7 @@ let logicEngineDependency: Package.Dependency = isLSIWorkspace && FileManager.de
     atPath: workspaceRoot.appendingPathComponent("LogicEngine/Package.swift").path
 )
     ? .package(path: "../LogicEngine")
-    : .package(url: "https://github.com/1amageek/LogicEngine.git", revision: "749ebcef427ae0f3304f0574e733d2e7116ae049")
+    : .package(url: "https://github.com/1amageek/LogicEngine.git", revision: "ceafbb9dab29561ebcbf22508a39c712489df8c3")
 
 let package = Package(
     name: "RTLVerificationEngine",
