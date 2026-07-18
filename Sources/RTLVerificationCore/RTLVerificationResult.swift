@@ -89,11 +89,7 @@ public struct RTLVerificationResult: Sendable, Hashable, Codable, ArtifactProduc
         do {
             code = try DiagnosticCode(rawValue: diagnostic.code)
         } catch {
-            do {
-                code = try DiagnosticCode(rawValue: "rtl.invalid-diagnostic-code")
-            } catch {
-                preconditionFailure("The built-in RTL diagnostic code must be valid.")
-            }
+            code = .trusted("rtl.invalid-diagnostic-code")
         }
         let subject: DesignObjectReference?
         let invalidEntityDetail: String?

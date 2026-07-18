@@ -86,6 +86,33 @@ struct FoundationBoundaryTests {
         #expect(envelope.artifacts[0].digest.algorithm == .sha256)
     }
 
+    @Test
+    func resultStructuresInvalidDiagnosticCode() throws {
+        let result = RTLVerificationResult(
+            schemaVersion: 1,
+            runID: "run-invalid-code",
+            status: .blocked,
+            diagnostics: [
+                RTLDiagnostic(
+                    severity: .error,
+                    code: " invalid-code",
+                    message: "The producer emitted an invalid code."
+                ),
+            ],
+            provenance: try makeRTLTestProvenance(
+                engineID: "rtl.lint",
+                implementationID: "native-rtl-verification",
+                implementationVersion: "1.0.0",
+                startedAt: Date(timeIntervalSinceReferenceDate: 0),
+                completedAt: Date(timeIntervalSinceReferenceDate: 1)
+            ),
+            payload: RTLVerificationPayload(findingCount: 1)
+        )
+
+        #expect(result.diagnostics.first?.code.rawValue == "rtl.invalid-diagnostic-code")
+        #expect(result.diagnostics.first?.detail?.contains(" invalid-code") == true)
+    }
+
     private struct MockRTLVerificationEngine: RTLVerificationExecuting {
         func execute(
             _ request: RTLVerificationRequest
