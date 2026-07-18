@@ -14,9 +14,18 @@ import Testing
 
 @Suite("RTLVerificationEngine contract")
 struct ContractTests {
-    @Test("contract version starts at one")
-    func contractVersion() {
-        #expect(RTLVerificationEngineAPI.contractVersion == 1)
+    @Test("native capability metadata covers every routed analysis")
+    func nativeCapabilitiesCoverRoutedAnalyses() {
+        let capabilities = RTLVerificationEngine.capabilities
+        let routedEngineIDs = Set(RTLVerificationAnalysis.allCases.map(\.stageID))
+
+        #expect(Set(capabilities.map(\.engineID)) == routedEngineIDs)
+        #expect(capabilities.allSatisfy {
+            $0.schemaVersion == RTLVerificationCapability.currentSchemaVersion
+                && !$0.supportedInputFormats.isEmpty
+                && !$0.supportedOutputFormats.isEmpty
+                && !$0.features.isEmpty
+        })
     }
 
     @Test("lint rule catalog is versioned and repair-oriented")

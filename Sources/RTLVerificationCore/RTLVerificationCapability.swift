@@ -2,8 +2,10 @@ import Foundation
 import CircuiteFoundation
 
 public struct RTLVerificationCapability: Sendable, Hashable, Codable {
+    public static let currentSchemaVersion = 1
+
     public var engineID: String
-    public var contractVersion: Int
+    public var schemaVersion: Int
     public var supportedInputFormats: [ArtifactFormat]
     public var supportedOutputFormats: [ArtifactFormat]
     public var features: [String]
@@ -12,7 +14,7 @@ public struct RTLVerificationCapability: Sendable, Hashable, Codable {
 
     public init(
         engineID: String,
-        contractVersion: Int,
+        schemaVersion: Int,
         supportedInputFormats: [ArtifactFormat],
         supportedOutputFormats: [ArtifactFormat],
         features: [String],
@@ -20,7 +22,7 @@ public struct RTLVerificationCapability: Sendable, Hashable, Codable {
         record: RTLVerificationEvidenceAssessment = RTLVerificationEvidenceAssessment()
     ) {
         self.engineID = engineID
-        self.contractVersion = contractVersion
+        self.schemaVersion = schemaVersion
         self.supportedInputFormats = supportedInputFormats
         self.supportedOutputFormats = supportedOutputFormats
         self.features = features
