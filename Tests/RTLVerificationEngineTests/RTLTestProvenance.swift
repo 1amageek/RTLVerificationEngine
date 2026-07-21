@@ -13,9 +13,9 @@ func makeRTLTestProvenance(
     try ExecutionProvenance(
         producer: ProducerIdentity(
             kind: .engine,
-            identifier: engineID,
+            identifier: implementationID,
             version: implementationVersion,
-            build: implementationID
+            build: engineID
         ),
         invocation: ExecutionInvocation.inProcess(entryPoint: "RTLVerificationTests"),
         randomSeed: seed,

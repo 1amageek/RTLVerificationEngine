@@ -728,6 +728,7 @@ struct ContractTests {
 
         #expect(envelope.status == .completed)
         #expect(envelope.payload.proofStatus == "proved")
+        #expect(envelope.payload.proofArtifactIDs == ["rtl-verification-report"])
         #expect(envelope.payload.findings.contains { $0.code == "FORMAL_MAPPED_EXECUTION_PROVED" })
         #expect(envelope.payload.coverage.proofScope == "rtlToMappedExecutionStructural")
         #expect(envelope.artifacts.contains { $0.artifactID == "rtl-verification-report" })
@@ -1442,6 +1443,7 @@ struct ContractTests {
 
         #expect(envelope.status == .completed)
         #expect(envelope.payload.proofStatus == "proved")
+        #expect(envelope.payload.proofArtifactIDs == ["rtl-verification-report"])
         #expect(envelope.payload.coverage.sourceArtifacts.map(\.path) == [
             "formal-implementation.sv",
             "formal-implementation-child.sv",

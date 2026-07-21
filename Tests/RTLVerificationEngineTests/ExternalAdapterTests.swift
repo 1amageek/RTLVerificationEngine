@@ -7,8 +7,8 @@ import RTLVerificationCore
 import RTLVerificationEngine
 import ToolQualification
 
-@Suite("RTL external adapter")
-struct ExternalAdapterTests {
+@Suite("RTL external engine")
+struct ExternalEngineTests {
     @Test("ToolQualification-rejected external tools are blocked")
     func rejectedToolIsBlocked() async throws {
         let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
@@ -65,7 +65,7 @@ struct ExternalAdapterTests {
         let result = try await engine.execute(request)
 
         #expect(result.status == .completed)
-        #expect(result.provenance.producer.build == "qualified-tool")
+        #expect(result.provenance.producer.identifier == "qualified-tool")
     }
 
     @Test("external proof-view mismatches are rejected")
@@ -146,7 +146,7 @@ struct ExternalAdapterTests {
         }
     }
 
-    @Test("external adapter forwards the configured process timeout")
+    @Test("external engine forwards the configured process timeout")
     func externalTimeoutIsForwarded() async throws {
         let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
@@ -211,8 +211,8 @@ struct ExternalAdapterTests {
         #expect(result.rtlDiagnostics.first?.code == "RTL_EXTERNAL_TIMEOUT_INVALID")
     }
 
-    @Test("external adapter executes a real process and binds the request digest")
-    func externalAdapterExecutesRealProcess() async throws {
+    @Test("external engine executes a real process and binds the request digest")
+    func externalEngineExecutesRealProcess() async throws {
         let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-real-process",
@@ -226,7 +226,7 @@ struct ExternalAdapterTests {
         )
         let requestDigest = try RTLVerificationRequestDigest.make(request)
         let temporaryDirectory = FileManager.default.temporaryDirectory
-            .appending(path: "rtl-external-adapter-\(UUID().uuidString)")
+            .appending(path: "rtl-external-engine-\(UUID().uuidString)")
         try FileManager.default.createDirectory(
             at: temporaryDirectory,
             withIntermediateDirectories: true
@@ -235,7 +235,7 @@ struct ExternalAdapterTests {
             do {
                 try FileManager.default.removeItem(at: temporaryDirectory)
             } catch {
-                Issue.record("Could not remove external adapter fixture: \(error.localizedDescription)")
+                Issue.record("Could not remove external engine fixture: \(error.localizedDescription)")
             }
         }
 
@@ -275,11 +275,11 @@ struct ExternalAdapterTests {
 
         #expect(result.status == .completed)
         #expect(result.payload.requestDigest == requestDigest)
-        #expect(result.provenance.producer.build == "real-tool")
+        #expect(result.provenance.producer.identifier == "real-tool")
     }
 
-    @Test("external adapter blocks when a real process exceeds its timeout")
-    func externalAdapterRealProcessTimeoutBlocks() async throws {
+    @Test("external engine blocks when a real process exceeds its timeout")
+    func externalEngineRealProcessTimeoutBlocks() async throws {
         let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
         let request = RTLVerificationRequest(
             runID: "external-real-timeout",
@@ -415,7 +415,7 @@ struct ExternalAdapterTests {
 
         let result = try await executor.execute(request, native: native)
 
-        #expect(result.provenance.producer.build == "independent-oracle")
+        #expect(result.provenance.producer.identifier == "independent-oracle")
         #expect(result.payload.requestDigest == native.payload.requestDigest)
     }
 

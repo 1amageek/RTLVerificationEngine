@@ -46,7 +46,7 @@ public struct NativeFormalEquivalenceChecker: FormalEquivalenceChecking {
                 environment: environment,
                 startedAt: startedAt,
                 error: .invalidRequest(
-                    "Native formal supports only rtlToRtlStructural; the requested proof view requires a qualified solver adapter."
+                    "Native formal supports only rtlToRtlStructural; the requested proof view requires a qualified solver implementation."
                 )
             )
         }

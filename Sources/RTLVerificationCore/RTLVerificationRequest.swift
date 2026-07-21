@@ -102,6 +102,18 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
 }
 
 public extension RTLVerificationRequest {
+    var executionInputArtifacts: [ArtifactReference] {
+        var references = inputs + [design.artifact] + referenceInputs
+        if let referenceDesign {
+            references.append(referenceDesign.artifact)
+        }
+        if let constraints {
+            references.append(constraints.artifact)
+        }
+        var paths = Set<String>()
+        return references.filter { paths.insert($0.path).inserted }
+    }
+
     func designObjectReference() throws -> DesignObjectReference {
         try DesignObjectReference(kind: .cell, identifier: design.topDesignName)
     }

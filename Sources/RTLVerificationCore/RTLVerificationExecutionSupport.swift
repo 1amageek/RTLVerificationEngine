@@ -95,6 +95,9 @@ public enum RTLVerificationExecutionSupport {
             coverage: coverage,
             waiverMatches: waiverMatches,
             counterexampleArtifactIDs: counterexampleArtifactIDs,
+            proofArtifactIDs: request.analysis == .formalEquivalence && proofStatus == "proved"
+                ? ["rtl-verification-report"]
+                : [],
             record: assessment,
             proofView: proofView,
             assumptions: assumptions
@@ -185,11 +188,11 @@ public enum RTLVerificationExecutionSupport {
         let provenance = try ExecutionProvenance(
             producer: ProducerIdentity(
                 kind: .engine,
-                identifier: request.analysis.stageID,
+                identifier: implementationID,
                 version: implementationVersion,
-                build: implementationID
+                build: request.analysis.stageID
             ),
-            inputs: uniqueReferences(request.inputs + request.referenceInputs),
+            inputs: request.executionInputArtifacts,
             invocation: ExecutionInvocation.inProcess(
                 entryPoint: "RTLVerificationExecutionSupport.execute"
             ),
@@ -203,7 +206,7 @@ public enum RTLVerificationExecutionSupport {
             status: status,
             diagnostics: finalDiagnostics,
             payload: payload,
-            inputArtifacts: uniqueReferences(request.inputs + request.referenceInputs),
+            inputArtifacts: request.executionInputArtifacts,
             generatedAt: completedAt
         )
         let reportData = try encodeReport(report)

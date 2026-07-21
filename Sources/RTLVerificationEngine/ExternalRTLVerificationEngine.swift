@@ -246,11 +246,11 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             provenance: try ExecutionProvenance(
                 producer: ProducerIdentity(
                     kind: .tool,
-                    identifier: request.analysis.stageID,
+                    identifier: descriptor.toolID,
                     version: descriptor.version,
-                    build: descriptor.toolID
+                    build: request.analysis.stageID
                 ),
-                inputs: request.inputs + request.referenceInputs,
+                inputs: request.executionInputArtifacts,
                 invocation: ExecutionInvocation.externalProcess(
                     executable: descriptor.executablePath,
                     arguments: additionalArguments
