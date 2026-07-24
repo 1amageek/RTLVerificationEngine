@@ -1352,8 +1352,7 @@ struct ContractTests {
 
         let selfOracle = try replacingRTLTestProducer(
             in: native,
-            implementationID: native.provenance.producer.build
-                ?? native.provenance.producer.identifier,
+            implementationID: native.provenance.producer.identifier,
             implementationVersion: "self-oracle"
         )
         let selfReport = RTLVerificationOracleCorrelator().correlate(

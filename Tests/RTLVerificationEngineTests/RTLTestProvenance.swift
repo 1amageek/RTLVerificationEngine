@@ -36,7 +36,8 @@ func replacingRTLTestProducer(
         diagnostics: result.rtlDiagnostics,
         artifacts: result.artifacts,
         provenance: try makeRTLTestProvenance(
-            engineID: result.provenance.producer.identifier,
+            engineID: result.provenance.producer.build
+                ?? result.payload.analysis.stageID,
             implementationID: implementationID,
             implementationVersion: implementationVersion,
             startedAt: result.provenance.startedAt,

@@ -9,10 +9,8 @@ public struct RTLVerificationOracleCorrelator: RTLVerificationOracleCorrelating 
         oracle: RTLVerificationResult
     ) -> RTLVerificationOracleCorrelationReport {
         var mismatches: [RTLVerificationOracleCorrelationMismatch] = []
-        let nativeImplementationID = native.provenance.producer.build
-            ?? native.provenance.producer.identifier
-        let oracleImplementationID = oracle.provenance.producer.build
-            ?? oracle.provenance.producer.identifier
+        let nativeImplementationID = native.provenance.producer.identifier
+        let oracleImplementationID = oracle.provenance.producer.identifier
         let independenceVerified = nativeImplementationID != oracleImplementationID
         if !independenceVerified {
             mismatches.append(RTLVerificationOracleCorrelationMismatch(

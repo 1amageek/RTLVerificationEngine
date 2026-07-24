@@ -107,7 +107,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                     "External result request digest does not match the request."
                 )
             }
-            guard result.provenance.producer.build == descriptor.toolID else {
+            guard result.provenance.producer.identifier == descriptor.toolID else {
                 throw RTLVerificationExecutionError.invalidArtifact(
                     "External result implementation ID does not match the tool descriptor."
                 )
@@ -117,7 +117,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                     "External result implementation version does not match the tool descriptor."
                 )
             }
-            guard result.provenance.producer.identifier == request.analysis.stageID else {
+            guard result.provenance.producer.build == request.analysis.stageID else {
                 throw RTLVerificationExecutionError.invalidArtifact(
                     "External result engine ID does not match the requested analysis."
                 )
