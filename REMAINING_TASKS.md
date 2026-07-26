@@ -9,9 +9,6 @@ executable. Remaining work covers independent evidence and semantic depth.
 
 | ID | Priority | Owner | Task | Exit criteria |
 |---|---|---|---|---|
-| RTLV-1 | P1 | RTLVerificationEngine and oracle workflow | Retain an independent external reference-oracle correlation artifact. | Native and oracle executions use exact same-design payload binding, distinct implementation identity, verified proof/report bytes, immutable provenance, and deterministic matched/mismatched assessment. |
-| RTLV-2 | P1 | Qualification workflow | Supply process- and PDK-scoped evidence and obtain an eligible ToolQualification decision for external execution. | Descriptor, health, corpus, oracle, process, PDK, and proof artifacts satisfy exact scope, freshness, integrity, and independence requirements. |
-| RTLV-4 | P1 | RTLVerificationEngine and external solver adapter | Add solver-backed temporal equivalence for synthesized and DFT proof views. | Proof requests bind canonical implementation/reference artifacts, assumptions, solver identity, proof artifacts, counterexamples, timeout/cancellation, and independent qualification evidence. |
 | RTLV-W1 | P2 | LogicDesign dependency | Broaden the canonical SystemVerilog frontend only through LogicDesign. | Required IEEE semantics are added to LogicDesign and consumed through its public snapshot contract; RTLVerificationEngine does not fork a second frontend. |
 
 ## External prerequisites
@@ -24,6 +21,12 @@ process/PDK evidence and a ToolQualification decision. RTLV-4 requires an
 actual temporal solver and its independent qualification evidence. The package
 already owns and enforces the exact request, identity, artifact-integrity,
 timeout and cancellation contracts for those external inputs.
+
+| Former ID | Owner | Required evidence |
+|---|---|---|
+| RTLV-1 | Independent oracle workflow | Same-design native/oracle executions with distinct implementation identity, verified proof/report bytes, immutable provenance, and deterministic correlation. |
+| RTLV-2 | Qualification workflow | Process/PDK-scoped descriptor, health, corpus, oracle, proof, freshness, integrity, and independence evidence producing an eligible ToolQualification decision. |
+| RTLV-4 | Temporal solver provider and qualification workflow | An actual synthesized/DFT temporal solver retaining canonical request bindings, assumptions, proof/counterexample artifacts, timeout/cancellation behavior, identity, and independent qualification evidence. |
 
 ## Completed P1
 
