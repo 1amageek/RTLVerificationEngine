@@ -21,6 +21,7 @@ The work is intentionally staged around trust boundaries. The first implementati
 - Canonical `SystemVerilogFrontend` adapter into `LogicIR.RTLDesign`, with deterministic source-set preprocessing, generate expansion, connected hierarchy flattening and provenance mapping.
 - Multi-file implementation and reference source sets with deterministic defines, `ifdef`/`ifndef`/`elsif`/`else` conditional compilation, include resolution, include-cycle diagnostics and source provenance.
 - Native lint, CDC, RDC, RTL structural equivalence and mapped LogicEngine execution-graph equivalence backends.
+- Artifact-bound RDC reset/power intent with exact polarity, assertion mode, release-depth and power-domain scope checks; typed static and external-evidence exceptions; explicit SDC reset-waiver rejection.
 - Counterexample artifact persistence through the injected artifact writer.
 - Positive/negative retained fixtures, source-set formal fixtures, mapped graph pass/mismatch fixtures, corpus expectation evaluation and oracle-correlation tests.
 - Deterministic `rtl-verify` CLI with repeated RTL/reference inputs, SDC, frontend policy and `--record-input` artifact loading.
@@ -36,7 +37,6 @@ The work is intentionally staged around trust boundaries. The first implementati
 - Supply those evidence records to ToolQualification before an integrating flow accepts the external implementation.
 - Enforce bounded external process execution and retain timeout failures as structured diagnostics.
 - Extend the declared frontend boundary toward complete SystemVerilog preprocessing/elaboration and publish the language coverage matrix; the current adapter covers parameters, case statements, hierarchy and generate blocks in the declared subset.
-- Project SDC clocks and timing exceptions into CDC/RDC analysis instead of treating `constraints` as an unused request field.
 - Add proof-view identity, assumptions and trace semantics for RTL-to-synthesized and synthesized-to-DFT equivalence.
 - Extend the persisted corpus-run artifact pattern to oracle and process evidence,
   then let Xcircuite bind those immutable artifacts to its audit packet. Typed

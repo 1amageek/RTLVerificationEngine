@@ -1,6 +1,7 @@
 import Darwin
 import Foundation
 import LogicIR
+import PowerIntent
 import RTLVerificationCore
 import RTLVerificationEngine
 import TimingCore
@@ -44,7 +45,7 @@ struct RTLVerificationCLI {
                 diagnostics: [RTLDiagnostic(
                     severity: .info,
                     code: "RTL_CLI_HELP",
-                message: "Use --analysis, --project-root, repeated --rtl/--reference, --top, --run-id, optional --constraint, frontend options, proof view, waivers, assumptions and --record-input.",
+                message: "Use --analysis, --project-root, repeated --rtl/--reference, --top, --run-id, optional --constraint, paired --reset-intent/--power-intent, frontend options, proof view, waivers, assumptions and --record-input.",
                 suggestedActions: ["run_rtl_verify"]
                 )],
                 provenance: try ExecutionProvenance(
@@ -116,6 +117,37 @@ struct RTLVerificationCLI {
         } else {
             constraintReference = nil
         }
+        let resetIntentReference: RTLResetIntentReference?
+        let powerIntentReference: PowerIntentReference?
+        if let resetIntentPath = options.resetIntentPath,
+           let powerIntentPath = options.powerIntentPath {
+            let resetArtifact = try referenceBuilder.reference(
+                forProjectRelativePath: resetIntentPath,
+                artifactID: "rtl-reset-intent",
+                kind: .constraint,
+                format: .json,
+                inProjectAt: options.projectRoot
+            )
+            let powerArtifact = try referenceBuilder.reference(
+                forProjectRelativePath: powerIntentPath,
+                artifactID: "rtl-power-intent",
+                kind: .powerIntent,
+                format: .json,
+                inProjectAt: options.projectRoot
+            )
+            resetIntentReference = RTLResetIntentReference(artifact: resetArtifact)
+            powerIntentReference = PowerIntentReference(
+                artifact: powerArtifact,
+                designDigest: design.designDigest
+            )
+        } else if options.resetIntentPath != nil || options.powerIntentPath != nil {
+            throw RTLVerificationExecutionError.invalidRequest(
+                "--reset-intent and --power-intent must be supplied together."
+            )
+        } else {
+            resetIntentReference = nil
+            powerIntentReference = nil
+        }
         let waivers = try options.waiversPath.map {
             try referenceBuilder.readJSON([RTLVerificationWaiver].self, named: $0, forProjectAt: options.projectRoot)
         } ?? []
@@ -131,11 +163,16 @@ struct RTLVerificationCLI {
         }
         let request = RTLVerificationRequest(
             runID: options.runID,
-            inputs: rtlReferences + (constraintReference.map { [$0.artifact] } ?? []),
+            inputs: rtlReferences
+                + (constraintReference.map { [$0.artifact] } ?? [])
+                + (resetIntentReference.map { [$0.artifact] } ?? [])
+                + (powerIntentReference.map { [$0.artifact] } ?? []),
             design: design,
             referenceDesign: referenceDesign,
             referenceInputs: referenceInputs,
             constraints: constraintReference,
+            resetIntent: resetIntentReference,
+            powerIntent: powerIntentReference,
             analysis: options.analysis,
             policy: RTLVerificationPolicy(
                 requiredProof: options.requiredProof,
@@ -185,6 +222,8 @@ struct RTLVerificationCLI {
         var referencePaths: [String] = []
         var constraintPath: String?
         var constraintModes: [String] = []
+        var resetIntentPath: String?
+        var powerIntentPath: String?
         var waiversPath: String?
         var assumptionsPath: String?
         var evidenceInputPath: String?
@@ -218,6 +257,10 @@ struct RTLVerificationCLI {
                     constraintPath = try next(arguments, index: &index)
                 case "--constraint-mode":
                     constraintModes.append(try next(arguments, index: &index))
+                case "--reset-intent":
+                    resetIntentPath = try next(arguments, index: &index)
+                case "--power-intent":
+                    powerIntentPath = try next(arguments, index: &index)
                 case "--waivers":
                     waiversPath = try next(arguments, index: &index)
                 case "--assumptions":

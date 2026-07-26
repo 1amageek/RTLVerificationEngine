@@ -64,6 +64,7 @@ let package = Package(
             dependencies: [
                 .product(name: "CircuiteFoundation", package: "CircuiteFoundation"),
                 .product(name: "LogicIR", package: "LogicDesign"),
+                .product(name: "PowerIntent", package: "LogicDesign"),
                 .product(name: "SystemVerilogFrontend", package: "LogicDesign"),
                 .product(name: "TimingCore", package: "TimingEngine")
             ]
@@ -95,7 +96,12 @@ let package = Package(
         ),
         .executableTarget(
             name: "RTLVerificationCLI",
-            dependencies: ["RTLVerificationEngine", "RTLVerificationCore", .product(name: "LogicIR", package: "LogicDesign")]
+            dependencies: [
+                "RTLVerificationEngine",
+                "RTLVerificationCore",
+                .product(name: "LogicIR", package: "LogicDesign"),
+                .product(name: "PowerIntent", package: "LogicDesign"),
+            ]
         ),
         .testTarget(
             name: "RTLVerificationEngineTests",
@@ -109,6 +115,7 @@ let package = Package(
                 .product(name: "ToolQualification", package: "ToolQualification"),
                 .product(name: "LogicEngineCore", package: "LogicEngine"),
                 .product(name: "LogicLowering", package: "LogicEngine"),
+                .product(name: "PowerIntent", package: "LogicDesign"),
             ],
             resources: [.copy("Fixtures")]
         ),

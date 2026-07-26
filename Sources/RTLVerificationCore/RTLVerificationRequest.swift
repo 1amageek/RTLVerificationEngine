@@ -1,6 +1,7 @@
 import CircuiteFoundation
 import Foundation
 import LogicIR
+import PowerIntent
 import TimingCore
 
 public struct RTLVerificationRequest: RTLExecutionRequest {
@@ -14,6 +15,8 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
     public var referenceDesign: LogicDesignReference?
     public var referenceInputs: [ArtifactReference]
     public var constraints: RTLConstraintReference?
+    public var resetIntent: RTLResetIntentReference?
+    public var powerIntent: PowerIntentReference?
     public var analysis: RTLVerificationAnalysis
     public var policy: RTLVerificationPolicy
     public var waivers: [RTLVerificationWaiver]
@@ -30,6 +33,8 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
         case referenceDesign
         case referenceInputs
         case constraints
+        case resetIntent
+        case powerIntent
         case analysis
         case policy
         case waivers
@@ -46,6 +51,8 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
         referenceDesign: LogicDesignReference? = nil,
         referenceInputs: [ArtifactReference] = [],
         constraints: RTLConstraintReference? = nil,
+        resetIntent: RTLResetIntentReference? = nil,
+        powerIntent: PowerIntentReference? = nil,
         analysis: RTLVerificationAnalysis = .lint,
         policy: RTLVerificationPolicy = RTLVerificationPolicy(),
         waivers: [RTLVerificationWaiver] = [],
@@ -61,6 +68,8 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
         self.referenceDesign = referenceDesign
         self.referenceInputs = referenceInputs
         self.constraints = constraints
+        self.resetIntent = resetIntent
+        self.powerIntent = powerIntent
         self.analysis = analysis
         self.policy = policy
         self.waivers = waivers
@@ -87,6 +96,14 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
             referenceDesign: try container.decodeIfPresent(LogicDesignReference.self, forKey: .referenceDesign),
             referenceInputs: try container.decode([ArtifactReference].self, forKey: .referenceInputs),
             constraints: try container.decodeIfPresent(RTLConstraintReference.self, forKey: .constraints),
+            resetIntent: try container.decodeIfPresent(
+                RTLResetIntentReference.self,
+                forKey: .resetIntent
+            ),
+            powerIntent: try container.decodeIfPresent(
+                PowerIntentReference.self,
+                forKey: .powerIntent
+            ),
             analysis: try container.decode(RTLVerificationAnalysis.self, forKey: .analysis),
             policy: try container.decode(RTLVerificationPolicy.self, forKey: .policy),
             waivers: try container.decode([RTLVerificationWaiver].self, forKey: .waivers),
@@ -109,6 +126,12 @@ public extension RTLVerificationRequest {
         }
         if let constraints {
             references.append(constraints.artifact)
+        }
+        if let resetIntent {
+            references.append(resetIntent.artifact)
+        }
+        if let powerIntent {
+            references.append(powerIntent.artifact)
         }
         var paths = Set<String>()
         return references.filter { paths.insert($0.path).inserted }

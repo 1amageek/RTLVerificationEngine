@@ -58,7 +58,7 @@ Umbrella API.
 |---|---|
 | `NativeRTLLintEngine` | symbol resolution, width checks, driver checks, sequential assignment checks, combinational loops, undriven outputs |
 | `NativeCDCAnalyzer` | sequential clock inference, order-independent source-domain crossings, asynchronous crossings, synchronizer pattern recognition, reconvergence |
-| `NativeRDCAnalyzer` | reset inference, reset domain mapping, missing/multiple reset events, reset crossings |
+| `NativeRDCAnalyzer` | reset inference, reset-domain mapping, conservative release-stage recognition, paired reset/power-intent validation, typed reset exceptions, and explicit unsupported-temporal blockers |
 | `NativeFormalEquivalenceChecker` | exact RTL-to-RTL and mapped execution structural equivalence with machine-readable counterexamples |
 | `ExternalRTLVerificationEngine` | same result contract for an external command accepted by an injected `ToolTrustDecision`, with exact request-digest binding and solver proof artifact checks |
 

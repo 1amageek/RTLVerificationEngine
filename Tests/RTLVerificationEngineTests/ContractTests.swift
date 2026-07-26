@@ -3,6 +3,7 @@ import Foundation
 import LogicEngineCore
 import LogicLowering
 import LogicIR
+import PowerIntent
 import TimingCore
 import Testing
 @testable import RTLVerificationCore
@@ -493,6 +494,56 @@ struct ContractTests {
         #expect(envelope.payload.findings.contains { $0.code == "RDC_CLOCK_UNCONSTRAINED" })
     }
 
+    @Test("RDC rejects SDC path exceptions as implicit reset waivers", .timeLimit(.minutes(1)))
+    func rdcRejectsSDCResetWaiver() async throws {
+        let source = """
+        module top(input logic clk, input logic rst_n, output logic q);
+          always_ff @(posedge clk or negedge rst_n) begin
+            if (!rst_n) q <= 1'b0;
+            else q <= 1'b1;
+          end
+        endmodule
+        """
+        let constraintData = Data(
+            """
+            create_clock -name clk -period 10 [get_ports clk]
+            set_false_path -from [get_ports rst_n] -to [get_ports q]
+            """.utf8
+        )
+        let rtlData = Data(source.utf8)
+        let rtl = makeReference(
+            path: "rdc-reset-false-path.sv",
+            format: .systemVerilog,
+            data: rtlData
+        )
+        let sdc = makeTestArtifactReference(
+            path: "rdc-reset-false-path.sdc",
+            kind: .constraint,
+            format: .sdc,
+            data: constraintData
+        )
+        let reader = InMemoryRTLArtifactReader(artifacts: [
+            rtl.path: rtlData,
+            sdc.path: constraintData,
+        ])
+        var request = makeRequest(
+            reference: rtl,
+            analysis: .rdc,
+            constraints: RTLConstraintReference(
+                artifact: sdc,
+                modeIDs: ["reset-signoff"]
+            )
+        )
+        request.inputs.append(sdc)
+
+        let envelope = try await NativeRDCAnalyzer(reader: reader).execute(request)
+
+        #expect(envelope.status == .blocked)
+        #expect(envelope.payload.findings.contains {
+            $0.code == "RDC_SDC_EXCEPTION_NOT_RESET_WAIVER"
+        })
+    }
+
     @Test("RDC records recognized reset release synchronizers across clock domains", .timeLimit(.minutes(1)))
     func rdcRecognizesResetReleaseSynchronizers() async throws {
         let source = """
@@ -525,15 +576,380 @@ struct ContractTests {
         endmodule
         """
         let reference = makeReference(path: "rdc-reset-sync.sv", format: .systemVerilog, data: Data(source.utf8))
-        let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: Data(source.utf8)])
+        let resetIntent = RTLResetIntent(domains: [
+            RTLResetIntent.Domain(
+                resetSignal: "rst_n",
+                clockSignal: "clk_a",
+                powerDomainID: "domain-a",
+                polarity: .activeLow,
+                assertionMode: .asynchronous,
+                minimumReleaseStages: 2
+            ),
+            RTLResetIntent.Domain(
+                resetSignal: "rst_n",
+                clockSignal: "clk_b",
+                powerDomainID: "domain-b",
+                polarity: .activeLow,
+                assertionMode: .asynchronous,
+                minimumReleaseStages: 2
+            ),
+        ])
+        let powerIntent = PowerIntentDesign(
+            format: .upf,
+            domains: [
+                PowerDomain(id: "domain-a", name: "domain-a", elements: ["top/clock-a"]),
+                PowerDomain(id: "domain-b", name: "domain-b", elements: ["top/clock-b"]),
+            ]
+        )
+        let resetIntentData = try JSONEncoder().encode(resetIntent)
+        let powerIntentData = try JSONEncoder().encode(powerIntent)
+        let resetIntentArtifact = makeTestArtifactReference(
+            path: "rdc-reset-intent.json",
+            kind: .constraint,
+            format: .json,
+            data: resetIntentData
+        )
+        let powerIntentArtifact = makeTestArtifactReference(
+            path: "rdc-power-intent.json",
+            kind: .powerIntent,
+            format: .json,
+            data: powerIntentData
+        )
+        let reader = InMemoryRTLArtifactReader(artifacts: [
+            reference.path: Data(source.utf8),
+            resetIntentArtifact.path: resetIntentData,
+            powerIntentArtifact.path: powerIntentData,
+        ])
+        var request = makeRequest(reference: reference, analysis: .rdc)
+        request.resetIntent = RTLResetIntentReference(artifact: resetIntentArtifact)
+        request.powerIntent = PowerIntentReference(
+            artifact: powerIntentArtifact,
+            designDigest: request.design.designDigest
+        )
+        request.inputs.append(contentsOf: [resetIntentArtifact, powerIntentArtifact])
 
         let envelope = try await NativeRDCAnalyzer(reader: reader).execute(
-            makeRequest(reference: reference, analysis: .rdc)
+            request
         )
 
         #expect(envelope.status == .completed)
         #expect(envelope.payload.coverage.resetReleaseDomains == ["rst_n@clk_a", "rst_n@clk_b"])
         #expect(!envelope.payload.findings.contains { $0.code == "RDC_UNSAFE_RESET_CROSSING" })
+
+        var mismatchedIntent = resetIntent
+        mismatchedIntent.domains[0].polarity = .activeHigh
+        let mismatchedIntentData = try JSONEncoder().encode(mismatchedIntent)
+        let mismatchedIntentArtifact = makeTestArtifactReference(
+            path: "rdc-reset-intent-polarity-mismatch.json",
+            kind: .constraint,
+            format: .json,
+            data: mismatchedIntentData
+        )
+        var mismatchedRequest = request
+        mismatchedRequest.resetIntent = RTLResetIntentReference(
+            artifact: mismatchedIntentArtifact
+        )
+        mismatchedRequest.inputs.removeAll { $0.path == resetIntentArtifact.path }
+        mismatchedRequest.inputs.append(mismatchedIntentArtifact)
+        let mismatchedReader = InMemoryRTLArtifactReader(artifacts: [
+            reference.path: Data(source.utf8),
+            mismatchedIntentArtifact.path: mismatchedIntentData,
+            powerIntentArtifact.path: powerIntentData,
+        ])
+        let mismatchedResult = try await NativeRDCAnalyzer(
+            reader: mismatchedReader
+        ).execute(mismatchedRequest)
+        #expect(mismatchedResult.status == .blocked)
+        #expect(mismatchedResult.payload.findings.contains {
+            $0.code == "RDC_RESET_POLARITY_MISMATCH"
+        })
+
+        var ambiguousPowerIntent = powerIntent
+        ambiguousPowerIntent.domains[1].elements = ["top/clock-a"]
+        let ambiguousPowerData = try JSONEncoder().encode(ambiguousPowerIntent)
+        let ambiguousPowerArtifact = makeTestArtifactReference(
+            path: "rdc-power-intent-ambiguous.json",
+            kind: .powerIntent,
+            format: .json,
+            data: ambiguousPowerData
+        )
+        var ambiguousPowerRequest = request
+        ambiguousPowerRequest.powerIntent = PowerIntentReference(
+            artifact: ambiguousPowerArtifact,
+            designDigest: request.design.designDigest
+        )
+        ambiguousPowerRequest.inputs.removeAll {
+            $0.path == powerIntentArtifact.path
+        }
+        ambiguousPowerRequest.inputs.append(ambiguousPowerArtifact)
+        let ambiguousPowerReader = InMemoryRTLArtifactReader(artifacts: [
+            reference.path: Data(source.utf8),
+            resetIntentArtifact.path: resetIntentData,
+            ambiguousPowerArtifact.path: ambiguousPowerData,
+        ])
+        let ambiguousPowerResult = try await NativeRDCAnalyzer(
+            reader: ambiguousPowerReader
+        ).execute(ambiguousPowerRequest)
+        #expect(ambiguousPowerResult.status == .blocked)
+        #expect(ambiguousPowerResult.rtlDiagnostics.contains {
+            $0.code == "RTL_ARTIFACT_INVALID"
+        })
+    }
+
+    @Test("RDC binds typed reset exceptions to retained request evidence", .timeLimit(.minutes(1)))
+    func rdcBindsTypedResetExceptions() async throws {
+        let source = """
+        module top(input logic clk_a, input logic clk_b, input logic rst_n, output logic q_a, output logic q_b);
+          logic a_sync1;
+          logic a_sync2;
+          logic b_sync1;
+          logic b_sync2;
+          always_ff @(posedge clk_a or negedge rst_n) begin
+            if (!rst_n) begin
+              a_sync1 <= 1'b0;
+              a_sync2 <= 1'b0;
+            end else begin
+              a_sync1 <= 1'b1;
+              a_sync2 <= a_sync1;
+            end
+          end
+          always_ff @(posedge clk_b or negedge rst_n) begin
+            if (!rst_n) begin
+              b_sync1 <= 1'b0;
+              b_sync2 <= 1'b0;
+            end else begin
+              b_sync1 <= 1'b1;
+              b_sync2 <= b_sync1;
+            end
+          end
+          assign q_a = a_sync2;
+          assign q_b = b_sync2;
+        endmodule
+        """
+        let rtlData = Data(source.utf8)
+        let rtl = makeReference(
+            path: "rdc-reset-exception.sv",
+            format: .systemVerilog,
+            data: rtlData
+        )
+        let resetIntent = RTLResetIntent(
+            domains: [
+                RTLResetIntent.Domain(
+                    resetSignal: "rst_n",
+                    clockSignal: "clk_a",
+                    powerDomainID: "domain-a",
+                    polarity: .activeLow,
+                    assertionMode: .asynchronous,
+                    minimumReleaseStages: 3
+                ),
+                RTLResetIntent.Domain(
+                    resetSignal: "rst_n",
+                    clockSignal: "clk_b",
+                    powerDomainID: "domain-b",
+                    polarity: .activeLow,
+                    assertionMode: .asynchronous,
+                    minimumReleaseStages: 2
+                ),
+            ],
+            exceptions: [
+                RTLResetIntent.Exception(
+                    exceptionID: "static-reset-a",
+                    kind: .staticDuringOperation,
+                    resetSignal: "rst_n",
+                    clockSignal: "clk_a",
+                    assumptionID: "reset-a-static",
+                    rationale: "The retained operating mode keeps reset inactive."
+                )
+            ]
+        )
+        let powerIntent = PowerIntentDesign(
+            format: .upf,
+            domains: [
+                PowerDomain(id: "domain-a", name: "domain-a", elements: ["top/clock-a"]),
+                PowerDomain(id: "domain-b", name: "domain-b", elements: ["top/clock-b"]),
+            ]
+        )
+        let resetData = try JSONEncoder().encode(resetIntent)
+        let powerData = try JSONEncoder().encode(powerIntent)
+        let resetArtifact = makeTestArtifactReference(
+            path: "rdc-reset-exception.json",
+            kind: .constraint,
+            format: .json,
+            data: resetData
+        )
+        let powerArtifact = makeTestArtifactReference(
+            path: "rdc-reset-exception-power.json",
+            kind: .powerIntent,
+            format: .json,
+            data: powerData
+        )
+        let reader = InMemoryRTLArtifactReader(artifacts: [
+            rtl.path: rtlData,
+            resetArtifact.path: resetData,
+            powerArtifact.path: powerData,
+        ])
+        var request = makeRequest(
+            reference: rtl,
+            analysis: .rdc,
+            assumptions: [
+                RTLVerificationAssumption(
+                    assumptionID: "reset-a-static",
+                    statement: "rst_n remains inactive during the retained operating mode.",
+                    rationale: "The operating-mode controller is frozen for this analysis."
+                )
+            ]
+        )
+        request.resetIntent = RTLResetIntentReference(artifact: resetArtifact)
+        request.powerIntent = PowerIntentReference(
+            artifact: powerArtifact,
+            designDigest: request.design.designDigest
+        )
+        request.inputs.append(contentsOf: [resetArtifact, powerArtifact])
+
+        let accepted = try await NativeRDCAnalyzer(reader: reader).execute(request)
+
+        #expect(accepted.status == .completed)
+        #expect(accepted.payload.coverage.resetReleaseDomains == [
+            "rst_n@clk_a",
+            "rst_n@clk_b",
+        ])
+
+        request.assumptions = []
+        let rejected = try await NativeRDCAnalyzer(reader: reader).execute(request)
+        #expect(rejected.status == .blocked)
+        #expect(rejected.rtlDiagnostics.contains { $0.code == "RTL_ARTIFACT_INVALID" })
+
+        var externalIntent = resetIntent
+        externalIntent.exceptions = [
+            RTLResetIntent.Exception(
+                exceptionID: "external-reset-a",
+                kind: .externallySynchronized,
+                resetSignal: "rst_n",
+                clockSignal: "clk_a",
+                evidenceArtifactID: "reset-sync-evidence",
+                rationale: "The retained evidence proves the exact reset release domain."
+            )
+        ]
+        let externalIntentData = try JSONEncoder().encode(externalIntent)
+        let externalIntentArtifact = makeTestArtifactReference(
+            path: "rdc-reset-external-exception.json",
+            kind: .constraint,
+            format: .json,
+            data: externalIntentData
+        )
+        let evidence = RTLResetSynchronizationEvidence(
+            resetSignal: "rst_n",
+            clockSignal: "clk_a",
+            releaseSynchronized: true,
+            method: "independent-temporal-analysis"
+        )
+        let evidenceData = try JSONEncoder().encode(evidence)
+        let evidenceArtifact = makeTestArtifactReference(
+            artifactID: "reset-sync-evidence",
+            path: "rdc-reset-sync-evidence.json",
+            kind: .evidence,
+            format: .json,
+            data: evidenceData
+        )
+        let externalReader = InMemoryRTLArtifactReader(artifacts: [
+            rtl.path: rtlData,
+            externalIntentArtifact.path: externalIntentData,
+            powerArtifact.path: powerData,
+            evidenceArtifact.path: evidenceData,
+        ])
+        request.resetIntent = RTLResetIntentReference(
+            artifact: externalIntentArtifact
+        )
+        request.inputs.removeAll { $0.locator.kind == .constraint }
+        request.inputs.append(contentsOf: [externalIntentArtifact, evidenceArtifact])
+
+        let externallyAccepted = try await NativeRDCAnalyzer(
+            reader: externalReader
+        ).execute(request)
+        #expect(externallyAccepted.status == .completed)
+
+        let mismatchedEvidence = RTLResetSynchronizationEvidence(
+            resetSignal: "rst_n",
+            clockSignal: "clk_b",
+            releaseSynchronized: true,
+            method: "independent-temporal-analysis"
+        )
+        let mismatchedEvidenceData = try JSONEncoder().encode(mismatchedEvidence)
+        let mismatchedEvidenceArtifact = makeTestArtifactReference(
+            artifactID: "reset-sync-evidence",
+            path: "rdc-reset-sync-evidence-mismatch.json",
+            kind: .evidence,
+            format: .json,
+            data: mismatchedEvidenceData
+        )
+        request.inputs.removeAll { $0.artifactID == "reset-sync-evidence" }
+        request.inputs.append(mismatchedEvidenceArtifact)
+        externalIntent.exceptions[0].evidenceArtifactID = "reset-sync-evidence"
+        let mismatchedReader = InMemoryRTLArtifactReader(artifacts: [
+            rtl.path: rtlData,
+            externalIntentArtifact.path: externalIntentData,
+            powerArtifact.path: powerData,
+            mismatchedEvidenceArtifact.path: mismatchedEvidenceData,
+        ])
+        let externallyRejected = try await NativeRDCAnalyzer(
+            reader: mismatchedReader
+        ).execute(request)
+        #expect(externallyRejected.status == .blocked)
+        #expect(externallyRejected.rtlDiagnostics.contains {
+            $0.code == "RTL_ARTIFACT_INVALID"
+        })
+    }
+
+    @Test(
+        "RDC blocks structurally synchronized cross-domain release without reset and power intent",
+        .timeLimit(.minutes(1))
+    )
+    func rdcRequiresIntentForCrossDomainRelease() async throws {
+        let source = """
+        module top(input logic clk_a, input logic clk_b, input logic rst_n, output logic q_a, output logic q_b);
+          logic a_sync1;
+          logic a_sync2;
+          logic b_sync1;
+          logic b_sync2;
+          always_ff @(posedge clk_a or negedge rst_n) begin
+            if (!rst_n) begin
+              a_sync1 <= 1'b0;
+              a_sync2 <= 1'b0;
+            end else begin
+              a_sync1 <= 1'b1;
+              a_sync2 <= a_sync1;
+            end
+          end
+          always_ff @(posedge clk_b or negedge rst_n) begin
+            if (!rst_n) begin
+              b_sync1 <= 1'b0;
+              b_sync2 <= 1'b0;
+            end else begin
+              b_sync1 <= 1'b1;
+              b_sync2 <= b_sync1;
+            end
+          end
+          assign q_a = a_sync2;
+          assign q_b = b_sync2;
+        endmodule
+        """
+        let data = Data(source.utf8)
+        let reference = makeReference(
+            path: "rdc-reset-intent-required.sv",
+            format: .systemVerilog,
+            data: data
+        )
+        let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: data])
+
+        let envelope = try await NativeRDCAnalyzer(reader: reader).execute(
+            makeRequest(reference: reference, analysis: .rdc)
+        )
+
+        #expect(envelope.status == .blocked)
+        #expect(envelope.payload.findings.contains {
+            $0.code == "RDC_RESET_INTENT_REQUIRED"
+        })
+        #expect(envelope.payload.coverage.resetReleaseDomains.isEmpty)
     }
 
     @Test("RDC does not treat a mixed reset domain as synchronized", .timeLimit(.minutes(1)))
