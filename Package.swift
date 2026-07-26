@@ -25,7 +25,7 @@ let timingEngineDependency: Package.Dependency = isLSIWorkspace && FileManager.d
     atPath: workspaceRoot.appendingPathComponent("TimingEngine/Package.swift").path
 )
     ? .package(path: "../TimingEngine")
-    : .package(url: "https://github.com/1amageek/TimingEngine.git", revision: "92be84d192ca38daf41c655beb216d5edc5bd4dc")
+    : .package(url: "https://github.com/1amageek/TimingEngine.git", revision: "7809651994017a932314b747b948ac14e32e779b")
 
 let toolQualificationDependency: Package.Dependency = isLSIWorkspace && FileManager.default.fileExists(
     atPath: workspaceRoot.appendingPathComponent("ToolQualification/Package.swift").path
@@ -37,7 +37,7 @@ let logicEngineDependency: Package.Dependency = isLSIWorkspace && FileManager.de
     atPath: workspaceRoot.appendingPathComponent("LogicEngine/Package.swift").path
 )
     ? .package(path: "../LogicEngine")
-    : .package(url: "https://github.com/1amageek/LogicEngine.git", revision: "31a4247a2acc78dee5c476995d42cca3512b09a0")
+    : .package(url: "https://github.com/1amageek/LogicEngine.git", revision: "f162f844b9e5f29da2307f3620a069cc37255fb6")
 
 let package = Package(
     name: "RTLVerificationEngine",
