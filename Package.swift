@@ -13,19 +13,19 @@ let circuiteFoundationDependency: Package.Dependency = isLSIWorkspace && FileMan
     atPath: workspaceRoot.appendingPathComponent("CircuiteFoundation/Package.swift").path
 )
     ? .package(path: "../CircuiteFoundation")
-    : .package(url: "https://github.com/1amageek/CircuiteFoundation.git", revision: "dc792c88e189c822c9f83ea86cf139ee68560dca")
+    : .package(url: "https://github.com/1amageek/CircuiteFoundation.git", revision: "1dd75ecf2b8758c54c4e008ff5fd59e263cce0e6")
 
 let logicDesignDependency: Package.Dependency = isLSIWorkspace && FileManager.default.fileExists(
     atPath: workspaceRoot.appendingPathComponent("LogicDesign/Package.swift").path
 )
     ? .package(path: "../LogicDesign")
-    : .package(url: "https://github.com/1amageek/LogicDesign.git", revision: "e8f8e1dace0445ddd816929c4ca0fe17cca12a7b")
+    : .package(url: "https://github.com/1amageek/LogicDesign.git", revision: "1ad3b929412e9d459be45a7cb3a426d99aa9417b")
 
 let timingEngineDependency: Package.Dependency = isLSIWorkspace && FileManager.default.fileExists(
     atPath: workspaceRoot.appendingPathComponent("TimingEngine/Package.swift").path
 )
     ? .package(path: "../TimingEngine")
-    : .package(url: "https://github.com/1amageek/TimingEngine.git", revision: "7809651994017a932314b747b948ac14e32e779b")
+    : .package(url: "https://github.com/1amageek/TimingEngine.git", revision: "9f58f40b03ab5098bd93658798ce410090f3d380")
 
 let toolQualificationDependency: Package.Dependency = isLSIWorkspace && FileManager.default.fileExists(
     atPath: workspaceRoot.appendingPathComponent("ToolQualification/Package.swift").path
@@ -37,7 +37,7 @@ let logicEngineDependency: Package.Dependency = isLSIWorkspace && FileManager.de
     atPath: workspaceRoot.appendingPathComponent("LogicEngine/Package.swift").path
 )
     ? .package(path: "../LogicEngine")
-    : .package(url: "https://github.com/1amageek/LogicEngine.git", revision: "f162f844b9e5f29da2307f3620a069cc37255fb6")
+    : .package(url: "https://github.com/1amageek/LogicEngine.git", revision: "fc36a86a61e3e9e704bc9a7f6e4b70da5000cc25")
 
 let package = Package(
     name: "RTLVerificationEngine",

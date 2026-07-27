@@ -49,7 +49,13 @@ struct FoundationBoundaryTests {
         #expect(envelope.evidence.artifacts[0].digest.hexadecimalValue == digest)
         #expect(envelope.diagnostics.count == 1)
         #expect(envelope.diagnostics[0].severity == .error)
-        #expect(envelope.diagnostics[0].subject?.identifier == "top.u1")
+        guard case .path(let subject) = envelope.diagnostics[0].subject else {
+            Issue.record("Expected a canonical path subject")
+            return
+        }
+        #expect(subject.facetID.rawValue == "rtl")
+        #expect(subject.kindID.rawValue == "entity")
+        #expect(subject.localIdentifier == "top.u1")
         let evidenceID = envelope.evidence.id
         #expect(envelope.evidence.id == evidenceID)
         let decoded = try JSONDecoder().decode(

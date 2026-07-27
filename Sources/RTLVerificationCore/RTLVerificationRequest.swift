@@ -137,7 +137,13 @@ public extension RTLVerificationRequest {
         return references.filter { paths.insert($0.path).inserted }
     }
 
-    func designObjectReference() throws -> DesignObjectReference {
-        try DesignObjectReference(kind: .cell, identifier: design.topDesignName)
+    func designSubjectReference() throws -> DesignSubjectReference {
+        .path(
+            try DesignPathReference(
+                facetID: DesignFacetID(rawValue: "rtl"),
+                kindID: DesignEntityKindID(rawValue: "design"),
+                localIdentifier: design.topDesignName
+            )
+        )
     }
 }

@@ -91,13 +91,16 @@ public struct RTLVerificationResult: Sendable, Hashable, Codable, ArtifactProduc
         } catch {
             code = .trusted("rtl.invalid-diagnostic-code")
         }
-        let subject: DesignObjectReference?
+        let subject: DesignSubjectReference?
         let invalidEntityDetail: String?
         if let entity = diagnostic.entity, !entity.isEmpty {
             do {
-                subject = try DesignObjectReference(
-                    kind: DesignObjectKind(rawValue: "rtl.entity"),
-                    identifier: entity
+                subject = .path(
+                    try DesignPathReference(
+                        facetID: DesignFacetID(rawValue: "rtl"),
+                        kindID: DesignEntityKindID(rawValue: "entity"),
+                        localIdentifier: entity
+                    )
                 )
                 invalidEntityDetail = nil
             } catch {
