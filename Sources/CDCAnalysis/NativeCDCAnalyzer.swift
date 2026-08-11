@@ -30,10 +30,13 @@ public struct NativeCDCAnalyzer: CDCAnalyzing {
             )
         }
         do {
-            let parsed = try RTLVerificationDesignLoader(reader: environment.reader, parser: environment.parser).load(request)
+            let parsed = try await RTLVerificationDesignLoader(reader: environment.reader, parser: environment.parser).load(request)
             let constraintContext: RTLVerificationConstraintContext
             if let constraints = request.constraints {
-                constraintContext = try RTLVerificationConstraintLoader(reader: environment.reader).load(constraints)
+                constraintContext = try await RTLVerificationConstraintLoader(reader: environment.reader).load(
+                    constraints,
+                    request: request
+                )
             } else {
                 constraintContext = RTLVerificationConstraintContext()
             }

@@ -7,7 +7,7 @@ public struct RTLVerificationEvidenceInputArtifactAuditor: Sendable {
     public func audit(
         _ input: RTLVerificationEvidenceInput,
         reader: any RTLArtifactReading
-    ) throws {
+    ) async throws {
         for (index, evidence) in input.oracleEvidence.enumerated() {
             guard evidence.isAuditable else {
                 throw RTLVerificationEvidenceInputArtifactAuditError.oracleEvidenceNotAuditable(
@@ -15,22 +15,25 @@ public struct RTLVerificationEvidenceInputArtifactAuditor: Sendable {
                     evidenceID: evidence.evidenceID
                 )
             }
-            try verify([evidence.nativeArtifact, evidence.oracleArtifact], reader: reader)
+            try await verify(
+                [evidence.nativeArtifact, evidence.oracleArtifact],
+                reader: reader
+            )
         }
     }
 
     private func verify(
-        _ artifacts: [ArtifactReference],
+        _ artifacts: [RTLArtifactBinding],
         reader: any RTLArtifactReading
-    ) throws {
+    ) async throws {
         for artifact in artifacts {
-            let artifactID = artifact.artifactID
+            let artifactID = artifact.logicalID
             do {
-                _ = try reader.read(artifact)
+                _ = try await reader.read(artifact)
             } catch {
                 throw RTLVerificationEvidenceInputArtifactAuditError.artifactReadFailed(
                     artifactID: artifactID,
-                    path: artifact.path,
+                    path: artifact.sourcePath,
                     reason: error.localizedDescription
                 )
             }

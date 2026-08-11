@@ -32,12 +32,14 @@ struct RDCPerformanceTests {
         endmodule
         """
         let rtlData = Data(source.utf8)
-        let rtl = makeTestArtifactReference(
+        let rtlBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
             path: "rdc-performance.sv",
             kind: .rtl,
             format: .systemVerilog,
             data: rtlData
         )
+        let rtl = rtlBinding.reference
         let resetIntent = RTLResetIntent(
             domains: (0..<domainCount).map { index in
                 RTLResetIntent.Domain(
@@ -62,21 +64,25 @@ struct RDCPerformanceTests {
         )
         let resetData = try JSONEncoder().encode(resetIntent)
         let powerData = try JSONEncoder().encode(powerIntent)
-        let resetArtifact = makeTestArtifactReference(
+        let resetBinding = makeTestArtifactBinding(
+            artifactID: "reset-intent",
             path: "rdc-performance-reset.json",
             kind: .constraint,
             format: .json,
             data: resetData
         )
-        let powerArtifact = makeTestArtifactReference(
+        let resetArtifact = resetBinding.reference
+        let powerBinding = makeTestArtifactBinding(
+            artifactID: "power-intent",
             path: "rdc-performance-power.json",
             kind: .powerIntent,
             format: .json,
             data: powerData
         )
+        let powerArtifact = powerBinding.reference
         let request = RTLVerificationRequest(
             runID: "rdc-performance",
-            inputs: [rtl, resetArtifact, powerArtifact],
+            inputBindings: [rtlBinding, resetBinding, powerBinding],
             design: LogicDesignReference(
                 artifact: rtl,
                 topDesignName: "top",
@@ -89,11 +95,14 @@ struct RDCPerformanceTests {
             ),
             analysis: .rdc
         )
-        let reader = InMemoryRTLArtifactReader(artifacts: [
-            rtl.path: rtlData,
-            resetArtifact.path: resetData,
-            powerArtifact.path: powerData,
-        ])
+        let reader = InMemoryRTLArtifactReader(
+            bindings: [rtlBinding, resetBinding, powerBinding],
+            dataByLogicalID: [
+                rtlBinding.logicalID: rtlData,
+                resetBinding.logicalID: resetData,
+                powerBinding.logicalID: powerData,
+            ]
+        )
 
         let startedAt = Date()
         let result = try await NativeRDCAnalyzer(reader: reader).execute(request)

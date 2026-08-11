@@ -35,7 +35,7 @@ public struct NativeRTLLintEngine: RTLLintExecuting {
         }
 
         do {
-            let parsed = try RTLVerificationDesignLoader(reader: environment.reader, parser: environment.parser).load(request)
+            let parsed = try await RTLVerificationDesignLoader(reader: environment.reader, parser: environment.parser).load(request)
             let findings = lint(parsed.design)
             let coverage = RTLVerificationCoverage(
                 totalConstructs: parsed.constructCount,

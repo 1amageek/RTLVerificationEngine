@@ -43,7 +43,10 @@ public struct RTLVerificationOracleCorrelationReport: Sendable, Hashable, Codabl
         artifactIDs: [String] = [],
         scopeID: String? = nil
     ) -> RTLVerificationEvidenceRecord? {
-        guard matched, independenceVerified, !artifactIDs.isEmpty else { return nil }
+        guard schemaVersion == Self.currentSchemaVersion,
+              matched,
+              independenceVerified,
+              !artifactIDs.isEmpty else { return nil }
         return RTLVerificationEvidenceRecord(
             evidenceID: evidenceID,
             kind: .oracleCorrelation,

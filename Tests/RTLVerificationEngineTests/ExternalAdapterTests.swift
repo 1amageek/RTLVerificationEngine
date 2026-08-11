@@ -1,4 +1,5 @@
 import CircuiteFoundation
+import CircuiteFoundationCrypto
 import Foundation
 import Darwin
 import LogicIR
@@ -11,10 +12,16 @@ import ToolQualification
 struct ExternalEngineTests {
     @Test("ToolQualification-rejected external tools are blocked")
     func rejectedToolIsBlocked() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-blocked",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -39,10 +46,16 @@ struct ExternalEngineTests {
 
     @Test("qualified external tools return a validated envelope")
     func qualifiedToolReturnsEnvelope() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-qualified",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -70,10 +83,16 @@ struct ExternalEngineTests {
 
     @Test("external proof-view mismatches are rejected")
     func externalProofViewMismatchIsRejected() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-proof-view-mismatch",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -110,10 +129,16 @@ struct ExternalEngineTests {
 
     @Test("external result identity is bound to the descriptor")
     func externalResultIdentityMismatchIsRejected() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-identity-mismatch",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -148,10 +173,16 @@ struct ExternalEngineTests {
 
     @Test("external engine forwards the configured process timeout")
     func externalTimeoutIsForwarded() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-timeout",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -182,10 +213,16 @@ struct ExternalEngineTests {
 
     @Test("invalid external timeouts are blocked before execution")
     func invalidExternalTimeoutBlocks() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-invalid-timeout",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -213,10 +250,16 @@ struct ExternalEngineTests {
 
     @Test("external engine executes a real process and binds the request digest")
     func externalEngineExecutesRealProcess() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-real-process",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -280,10 +323,16 @@ struct ExternalEngineTests {
 
     @Test("external engine blocks when a real process exceeds its timeout")
     func externalEngineRealProcessTimeoutBlocks() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-real-timeout",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -383,10 +432,16 @@ struct ExternalEngineTests {
 
     @Test("independent oracle executor binds the oracle to the native request")
     func independentOracleExecutorBindsNativeRequest() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-oracle",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -421,10 +476,16 @@ struct ExternalEngineTests {
 
     @Test("independent oracle executor rejects self-correlation")
     func independentOracleExecutorRejectsSelfCorrelation() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-oracle-self",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -457,10 +518,16 @@ struct ExternalEngineTests {
 
     @Test("solver-backed external proof requires a digest-bound proof artifact")
     func solverBackedExternalProofRequiresArtifact() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-solver-artifact",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -497,10 +564,16 @@ struct ExternalEngineTests {
 
     @Test("solver-backed external proof accepts a digest-bound proof artifact")
     func solverBackedExternalProofAcceptsArtifact() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-solver-artifact-valid",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -509,12 +582,8 @@ struct ExternalEngineTests {
             analysis: .formalEquivalence,
             proofView: .rtlToSynthesized
         )
-        var output = try makeEnvelope(
-            request: request,
-            implementationID: "qualified-solver"
-        )
         let proofData = Data("verified-proof".utf8)
-        let proofArtifact = makeTestArtifactReference(
+        let proofBinding = makeTestArtifactBinding(
             artifactID: "solver-proof-certificate",
             path: "proof/certificate.json",
             kind: .report,
@@ -523,8 +592,12 @@ struct ExternalEngineTests {
             sha256: SHA256ContentDigester().sha256(data: proofData),
             byteCount: Int64(proofData.count)
         )
-        output.artifacts = [proofArtifact]
-        output.payload.proofArtifactIDs = [proofArtifact.id.rawValue]
+        var output = try makeEnvelope(
+            request: request,
+            implementationID: "qualified-solver",
+            artifactBindings: [proofBinding]
+        )
+        output.payload.proofArtifactIDs = [proofBinding.logicalID]
         let engine = ExternalRTLVerificationEngine(
             descriptor: RTLExternalToolDescriptor(
                 toolID: "qualified-solver",
@@ -535,21 +608,30 @@ struct ExternalEngineTests {
             ),
             trustDecision: ToolTrustDecision(toolID: "qualified-solver", status: .eligible),
             runner: StaticOutputRunner(output: try JSONEncoder().encode(output)),
-            artifactReader: InMemoryRTLArtifactReader(artifacts: [proofArtifact.path: proofData])
+            artifactReader: InMemoryRTLArtifactReader(
+                bindings: [proofBinding],
+                dataByLogicalID: [proofBinding.logicalID: proofData]
+            )
         )
 
         let result = try await engine.execute(request)
 
         #expect(result.status == .completed)
-        #expect(result.artifacts.first?.artifactID == "solver-proof-certificate")
+        #expect(result.artifactBindings.first?.logicalID == "solver-proof-certificate")
     }
 
     @Test("solver-backed external proof rejects bytes that do not match the retained artifact")
     func solverBackedExternalProofRejectsTamperedArtifact() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-solver-artifact-tampered",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",
@@ -560,7 +642,7 @@ struct ExternalEngineTests {
         )
         let declaredData = Data("declared-proof".utf8)
         let tamperedData = Data("tampered-proof".utf8)
-        let proofArtifact = makeTestArtifactReference(
+        let proofBinding = makeTestArtifactBinding(
             artifactID: "solver-proof-certificate",
             path: "proof/certificate.json",
             kind: .report,
@@ -571,10 +653,10 @@ struct ExternalEngineTests {
         )
         var output = try makeEnvelope(
             request: request,
-            implementationID: "qualified-solver"
+            implementationID: "qualified-solver",
+            artifactBindings: [proofBinding]
         )
-        output.artifacts = [proofArtifact]
-        output.payload.proofArtifactIDs = [proofArtifact.id.rawValue]
+        output.payload.proofArtifactIDs = [proofBinding.logicalID]
         let engine = ExternalRTLVerificationEngine(
             descriptor: RTLExternalToolDescriptor(
                 toolID: "qualified-solver",
@@ -585,7 +667,10 @@ struct ExternalEngineTests {
             ),
             trustDecision: ToolTrustDecision(toolID: "qualified-solver", status: .eligible),
             runner: StaticOutputRunner(output: try JSONEncoder().encode(output)),
-            artifactReader: InMemoryRTLArtifactReader(artifacts: [proofArtifact.path: tamperedData])
+            artifactReader: InMemoryRTLArtifactReader(
+                bindings: [proofBinding],
+                dataByLogicalID: [proofBinding.logicalID: tamperedData]
+            )
         )
 
         do {
@@ -599,13 +684,15 @@ struct ExternalEngineTests {
     private func makeEnvelope(
         request: RTLVerificationRequest,
         implementationID: String = "qualified-tool",
-        implementationVersion: String = "1"
+        implementationVersion: String = "1",
+        artifactBindings: [RTLArtifactBinding] = []
     ) throws -> RTLVerificationResult {
         let now = Date(timeIntervalSince1970: 1)
-        return RTLVerificationResult(
+        return try RTLVerificationResult(
             schemaVersion: RTLVerificationRequest.currentSchemaVersion,
             runID: request.runID,
             status: .completed,
+            artifactBindings: artifactBindings,
             provenance: try makeRTLTestProvenance(
                 engineID: request.analysis.stageID,
                 implementationID: implementationID,
@@ -631,10 +718,16 @@ struct ExternalEngineTests {
 
     @Test("external results must bind to the exact request digest")
     func externalRequestDigestMismatchIsRejected() async throws {
-        let artifact = makeTestArtifactReference(path: "top.sv", kind: .rtl, format: .systemVerilog)
+        let artifactBinding = makeTestArtifactBinding(
+            artifactID: "rtl-input",
+            path: "top.sv",
+            kind: .rtl,
+            format: .systemVerilog
+        )
+        let artifact = artifactBinding.reference
         let request = RTLVerificationRequest(
             runID: "external-request-digest-mismatch",
-            inputs: [artifact],
+            inputBindings: [artifactBinding],
             design: LogicDesignReference(
                 artifact: artifact,
                 topDesignName: "top",

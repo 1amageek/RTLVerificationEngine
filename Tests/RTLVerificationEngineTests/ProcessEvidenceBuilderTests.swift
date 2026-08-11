@@ -24,7 +24,7 @@ struct ProcessEvidenceBuilderTests {
     @Test("builder rejects evidence that references a missing artifact")
     func rejectsMissingArtifact() throws {
         var request = makeRequest()
-        request.artifacts.removeAll { $0.artifactID == "health" }
+        request.artifacts.removeAll { $0.logicalID == "health" }
 
         do {
             _ = try RTLVerificationProcessEvidenceBuilder().build(
@@ -167,8 +167,8 @@ struct ProcessEvidenceBuilderTests {
         id: String,
         path: String,
         fill: Character
-    ) -> ArtifactReference {
-        makeTestArtifactReference(
+    ) -> RTLArtifactBinding {
+        makeTestArtifactBinding(
             artifactID: id,
             path: path,
             kind: .report,

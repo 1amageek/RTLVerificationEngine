@@ -1,4 +1,5 @@
 import CircuiteFoundation
+import CircuiteFoundationCrypto
 import Foundation
 import LogicIR
 import Testing
@@ -10,7 +11,7 @@ struct EvidenceInputTests {
     @Test("artifact-bound observations are applied without release authority", .timeLimit(.minutes(1)))
     func evidenceInputIsApplied() async throws {
         let source = "module top(input logic a, output logic q); assign q = a; endmodule"
-        let rtl = makeTestArtifactReference(
+        let rtlBinding = makeTestArtifactBinding(
             artifactID: "rtl-input",
             path: "top.sv",
             kind: .rtl,
@@ -18,7 +19,11 @@ struct EvidenceInputTests {
             sha256: SHA256ContentDigester().sha256(data: Data(source.utf8)),
             byteCount: Int64(source.utf8.count)
         )
-        let reader = InMemoryRTLArtifactReader(artifacts: [rtl.path: Data(source.utf8)])
+        let rtl = rtlBinding.reference
+        let reader = InMemoryRTLArtifactReader(
+            bindings: [rtlBinding],
+            dataByLogicalID: [rtlBinding.logicalID: Data(source.utf8)]
+        )
         let now = Date()
         let caseID = "lint-positive"
         let oracleReport = RTLVerificationOracleCorrelationReport(
@@ -65,7 +70,7 @@ struct EvidenceInputTests {
         )
         var request = RTLVerificationRequest(
             runID: "record-input",
-            inputs: [rtl],
+            inputBindings: [rtlBinding],
             design: LogicDesignReference(
                 artifact: rtl,
                 topDesignName: "top",
@@ -98,8 +103,8 @@ struct EvidenceInputTests {
         #expect(mismatchedEnvelope.payload.record.evidence.map(\.kind) == [.corpus])
     }
 
-    private func jsonReference(artifactID: String, path: String, data: Data) -> ArtifactReference {
-        makeTestArtifactReference(
+    private func jsonReference(artifactID: String, path: String, data: Data) -> RTLArtifactBinding {
+        makeTestArtifactBinding(
             artifactID: artifactID,
             path: path,
             kind: .report,

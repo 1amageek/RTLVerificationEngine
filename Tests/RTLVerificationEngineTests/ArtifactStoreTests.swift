@@ -26,12 +26,12 @@ struct ArtifactStoreTests {
         let store = InMemoryRTLArtifactStore()
         let data = Data("first".utf8)
         let reference = try await store.persist(data, artifactID: "report", runID: "run-1")
-        #expect(reference.path == "rtl-verification/run-1/report.json")
+        #expect(reference.sourcePath == "rtl-verification/run-1/report.json")
 
-        await #expect(throws: RTLArtifactStoreError.duplicateArtifact(reference.path)) {
+        await #expect(throws: RTLArtifactStoreError.duplicateArtifact(reference.sourcePath)) {
             _ = try await store.persist(data, artifactID: "report", runID: "run-1")
         }
-        await #expect(throws: RTLArtifactStoreError.conflictingArtifact(reference.path)) {
+        await #expect(throws: RTLArtifactStoreError.conflictingArtifact(reference.sourcePath)) {
             _ = try await store.persist(Data("second".utf8), artifactID: "report", runID: "run-1")
         }
     }
@@ -46,13 +46,13 @@ struct ArtifactStoreTests {
         )
         let data = Data("first".utf8)
         let reference = try await store.persist(data, artifactID: "report", runID: "run-1")
-        #expect(reference.path == "rtl-verification/run-1/report.json")
-        #expect(try Data(contentsOf: root.appending(path: reference.path)) == data)
+        #expect(reference.sourcePath == "rtl-verification/run-1/report.json")
+        #expect(try Data(contentsOf: root.appending(path: reference.sourcePath)) == data)
 
-        await #expect(throws: RTLArtifactStoreError.duplicateArtifact(reference.path)) {
+        await #expect(throws: RTLArtifactStoreError.duplicateArtifact(reference.sourcePath)) {
             _ = try await store.persist(data, artifactID: "report", runID: "run-1")
         }
-        await #expect(throws: RTLArtifactStoreError.conflictingArtifact(reference.path)) {
+        await #expect(throws: RTLArtifactStoreError.conflictingArtifact(reference.sourcePath)) {
             _ = try await store.persist(Data("second".utf8), artifactID: "report", runID: "run-1")
         }
     }

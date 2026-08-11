@@ -6,5 +6,5 @@ public protocol RTLArtifactWriting: Sendable {
         _ data: Data,
         artifactID: String,
         runID: String
-    ) async throws -> ArtifactReference
+    ) async throws -> RTLArtifactBinding
 }

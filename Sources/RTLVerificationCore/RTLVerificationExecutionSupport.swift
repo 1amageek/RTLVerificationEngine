@@ -150,17 +150,17 @@ public enum RTLVerificationExecutionSupport {
             assessment: assessment
         )
         let payload: RTLVerificationPayload
-        var artifacts: [ArtifactReference] = []
+        var artifactBindings: [RTLArtifactBinding] = []
         var counterexampleArtifactIDs: [String] = []
 
         if let counterexampleData = analysisResult.counterexampleData,
            let artifactID = analysisResult.counterexampleArtifactID {
-            let counterexampleReference = try await environment.writer.persist(
+            let counterexampleBinding = try await environment.writer.persist(
                 counterexampleData,
                 artifactID: artifactID,
                 runID: request.runID
             )
-            artifacts.append(counterexampleReference)
+            artifactBindings.append(counterexampleBinding)
             counterexampleArtifactIDs.append(artifactID)
         }
 
@@ -210,27 +210,27 @@ public enum RTLVerificationExecutionSupport {
             generatedAt: completedAt
         )
         let reportData = try encodeReport(report)
-        let reportReference = try await environment.writer.persist(
+        let reportBinding = try await environment.writer.persist(
             reportData,
             artifactID: "rtl-verification-report",
             runID: request.runID
         )
-        artifacts.append(reportReference)
+        artifactBindings.append(reportBinding)
 
-        return RTLVerificationResult(
+        return try RTLVerificationResult(
             schemaVersion: RTLVerificationRequest.currentSchemaVersion,
             runID: request.runID,
             status: status,
             diagnostics: finalDiagnostics,
-            artifacts: artifacts,
+            artifactBindings: artifactBindings,
             provenance: provenance,
             payload: payload
         )
     }
 
     private static func uniqueReferences(_ references: [ArtifactReference]) -> [ArtifactReference] {
-        var paths: Set<String> = []
-        return references.filter { paths.insert($0.path).inserted }
+        var identities: Set<ArtifactID> = []
+        return references.filter { identities.insert($0.id).inserted }
     }
 
     private static func makeEvidenceAssessment(

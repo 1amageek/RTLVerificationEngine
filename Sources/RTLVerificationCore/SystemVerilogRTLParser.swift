@@ -1,5 +1,6 @@
 import Foundation
 import CircuiteFoundation
+import CircuiteFoundationCrypto
 import LogicIR
 import SystemVerilogFrontend
 
@@ -14,6 +15,7 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
         try parse(
             sources: [RTLVerificationSourceInput(
                 reference: try Self.makeReference(path: path, data: data, format: .systemVerilog),
+                path: path,
                 data: data
             )],
             topModuleName: topModuleName,
@@ -34,6 +36,7 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
                     data: data,
                     format: path.lowercased().hasSuffix(".v") ? .verilog : .systemVerilog
                 ),
+                path: path,
                 data: data
             )],
             topModuleName: topModuleName,
@@ -121,16 +124,14 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
         data: Data,
         format: ArtifactFormat
     ) throws -> ArtifactReference {
-        ArtifactReference(
-            id: ArtifactID(stableKey: "rtl-source:\(path)"),
-            locator: ArtifactLocator(
-                location: try ArtifactLocation(workspaceRelativePath: path),
+        try ArtifactReference(
+            digest: SHA256ContentDigester().digest(data: data),
+            byteCount: UInt64(data.count),
+            descriptor: ArtifactDescriptor(
                 role: .input,
                 kind: .rtl,
                 format: format
-            ),
-            digest: try SHA256ContentDigester().digest(data: data),
-            byteCount: UInt64(data.count)
+            )
         )
     }
 

@@ -1,4 +1,5 @@
 import CircuiteFoundation
+import CircuiteFoundationCrypto
 import Foundation
 import LogicEngineCore
 import LogicIR
@@ -57,17 +58,19 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
         }
 
         do {
-            let sourceData = try environment.reader.read(request.design.artifact)
-            try validateArtifactIntegrity(sourceData, reference: request.design.artifact)
+            let sourceBinding = try request.requireBinding(for: request.design.artifact)
+            let mappedBinding = try request.requireBinding(for: mappedReference.artifact)
+            let sourceData = try await environment.reader.read(sourceBinding)
+            try validateArtifactIntegrity(sourceData, binding: sourceBinding)
             let sourceDocument = try loadSourceDocument(sourceData, request: request)
 
-            let mappedData = try environment.reader.read(mappedReference.artifact)
-            try validateArtifactIntegrity(mappedData, reference: mappedReference.artifact)
+            let mappedData = try await environment.reader.read(mappedBinding)
+            try validateArtifactIntegrity(mappedData, binding: mappedBinding)
             let mappedDocument = try loadMappedDocument(mappedData, request: request)
 
             let comparison = compare(sourceDocument, mappedDocument)
-            let sourceArtifact = try sourceArtifactReference(request.design.artifact, data: sourceData, order: 0)
-            let mappedArtifact = try sourceArtifactReference(mappedReference.artifact, data: mappedData, order: 1)
+            let sourceArtifact = try sourceArtifactReference(sourceBinding, data: sourceData, order: 0)
+            let mappedArtifact = try sourceArtifactReference(mappedBinding, data: mappedData, order: 1)
             let coverage = RTLVerificationCoverage(
                 totalConstructs: sourceDocument.nodes.count + mappedDocument.nodes.count,
                 analyzedConstructs: sourceDocument.nodes.count + mappedDocument.nodes.count,
@@ -241,14 +244,15 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
 
     private func validateArtifactIntegrity(
         _ data: Data,
-        reference: ArtifactReference
+        binding: RTLArtifactBinding
     ) throws {
+        let reference = binding.reference
         if reference.digest.algorithm == .sha256 {
             let expectedSHA256 = reference.digest.hexadecimalValue
             let actualSHA256 = try SHA256ContentDigester().digest(data: data).hexadecimalValue
             guard expectedSHA256 == actualSHA256 else {
                 throw RTLVerificationExecutionError.artifactReadFailed(
-                    path: reference.path,
+                    path: binding.sourcePath,
                     reason: "SHA-256 digest does not match the artifact reference."
                 )
             }
@@ -256,19 +260,19 @@ public struct NativeMappedExecutionEquivalenceChecker: FormalEquivalenceChecking
         let expectedByteCount = reference.byteCount
         guard expectedByteCount == UInt64(data.count) else {
                 throw RTLVerificationExecutionError.artifactReadFailed(
-                    path: reference.path,
+                    path: binding.sourcePath,
                     reason: "Byte count does not match the artifact reference."
                 )
         }
     }
 
     private func sourceArtifactReference(
-        _ reference: ArtifactReference,
+        _ binding: RTLArtifactBinding,
         data: Data,
         order: Int
     ) throws -> RTLVerificationSourceArtifact {
         RTLVerificationSourceArtifact(
-            path: reference.path,
+            path: binding.sourcePath,
             sha256: try SHA256ContentDigester().digest(data: data).hexadecimalValue,
             byteCount: Int64(data.count),
             order: order

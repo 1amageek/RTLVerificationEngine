@@ -22,9 +22,9 @@ struct OracleEvidenceBuilderTests {
 
         #expect(result.evidence.isAuditable)
         #expect(result.evidence.report.matched)
-        #expect(result.nativeArtifact.artifactID == "oracle-lint-positive-native")
-        #expect(result.oracleArtifact.artifactID == "oracle-lint-positive-result")
-        #expect(result.evidenceArtifact.artifactID == "oracle-lint-positive-evidence")
+        #expect(result.nativeArtifact.logicalID == "oracle-lint-positive-native")
+        #expect(result.oracleArtifact.logicalID == "oracle-lint-positive-result")
+        #expect(result.evidenceArtifact.logicalID == "oracle-lint-positive-evidence")
         #expect(await writer.data(for: result.evidenceArtifact) != nil)
     }
 
@@ -88,8 +88,8 @@ struct OracleEvidenceBuilderTests {
                 message: "Finding"
             )
         }
-        return RTLVerificationResult(
-            schemaVersion: 1,
+        return try RTLVerificationResult(
+            schemaVersion: RTLVerificationResult.currentSchemaVersion,
             runID: "oracle-run",
             status: .completed,
             provenance: try makeRTLTestProvenance(

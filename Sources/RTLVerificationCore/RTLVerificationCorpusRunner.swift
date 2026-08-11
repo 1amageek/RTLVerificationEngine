@@ -38,7 +38,7 @@ public struct RTLVerificationCorpusRunner: RTLVerificationCorpusRunning {
         }
 
         var evaluations: [RTLVerificationCorpusEvaluation] = []
-        var resultArtifacts: [String: ArtifactReference] = [:]
+        var resultArtifacts: [String: RTLArtifactBinding] = [:]
         for corpusCase in corpus.sorted(by: { $0.caseID < $1.caseID }) {
             var request = corpusCase.request
             request.runID = "\(runID)-\(corpusCase.caseID)"

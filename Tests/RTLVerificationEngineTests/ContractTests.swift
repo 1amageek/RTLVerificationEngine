@@ -273,16 +273,16 @@ struct ContractTests {
 
     @Test("request and payload round trip")
     func requestAndPayloadRoundTrip() throws {
-        let reference = makeTestArtifactReference(
+        let binding = makeTestArtifactBinding(
             path: "rtl/top.sv",
             kind: .rtl,
             format: .systemVerilog
         )
         let request = RTLVerificationRequest(
             runID: "run-001",
-            inputs: [reference],
+            inputBindings: [binding],
             design: LogicDesignReference(
-                artifact: reference,
+                artifact: binding.reference,
                 topDesignName: "top",
                 designDigest: "design-digest"
             ),
@@ -444,7 +444,7 @@ struct ContractTests {
         """
         let constraintData = Data("create_clock -name clk -period 10 [get_ports clk]".utf8)
         let rtl = makeReference(path: "rdc-constrained.sv", format: .systemVerilog, data: Data(source.utf8))
-        let sdc = makeTestArtifactReference(path: "rdc.sdc", kind: .constraint, format: .sdc, data: constraintData)
+        let sdc = makeTestArtifactBinding(path: "rdc.sdc", kind: .constraint, format: .sdc, data: constraintData)
         let reader = InMemoryRTLArtifactReader(artifacts: [
             rtl.path: Data(source.utf8),
             sdc.path: constraintData
@@ -452,9 +452,9 @@ struct ContractTests {
         var request = makeRequest(
             reference: rtl,
             analysis: .rdc,
-            constraints: RTLConstraintReference(artifact: sdc, modeIDs: ["reset-signoff"])
+            constraints: RTLConstraintReference(artifact: sdc.reference, modeIDs: ["reset-signoff"])
         )
-        request.inputs.append(sdc)
+        request.appendInputBindings([sdc])
 
         let envelope = try await NativeRDCAnalyzer(reader: reader).execute(request)
 
@@ -476,7 +476,7 @@ struct ContractTests {
         """
         let constraintData = Data("create_clock -name clk -period 10 [get_ports clk]".utf8)
         let rtl = makeReference(path: "rdc-unconstrained.sv", format: .systemVerilog, data: Data(source.utf8))
-        let sdc = makeTestArtifactReference(path: "rdc-unconstrained.sdc", kind: .constraint, format: .sdc, data: constraintData)
+        let sdc = makeTestArtifactBinding(path: "rdc-unconstrained.sdc", kind: .constraint, format: .sdc, data: constraintData)
         let reader = InMemoryRTLArtifactReader(artifacts: [
             rtl.path: Data(source.utf8),
             sdc.path: constraintData
@@ -484,9 +484,9 @@ struct ContractTests {
         var request = makeRequest(
             reference: rtl,
             analysis: .rdc,
-            constraints: RTLConstraintReference(artifact: sdc, modeIDs: ["reset-signoff"])
+            constraints: RTLConstraintReference(artifact: sdc.reference, modeIDs: ["reset-signoff"])
         )
-        request.inputs.append(sdc)
+        request.appendInputBindings([sdc])
 
         let envelope = try await NativeRDCAnalyzer(reader: reader).execute(request)
 
@@ -516,7 +516,7 @@ struct ContractTests {
             format: .systemVerilog,
             data: rtlData
         )
-        let sdc = makeTestArtifactReference(
+        let sdc = makeTestArtifactBinding(
             path: "rdc-reset-false-path.sdc",
             kind: .constraint,
             format: .sdc,
@@ -530,11 +530,11 @@ struct ContractTests {
             reference: rtl,
             analysis: .rdc,
             constraints: RTLConstraintReference(
-                artifact: sdc,
+                artifact: sdc.reference,
                 modeIDs: ["reset-signoff"]
             )
         )
-        request.inputs.append(sdc)
+        request.appendInputBindings([sdc])
 
         let envelope = try await NativeRDCAnalyzer(reader: reader).execute(request)
 
@@ -603,13 +603,13 @@ struct ContractTests {
         )
         let resetIntentData = try JSONEncoder().encode(resetIntent)
         let powerIntentData = try JSONEncoder().encode(powerIntent)
-        let resetIntentArtifact = makeTestArtifactReference(
+        let resetIntentArtifact = makeTestArtifactBinding(
             path: "rdc-reset-intent.json",
             kind: .constraint,
             format: .json,
             data: resetIntentData
         )
-        let powerIntentArtifact = makeTestArtifactReference(
+        let powerIntentArtifact = makeTestArtifactBinding(
             path: "rdc-power-intent.json",
             kind: .powerIntent,
             format: .json,
@@ -621,12 +621,12 @@ struct ContractTests {
             powerIntentArtifact.path: powerIntentData,
         ])
         var request = makeRequest(reference: reference, analysis: .rdc)
-        request.resetIntent = RTLResetIntentReference(artifact: resetIntentArtifact)
+        request.resetIntent = RTLResetIntentReference(artifact: resetIntentArtifact.reference)
         request.powerIntent = PowerIntentReference(
-            artifact: powerIntentArtifact,
+            artifact: powerIntentArtifact.reference,
             designDigest: request.design.designDigest
         )
-        request.inputs.append(contentsOf: [resetIntentArtifact, powerIntentArtifact])
+        request.appendInputBindings([resetIntentArtifact, powerIntentArtifact])
 
         let envelope = try await NativeRDCAnalyzer(reader: reader).execute(
             request
@@ -639,7 +639,7 @@ struct ContractTests {
         var mismatchedIntent = resetIntent
         mismatchedIntent.domains[0].polarity = .activeHigh
         let mismatchedIntentData = try JSONEncoder().encode(mismatchedIntent)
-        let mismatchedIntentArtifact = makeTestArtifactReference(
+        let mismatchedIntentArtifact = makeTestArtifactBinding(
             path: "rdc-reset-intent-polarity-mismatch.json",
             kind: .constraint,
             format: .json,
@@ -647,10 +647,11 @@ struct ContractTests {
         )
         var mismatchedRequest = request
         mismatchedRequest.resetIntent = RTLResetIntentReference(
-            artifact: mismatchedIntentArtifact
+            artifact: mismatchedIntentArtifact.reference
         )
-        mismatchedRequest.inputs.removeAll { $0.path == resetIntentArtifact.path }
-        mismatchedRequest.inputs.append(mismatchedIntentArtifact)
+        mismatchedRequest.replaceInputBindings(
+            request.inputBindings.filter { $0 != resetIntentArtifact } + [mismatchedIntentArtifact]
+        )
         let mismatchedReader = InMemoryRTLArtifactReader(artifacts: [
             reference.path: Data(source.utf8),
             mismatchedIntentArtifact.path: mismatchedIntentData,
@@ -667,7 +668,7 @@ struct ContractTests {
         var ambiguousPowerIntent = powerIntent
         ambiguousPowerIntent.domains[1].elements = ["top/clock-a"]
         let ambiguousPowerData = try JSONEncoder().encode(ambiguousPowerIntent)
-        let ambiguousPowerArtifact = makeTestArtifactReference(
+        let ambiguousPowerArtifact = makeTestArtifactBinding(
             path: "rdc-power-intent-ambiguous.json",
             kind: .powerIntent,
             format: .json,
@@ -675,13 +676,12 @@ struct ContractTests {
         )
         var ambiguousPowerRequest = request
         ambiguousPowerRequest.powerIntent = PowerIntentReference(
-            artifact: ambiguousPowerArtifact,
+            artifact: ambiguousPowerArtifact.reference,
             designDigest: request.design.designDigest
         )
-        ambiguousPowerRequest.inputs.removeAll {
-            $0.path == powerIntentArtifact.path
-        }
-        ambiguousPowerRequest.inputs.append(ambiguousPowerArtifact)
+        ambiguousPowerRequest.replaceInputBindings(
+            request.inputBindings.filter { $0 != powerIntentArtifact } + [ambiguousPowerArtifact]
+        )
         let ambiguousPowerReader = InMemoryRTLArtifactReader(artifacts: [
             reference.path: Data(source.utf8),
             resetIntentArtifact.path: resetIntentData,
@@ -771,13 +771,13 @@ struct ContractTests {
         )
         let resetData = try JSONEncoder().encode(resetIntent)
         let powerData = try JSONEncoder().encode(powerIntent)
-        let resetArtifact = makeTestArtifactReference(
+        let resetArtifact = makeTestArtifactBinding(
             path: "rdc-reset-exception.json",
             kind: .constraint,
             format: .json,
             data: resetData
         )
-        let powerArtifact = makeTestArtifactReference(
+        let powerArtifact = makeTestArtifactBinding(
             path: "rdc-reset-exception-power.json",
             kind: .powerIntent,
             format: .json,
@@ -799,12 +799,12 @@ struct ContractTests {
                 )
             ]
         )
-        request.resetIntent = RTLResetIntentReference(artifact: resetArtifact)
+        request.resetIntent = RTLResetIntentReference(artifact: resetArtifact.reference)
         request.powerIntent = PowerIntentReference(
-            artifact: powerArtifact,
+            artifact: powerArtifact.reference,
             designDigest: request.design.designDigest
         )
-        request.inputs.append(contentsOf: [resetArtifact, powerArtifact])
+        request.appendInputBindings([resetArtifact, powerArtifact])
 
         let accepted = try await NativeRDCAnalyzer(reader: reader).execute(request)
 
@@ -831,7 +831,7 @@ struct ContractTests {
             )
         ]
         let externalIntentData = try JSONEncoder().encode(externalIntent)
-        let externalIntentArtifact = makeTestArtifactReference(
+        let externalIntentArtifact = makeTestArtifactBinding(
             path: "rdc-reset-external-exception.json",
             kind: .constraint,
             format: .json,
@@ -844,7 +844,7 @@ struct ContractTests {
             method: "independent-temporal-analysis"
         )
         let evidenceData = try JSONEncoder().encode(evidence)
-        let evidenceArtifact = makeTestArtifactReference(
+        let evidenceArtifact = makeTestArtifactBinding(
             artifactID: "reset-sync-evidence",
             path: "rdc-reset-sync-evidence.json",
             kind: .evidence,
@@ -858,10 +858,12 @@ struct ContractTests {
             evidenceArtifact.path: evidenceData,
         ])
         request.resetIntent = RTLResetIntentReference(
-            artifact: externalIntentArtifact
+            artifact: externalIntentArtifact.reference
         )
-        request.inputs.removeAll { $0.locator.kind == .constraint }
-        request.inputs.append(contentsOf: [externalIntentArtifact, evidenceArtifact])
+        request.replaceInputBindings(
+            request.inputBindings.filter { $0.descriptor.kind != .constraint }
+                + [externalIntentArtifact, evidenceArtifact]
+        )
 
         let externallyAccepted = try await NativeRDCAnalyzer(
             reader: externalReader
@@ -875,15 +877,17 @@ struct ContractTests {
             method: "independent-temporal-analysis"
         )
         let mismatchedEvidenceData = try JSONEncoder().encode(mismatchedEvidence)
-        let mismatchedEvidenceArtifact = makeTestArtifactReference(
+        let mismatchedEvidenceArtifact = makeTestArtifactBinding(
             artifactID: "reset-sync-evidence",
             path: "rdc-reset-sync-evidence-mismatch.json",
             kind: .evidence,
             format: .json,
             data: mismatchedEvidenceData
         )
-        request.inputs.removeAll { $0.artifactID == "reset-sync-evidence" }
-        request.inputs.append(mismatchedEvidenceArtifact)
+        request.replaceInputBindings(
+            request.inputBindings.filter { $0.logicalID != "reset-sync-evidence" }
+                + [mismatchedEvidenceArtifact]
+        )
         externalIntent.exceptions[0].evidenceArtifactID = "reset-sync-evidence"
         let mismatchedReader = InMemoryRTLArtifactReader(artifacts: [
             rtl.path: rtlData,
@@ -1056,15 +1060,16 @@ struct ContractTests {
             implementationReference.path: Data(implementation.utf8),
             referenceDesignReference.path: Data(referenceSource.utf8)
         ])
-        let request = makeRequest(
+        var request = makeRequest(
             reference: implementationReference,
             analysis: .formalEquivalence,
             referenceDesign: LogicDesignReference(
-                artifact: referenceDesignReference,
+                artifact: referenceDesignReference.reference,
                 topDesignName: "top",
                 designDigest: "reference-digest"
             )
         )
+        request.appendInputBindings([referenceDesignReference])
         let envelope = try await NativeFormalEquivalenceChecker(
             reader: reader,
             writer: store
@@ -1072,8 +1077,10 @@ struct ContractTests {
         #expect(envelope.status == .blocked)
         #expect(envelope.payload.proofStatus == "unproven")
         #expect(envelope.payload.counterexampleArtifactIDs == ["formal-counterexample"])
-        #expect(envelope.artifacts.contains { $0.artifactID == "formal-counterexample" })
-        let counterexampleReference = try #require(envelope.artifacts.first { $0.artifactID == "formal-counterexample" })
+        #expect(envelope.artifactBindings.contains { $0.logicalID == "formal-counterexample" })
+        let counterexampleReference = try #require(
+            envelope.artifactBindings.first { $0.logicalID == "formal-counterexample" }
+        )
         let counterexampleData = try #require(await store.data(for: counterexampleReference))
         let counterexample = try JSONDecoder().decode(RTLFormalCounterexample.self, from: counterexampleData)
         #expect(counterexample.differences.count == 1)
@@ -1114,18 +1121,18 @@ struct ContractTests {
         let mappedData = try encodeJSON(mappedDocument)
         let mappedReference = makeJSONReference(path: "mapped-design.json", kind: .netlist, data: mappedData)
         let sourceDesign = LogicDesignReference(
-            artifact: sourceReference,
+            artifact: sourceReference.reference,
             topDesignName: "top",
             designDigest: try #require(snapshot.designDigest)
         )
         let mappedDesign = LogicDesignReference(
-            artifact: mappedReference,
+            artifact: mappedReference.reference,
             topDesignName: "top",
-            designDigest: mappedReference.digest.hexadecimalValue
+            designDigest: mappedReference.reference.digest.hexadecimalValue
         )
         let request = RTLVerificationRequest(
             runID: "mapped-proof-pass",
-            inputs: [sourceReference, mappedReference],
+            inputBindings: [sourceReference, mappedReference],
             design: sourceDesign,
             referenceDesign: mappedDesign,
             analysis: .formalEquivalence,
@@ -1147,7 +1154,7 @@ struct ContractTests {
         #expect(envelope.payload.proofArtifactIDs == ["rtl-verification-report"])
         #expect(envelope.payload.findings.contains { $0.code == "FORMAL_MAPPED_EXECUTION_PROVED" })
         #expect(envelope.payload.coverage.proofScope == "rtlToMappedExecutionStructural")
-        #expect(envelope.artifacts.contains { $0.artifactID == "rtl-verification-report" })
+        #expect(envelope.artifactBindings.contains { $0.logicalID == "rtl-verification-report" })
 
     }
 
@@ -1181,16 +1188,16 @@ struct ContractTests {
         let mappedReference = makeJSONReference(path: "mismatch-mapped.json", kind: .netlist, data: mappedData)
         let request = RTLVerificationRequest(
             runID: "mapped-proof-mismatch",
-            inputs: [sourceReference, mappedReference],
+            inputBindings: [sourceReference, mappedReference],
             design: LogicDesignReference(
-                artifact: sourceReference,
+                artifact: sourceReference.reference,
                 topDesignName: "top",
                 designDigest: try #require(snapshot.designDigest)
             ),
             referenceDesign: LogicDesignReference(
-                artifact: mappedReference,
+                artifact: mappedReference.reference,
                 topDesignName: "top",
-                designDigest: mappedReference.digest.hexadecimalValue
+                designDigest: mappedReference.reference.digest.hexadecimalValue
             ),
             analysis: .formalEquivalence,
             proofView: .rtlToMappedExecutionStructural
@@ -1442,7 +1449,7 @@ struct ContractTests {
             requestDigest: "request-digest",
             nativePayloadRequestDigest: "request-digest",
             oraclePayloadRequestDigest: "request-digest",
-            nativeArtifact: makeTestArtifactReference(
+            nativeArtifact: makeTestArtifactBinding(
                 path: "native.json",
                 kind: .report,
                 format: .json
@@ -1616,7 +1623,7 @@ struct ContractTests {
             top.path: Data(topSource.utf8)
         ])
         var request = makeRequest(reference: top, analysis: .lint)
-        request.inputs.append(header)
+        request.appendInputBindings([header])
 
         let envelope = try await NativeRTLLintEngine(reader: reader).execute(request)
 
@@ -1634,11 +1641,13 @@ struct ContractTests {
         let parsed = try SystemVerilogRTLParser().parse(
             sources: [
                 RTLVerificationSourceInput(
-                    reference: topReference,
+                    reference: topReference.reference,
+                    path: topReference.sourcePath,
                     data: topData
                 ),
                 RTLVerificationSourceInput(
-                    reference: headerReference,
+                    reference: headerReference.reference,
+                    path: headerReference.sourcePath,
                     data: headerData
                 )
             ],
@@ -1663,7 +1672,7 @@ struct ContractTests {
             set_clock_groups -asynchronous -group [get_clocks clk] -group [get_clocks other]
             """.utf8)
         let rtl = makeReference(path: "constrained.sv", format: .systemVerilog, data: Data(source.utf8))
-        let sdc = makeTestArtifactReference(path: "constraints.sdc", kind: .constraint, format: .sdc, data: constraintData)
+        let sdc = makeTestArtifactBinding(path: "constraints.sdc", kind: .constraint, format: .sdc, data: constraintData)
         let reader = InMemoryRTLArtifactReader(artifacts: [
             rtl.path: Data(source.utf8),
             sdc.path: constraintData
@@ -1671,9 +1680,9 @@ struct ContractTests {
         var request = makeRequest(
             reference: rtl,
             analysis: .cdc,
-            constraints: RTLConstraintReference(artifact: sdc, modeIDs: ["functional"])
+            constraints: RTLConstraintReference(artifact: sdc.reference, modeIDs: ["functional"])
         )
-        request.inputs.append(sdc)
+        request.appendInputBindings([sdc])
 
         let envelope = try await NativeCDCAnalyzer(reader: reader).execute(request)
 
@@ -1698,16 +1707,17 @@ struct ContractTests {
             implementation.path: Data(source.utf8),
             reference.path: Data(source.utf8)
         ])
-        let request = makeRequest(
+        var request = makeRequest(
             reference: implementation,
             analysis: .formalEquivalence,
             referenceDesign: LogicDesignReference(
-                artifact: reference,
+                artifact: reference.reference,
                 topDesignName: "top",
                 designDigest: "reference-digest"
             ),
             proofView: .rtlToSynthesized
         )
+        request.appendInputBindings([reference])
 
         let envelope = try await NativeFormalEquivalenceChecker(reader: reader).execute(request)
 
@@ -1810,7 +1820,7 @@ struct ContractTests {
             child.path: Data(childSource.utf8)
         ])
         var request = makeRequest(reference: top, analysis: .lint)
-        request.inputs.append(child)
+        request.appendInputBindings([child])
 
         let envelope = try await NativeRTLLintEngine(reader: reader).execute(request)
 
@@ -1836,18 +1846,23 @@ struct ContractTests {
         let store = InMemoryRTLArtifactStore()
         let request = RTLVerificationRequest(
             runID: "formal-reference-source-set",
-            inputs: [implementationTop, implementationChild],
+            inputBindings: [
+                implementationTop,
+                implementationChild,
+                referenceTop,
+                referenceChild,
+            ],
             design: LogicDesignReference(
-                artifact: implementationTop,
+                artifact: implementationTop.reference,
                 topDesignName: "top",
                 designDigest: "implementation-digest"
             ),
             referenceDesign: LogicDesignReference(
-                artifact: referenceTop,
+                artifact: referenceTop.reference,
                 topDesignName: "top",
                 designDigest: "reference-digest"
             ),
-            referenceInputs: [referenceTop, referenceChild],
+            referenceInputs: [referenceTop.reference, referenceChild.reference],
             analysis: .formalEquivalence
         )
 
@@ -1865,19 +1880,21 @@ struct ContractTests {
             "formal-reference.sv",
             "formal-reference-child.svh"
         ])
-        let reportReference = try #require(envelope.artifacts.first { $0.artifactID == "rtl-verification-report" })
+        let reportReference = try #require(
+            envelope.artifactBindings.first { $0.logicalID == "rtl-verification-report" }
+        )
         let reportData = try #require(await store.data(for: reportReference))
         let report = try JSONDecoder().decode(RTLVerificationReport.self, from: reportData)
-        #expect(report.inputArtifacts.map(\.path) == [
-            "formal-implementation.sv",
-            "formal-implementation-child.sv",
-            "formal-reference.sv",
-            "formal-reference-child.svh"
+        #expect(report.inputArtifacts == [
+            implementationTop.reference,
+            implementationChild.reference,
+            referenceTop.reference,
+            referenceChild.reference,
         ])
     }
 
-    private func makeReference(path: String, format: ArtifactFormat, data: Data) -> ArtifactReference {
-        makeTestArtifactReference(path: path, kind: .rtl, format: format, data: data)
+    private func makeReference(path: String, format: ArtifactFormat, data: Data) -> RTLArtifactBinding {
+        makeTestArtifactBinding(path: path, kind: .rtl, format: format, data: data)
     }
 
     private func encodeJSON<Value: Encodable>(_ value: Value) throws -> Data {
@@ -1891,19 +1908,18 @@ struct ContractTests {
         kind: ArtifactKind,
         data: Data,
         artifactID: String? = nil
-    ) -> ArtifactReference {
-        makeTestArtifactReference(
+    ) -> RTLArtifactBinding {
+        makeTestArtifactBinding(
             artifactID: artifactID,
             path: path,
             kind: kind,
             format: .json,
-            sha256: SHA256ContentDigester().sha256(data: data),
-            byteCount: Int64(data.count)
+            data: data
         )
     }
 
     private func makeRequest(
-        reference: ArtifactReference,
+        reference: RTLArtifactBinding,
         analysis: RTLVerificationAnalysis,
         referenceDesign: LogicDesignReference? = nil,
         constraints: RTLConstraintReference? = nil,
@@ -1915,9 +1931,9 @@ struct ContractTests {
     ) -> RTLVerificationRequest {
         RTLVerificationRequest(
             runID: "test-run",
-            inputs: [reference],
+            inputBindings: [reference],
             design: LogicDesignReference(
-                artifact: reference,
+                artifact: reference.reference,
                 topDesignName: "top",
                 designDigest: "design-digest"
             ),

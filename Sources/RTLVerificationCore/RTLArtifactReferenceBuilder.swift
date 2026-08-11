@@ -1,4 +1,6 @@
 import CircuiteFoundation
+import CircuiteFoundationFileSystem
+import CircuiteFoundationFoundation
 import Foundation
 
 /// Creates verified Foundation references for files in an RTL workspace.
@@ -11,7 +13,7 @@ public struct RTLArtifactReferenceBuilder: Sendable {
         kind: ArtifactKind,
         format: ArtifactFormat,
         inProjectAt projectRoot: URL
-    ) throws -> ArtifactReference {
+    ) throws -> RTLArtifactBinding {
         let root = projectRoot.standardizedFileURL.resolvingSymlinksInPath()
         let candidate = URL(filePath: path, relativeTo: root)
             .standardizedFileURL
@@ -22,14 +24,25 @@ public struct RTLArtifactReferenceBuilder: Sendable {
                 "Artifact path escapes project root: \(path)"
             )
         }
+        let relativePath = try ArtifactRelativePath(
+            segments: path.split(separator: "/").map(String.init)
+        )
         let locator = ArtifactLocator(
-            location: try ArtifactLocation(fileURL: candidate),
+            location: try ArtifactLocation(workspaceRelativePath: relativePath.stringValue),
             role: .input,
             kind: kind,
             format: format
         )
-        return try LocalArtifactReferencer().reference(locator, producer: nil)
-            .withID(try ArtifactID(rawValue: artifactID))
+        let reference = try LocalArtifactReferencer().reference(locator, relativeTo: root)
+        return try RTLArtifactBinding(
+            logicalID: artifactID,
+            reference: reference,
+            availability: .local(
+                artifactID: reference.id,
+                rootID: try ArtifactRootID(rawValue: "rtl-verification-project"),
+                relativePath: relativePath
+            )
+        )
     }
 
     public func readJSON<T: Decodable>(
@@ -37,26 +50,14 @@ public struct RTLArtifactReferenceBuilder: Sendable {
         named path: String,
         forProjectAt projectRoot: URL
     ) throws -> T {
-        let locator = try reference(
+        let binding = try reference(
             forProjectRelativePath: path,
             artifactID: "rtl-input-\(path.hashValue)",
             kind: .constraints,
             format: .json,
             inProjectAt: projectRoot
         )
-        let url = try locator.locator.location.resolvedFileURL()
+        let url = projectRoot.appending(path: try binding.requireLocalRelativePath().stringValue)
         return try JSONDecoder().decode(T.self, from: Data(contentsOf: url))
-    }
-}
-
-private extension ArtifactReference {
-    func withID(_ id: ArtifactID) -> ArtifactReference {
-        ArtifactReference(
-            id: id,
-            locator: locator,
-            digest: digest,
-            byteCount: byteCount,
-            producer: producer
-        )
     }
 }

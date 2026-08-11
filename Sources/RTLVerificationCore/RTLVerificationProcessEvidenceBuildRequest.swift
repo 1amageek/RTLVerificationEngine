@@ -2,7 +2,7 @@ import CircuiteFoundation
 import Foundation
 
 public struct RTLVerificationProcessEvidenceBuildRequest: Sendable, Hashable, Codable {
-    public static let currentSchemaVersion = 1
+    public static let currentSchemaVersion = 2
 
     public var schemaVersion: Int
     public var evidenceSetID: String
@@ -11,7 +11,7 @@ public struct RTLVerificationProcessEvidenceBuildRequest: Sendable, Hashable, Co
     public var corpusEvidence: [RTLVerificationEvidenceRecord]
     public var oracleEvidence: [RTLVerificationOracleEvidence]
     public var healthEvidence: [RTLVerificationEvidenceRecord]
-    public var artifacts: [ArtifactReference]
+    public var artifacts: [RTLArtifactBinding]
     public var provenance: String
     public var recordedAt: Date
     public var validUntil: Date
@@ -23,7 +23,7 @@ public struct RTLVerificationProcessEvidenceBuildRequest: Sendable, Hashable, Co
         corpusEvidence: [RTLVerificationEvidenceRecord],
         oracleEvidence: [RTLVerificationOracleEvidence],
         healthEvidence: [RTLVerificationEvidenceRecord],
-        artifacts: [ArtifactReference],
+        artifacts: [RTLArtifactBinding],
         provenance: String,
         recordedAt: Date,
         validUntil: Date,

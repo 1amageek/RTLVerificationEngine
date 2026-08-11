@@ -194,7 +194,7 @@ public struct RTLVerificationProcessEvidenceBuilder: RTLVerificationProcessEvide
     }
 
     private func validateArtifacts(
-        _ artifacts: [ArtifactReference]
+        _ artifacts: [RTLArtifactBinding]
     ) throws -> Set<String> {
         guard !artifacts.isEmpty else {
             throw RTLVerificationProcessEvidenceBuildError.invalidInput(
@@ -203,19 +203,17 @@ public struct RTLVerificationProcessEvidenceBuilder: RTLVerificationProcessEvide
         }
         var artifactIDs = Set<String>()
         for artifact in artifacts {
-            let artifactID = artifact.artifactID
-            let sha256 = artifact.digest.hexadecimalValue
+            let artifactID = artifact.logicalID
+            let sha256 = artifact.reference.digest.hexadecimalValue
             guard !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                throw RTLVerificationProcessEvidenceBuildError.invalidArtifact(artifact.path)
+                throw RTLVerificationProcessEvidenceBuildError.invalidArtifact(artifact.sourcePath)
             }
             guard artifactIDs.insert(artifactID).inserted,
-                  !artifact.path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  !artifact.path.hasPrefix("/"),
-                  !artifact.path.split(separator: "/").contains(".."),
-                  artifact.digest.algorithm == .sha256,
+                  !artifact.sourcePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  artifact.reference.digest.algorithm == .sha256,
                   sha256.count == 64,
                   sha256.allSatisfy(\.isHexDigit),
-                  artifact.byteCount > 0 else {
+                  artifact.reference.byteCount > 0 else {
                 throw RTLVerificationProcessEvidenceBuildError.invalidArtifact(artifactID)
             }
         }

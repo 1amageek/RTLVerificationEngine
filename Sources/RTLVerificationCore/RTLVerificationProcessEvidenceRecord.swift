@@ -43,7 +43,8 @@ public struct RTLVerificationProcessEvidenceRecord: Sendable, Hashable, Codable 
     }
 
     public func isComplete(at date: Date) -> Bool {
-        status == .complete
+        schemaVersion == Self.currentSchemaVersion
+            && status == .complete
             && scope.isComplete
             && !corpusEvidenceIDs.isEmpty
             && !oracleEvidenceIDs.isEmpty

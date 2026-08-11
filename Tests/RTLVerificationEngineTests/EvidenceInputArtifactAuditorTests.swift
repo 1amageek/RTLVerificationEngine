@@ -1,4 +1,5 @@
 import CircuiteFoundation
+import CircuiteFoundationCrypto
 import Foundation
 import Testing
 import RTLVerificationCore
@@ -6,8 +7,9 @@ import RTLVerificationCore
 @Suite("RTL observation input artifact auditor")
 struct EvidenceInputArtifactAuditorTests {
     @Test("auditor verifies retained oracle observation artifacts")
-    func verifiesRetainedOracleArtifacts() throws {
+    func verifiesRetainedOracleArtifacts() async throws {
         let root = try makeTemporaryRoot()
+        defer { removeTemporaryRoot(root) }
         let native = try makeArtifact(
             root: root,
             path: "observations/native.json",
@@ -24,15 +26,21 @@ struct EvidenceInputArtifactAuditorTests {
             oracleEvidence: [makeOracleEvidence(native: native, oracle: oracle)]
         )
 
-        try RTLVerificationEvidenceInputArtifactAuditor().audit(
-            input,
-            reader: FileSystemRTLArtifactReader(projectRoot: root)
+        let reader = try FileSystemRTLArtifactReader(
+            projectRoot: root,
+            rootID: ArtifactRootID(rawValue: "rtl-verification-test")
         )
+        try await RTLVerificationEvidenceInputArtifactAuditor().audit(
+            input,
+            reader: reader
+        )
+        try await reader.shutdown()
     }
 
     @Test("auditor rejects an oracle observation artifact modified after retention")
-    func rejectsModifiedOracleArtifact() throws {
+    func rejectsModifiedOracleArtifact() async throws {
         let root = try makeTemporaryRoot()
+        defer { removeTemporaryRoot(root) }
         let native = try makeArtifact(
             root: root,
             path: "observations/native.json",
@@ -45,15 +53,19 @@ struct EvidenceInputArtifactAuditorTests {
             artifactID: "oracle-observation",
             contents: Data("oracle-observation".utf8)
         )
-        try Data("modified-observation".utf8).write(to: root.appending(path: oracle.path))
+        try Data("modified-observation".utf8).write(to: root.appending(path: oracle.sourcePath))
         let input = RTLVerificationEvidenceInput(
             oracleEvidence: [makeOracleEvidence(native: native, oracle: oracle)]
         )
 
+        let reader = try FileSystemRTLArtifactReader(
+            projectRoot: root,
+            rootID: ArtifactRootID(rawValue: "rtl-verification-test")
+        )
         do {
-            try RTLVerificationEvidenceInputArtifactAuditor().audit(
+            try await RTLVerificationEvidenceInputArtifactAuditor().audit(
                 input,
-                reader: FileSystemRTLArtifactReader(projectRoot: root)
+                reader: reader
             )
             Issue.record("A modified retained artifact must fail integrity verification.")
         } catch let error as RTLVerificationEvidenceInputArtifactAuditError {
@@ -64,6 +76,7 @@ struct EvidenceInputArtifactAuditorTests {
             #expect(artifactID == "oracle-observation")
             #expect(artifactPath == "observations/oracle.json")
         }
+        try await reader.shutdown()
     }
 
     private func makeTemporaryRoot() throws -> URL {
@@ -78,7 +91,7 @@ struct EvidenceInputArtifactAuditorTests {
         path: String,
         artifactID: String,
         contents: Data
-    ) throws -> ArtifactReference {
+    ) throws -> RTLArtifactBinding {
         let url = root.appending(path: path)
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
@@ -86,7 +99,7 @@ struct EvidenceInputArtifactAuditorTests {
         )
         try contents.write(to: url)
         let hasher = SHA256ContentDigester()
-        return makeTestArtifactReference(
+        return makeTestArtifactBinding(
             artifactID: artifactID,
             path: path,
             kind: .report,
@@ -97,8 +110,8 @@ struct EvidenceInputArtifactAuditorTests {
     }
 
     private func makeOracleEvidence(
-        native: ArtifactReference,
-        oracle: ArtifactReference
+        native: RTLArtifactBinding,
+        oracle: RTLArtifactBinding
     ) -> RTLVerificationOracleEvidence {
         let recordedAt = Date(timeIntervalSince1970: 1_000)
         let requestDigest = String(repeating: "d", count: 64)
@@ -124,5 +137,13 @@ struct EvidenceInputArtifactAuditorTests {
             oracleProvenance: "independent-retained-oracle",
             recordedAt: recordedAt
         )
+    }
+
+    private func removeTemporaryRoot(_ root: URL) {
+        do {
+            try FileManager.default.removeItem(at: root)
+        } catch {
+            Issue.record("Failed to remove temporary artifact root: \(error)")
+        }
     }
 }

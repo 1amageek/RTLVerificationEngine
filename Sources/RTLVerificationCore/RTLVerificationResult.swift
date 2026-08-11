@@ -1,33 +1,25 @@
 import Foundation
 import CircuiteFoundation
+import CircuiteFoundationCrypto
+
+public enum RTLVerificationResultError: Error, Sendable, Equatable {
+    case unsupportedSchemaVersion(Int)
+}
 
 /// RTL verification domain result. This type owns status, diagnostics and
 /// payload for RTL analyses without a generic cross-domain result.
 public struct RTLVerificationResult: Sendable, Hashable, Codable, ArtifactProducing,
     EvidenceProviding, DiagnosticReporting
 {
-    public var schemaVersion: Int
+    public static let currentSchemaVersion = RTLVerificationRequest.currentSchemaVersion
+
+    public private(set) var schemaVersion: Int
     public var runID: String
     public var status: RTLExecutionStatus
     public var rtlDiagnostics: [RTLDiagnostic]
-    public var artifacts: [ArtifactReference] {
-        didSet {
-            evidence = EvidenceManifest(
-                id: evidence.id,
-                provenance: provenance,
-                artifacts: artifacts
-            )
-        }
-    }
-    public var provenance: ExecutionProvenance {
-        didSet {
-            evidence = EvidenceManifest(
-                id: evidence.id,
-                provenance: provenance,
-                artifacts: artifacts
-            )
-        }
-    }
+    public private(set) var artifactBindings: [RTLArtifactBinding]
+    public var artifacts: [ArtifactReference] { artifactBindings.map(\.reference) }
+    public private(set) var provenance: ExecutionProvenance
     public var payload: RTLVerificationPayload
     public private(set) var evidence: EvidenceManifest
 
@@ -36,7 +28,7 @@ public struct RTLVerificationResult: Sendable, Hashable, Codable, ArtifactProduc
         case runID
         case status
         case rtlDiagnostics
-        case artifacts
+        case artifactBindings
         case provenance
         case payload
         case evidence
@@ -47,35 +39,54 @@ public struct RTLVerificationResult: Sendable, Hashable, Codable, ArtifactProduc
         runID: String,
         status: RTLExecutionStatus,
         diagnostics: [RTLDiagnostic] = [],
-        artifacts: [ArtifactReference] = [],
+        artifactBindings: [RTLArtifactBinding] = [],
         provenance: ExecutionProvenance,
         payload: RTLVerificationPayload
-    ) {
+    ) throws {
+        guard schemaVersion == Self.currentSchemaVersion else {
+            throw RTLVerificationResultError.unsupportedSchemaVersion(schemaVersion)
+        }
         self.schemaVersion = schemaVersion
         self.runID = runID
         self.status = status
         self.rtlDiagnostics = diagnostics
-        self.artifacts = artifacts
+        self.artifactBindings = artifactBindings
         self.provenance = provenance
         self.payload = payload
-        self.evidence = EvidenceManifest(provenance: provenance, artifacts: artifacts)
+        self.evidence = try EvidenceManifest.contentAddressed(
+            provenance: provenance,
+            artifacts: artifactBindings.map(\.reference),
+            digester: SHA256ContentDigester()
+        )
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
+        guard schemaVersion == Self.currentSchemaVersion else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .schemaVersion,
+                in: container,
+                debugDescription: "Unsupported RTL verification result schema version \(schemaVersion)."
+            )
+        }
         runID = try container.decode(String.self, forKey: .runID)
         status = try container.decode(RTLExecutionStatus.self, forKey: .status)
         rtlDiagnostics = try container.decode([RTLDiagnostic].self, forKey: .rtlDiagnostics)
-        artifacts = try container.decode([ArtifactReference].self, forKey: .artifacts)
+        artifactBindings = try container.decode([RTLArtifactBinding].self, forKey: .artifactBindings)
         provenance = try container.decode(ExecutionProvenance.self, forKey: .provenance)
         payload = try container.decode(RTLVerificationPayload.self, forKey: .payload)
         evidence = try container.decode(EvidenceManifest.self, forKey: .evidence)
-        guard evidence.provenance == provenance, evidence.artifacts == artifacts else {
+        let expectedEvidence = try EvidenceManifest.contentAddressed(
+            provenance: provenance,
+            artifacts: artifactBindings.map(\.reference),
+            digester: SHA256ContentDigester()
+        )
+        guard evidence == expectedEvidence else {
             throw DecodingError.dataCorruptedError(
                 forKey: .evidence,
                 in: container,
-                debugDescription: "RTL verification evidence does not match result provenance and artifacts."
+                debugDescription: "RTL verification evidence identity does not match result provenance and artifacts."
             )
         }
     }

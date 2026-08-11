@@ -5,11 +5,12 @@ import PowerIntent
 import TimingCore
 
 public struct RTLVerificationRequest: RTLExecutionRequest {
-    public static let currentSchemaVersion = 1
+    public static let currentSchemaVersion = 2
 
-    public var schemaVersion: Int
+    public private(set) var schemaVersion: Int
     public var runID: String
-    public var inputs: [ArtifactReference]
+    public private(set) var inputs: [ArtifactReference]
+    public private(set) var inputBindings: [RTLArtifactBinding]
 
     public var design: LogicDesignReference
     public var referenceDesign: LogicDesignReference?
@@ -29,6 +30,7 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
         case schemaVersion
         case runID
         case inputs
+        case inputBindings
         case design
         case referenceDesign
         case referenceInputs
@@ -46,7 +48,7 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
 
     public init(
         runID: String,
-        inputs: [ArtifactReference],
+        inputBindings: [RTLArtifactBinding],
         design: LogicDesignReference,
         referenceDesign: LogicDesignReference? = nil,
         referenceInputs: [ArtifactReference] = [],
@@ -63,7 +65,8 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
     ) {
         self.schemaVersion = Self.currentSchemaVersion
         self.runID = runID
-        self.inputs = inputs
+        self.inputBindings = inputBindings
+        self.inputs = Self.uniqueReferences(inputBindings.map(\.reference))
         self.design = design
         self.referenceDesign = referenceDesign
         self.referenceInputs = referenceInputs
@@ -89,9 +92,18 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
                 debugDescription: "Unsupported RTL verification request schema version \(schemaVersion)."
             )
         }
+        let inputBindings = try container.decode([RTLArtifactBinding].self, forKey: .inputBindings)
+        let inputs = try container.decode([ArtifactReference].self, forKey: .inputs)
+        guard inputs == Self.uniqueReferences(inputBindings.map(\.reference)) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .inputs,
+                in: container,
+                debugDescription: "RTL verification inputs do not match their artifact bindings."
+            )
+        }
         self.init(
             runID: try container.decode(String.self, forKey: .runID),
-            inputs: try container.decode([ArtifactReference].self, forKey: .inputs),
+            inputBindings: inputBindings,
             design: try container.decode(LogicDesignReference.self, forKey: .design),
             referenceDesign: try container.decodeIfPresent(LogicDesignReference.self, forKey: .referenceDesign),
             referenceInputs: try container.decode([ArtifactReference].self, forKey: .referenceInputs),
@@ -133,8 +145,27 @@ public extension RTLVerificationRequest {
         if let powerIntent {
             references.append(powerIntent.artifact)
         }
-        var paths = Set<String>()
-        return references.filter { paths.insert($0.path).inserted }
+        var identities = Set<ArtifactID>()
+        return references.filter { identities.insert($0.id).inserted }
+    }
+
+    func requireBinding(for reference: ArtifactReference) throws -> RTLArtifactBinding {
+        do {
+            return try RTLArtifactBinding.require(reference, in: inputBindings)
+        } catch {
+            throw RTLVerificationExecutionError.invalidRequest(
+                "Artifact materialization is missing for content \(reference.id.description)."
+            )
+        }
+    }
+
+    mutating func replaceInputBindings(_ bindings: [RTLArtifactBinding]) {
+        inputBindings = bindings
+        inputs = Self.uniqueReferences(bindings.map(\.reference))
+    }
+
+    mutating func appendInputBindings(_ bindings: [RTLArtifactBinding]) {
+        replaceInputBindings(inputBindings + bindings)
     }
 
     func designSubjectReference() throws -> DesignSubjectReference {
@@ -145,5 +176,12 @@ public extension RTLVerificationRequest {
                 localIdentifier: design.topDesignName
             )
         )
+    }
+}
+
+private extension RTLVerificationRequest {
+    static func uniqueReferences(_ references: [ArtifactReference]) -> [ArtifactReference] {
+        var identities = Set<ArtifactID>()
+        return references.filter { identities.insert($0.id).inserted }
     }
 }

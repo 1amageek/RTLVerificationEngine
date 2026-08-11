@@ -10,7 +10,7 @@ public struct RTLResetIntentLoader: Sendable {
 
     public func load(
         request: RTLVerificationRequest
-    ) throws -> (reset: RTLResetIntent, power: PowerIntentDesign)? {
+    ) async throws -> (reset: RTLResetIntent, power: PowerIntentDesign)? {
         guard let resetReference = request.resetIntent,
               let powerReference = request.powerIntent else {
             if request.resetIntent != nil || request.powerIntent != nil {
@@ -28,13 +28,15 @@ public struct RTLResetIntentLoader: Sendable {
         let reset: RTLResetIntent
         let power: PowerIntentDesign
         do {
+            let resetBinding = try request.requireBinding(for: resetReference.artifact)
+            let powerBinding = try request.requireBinding(for: powerReference.artifact)
             reset = try JSONDecoder().decode(
                 RTLResetIntent.self,
-                from: reader.read(resetReference.artifact)
+                from: await reader.read(resetBinding)
             )
             power = try JSONDecoder().decode(
                 PowerIntentDesign.self,
-                from: reader.read(powerReference.artifact)
+                from: await reader.read(powerBinding)
             )
         } catch let error as RTLVerificationExecutionError {
             throw error
@@ -62,14 +64,14 @@ public struct RTLResetIntentLoader: Sendable {
                 "Reset intent requires existing canonical power domains with non-empty, non-overlapping element scopes."
             )
         }
-        try validateExceptions(reset.exceptions, request: request)
+        try await validateExceptions(reset.exceptions, request: request)
         return (reset, power)
     }
 
     private func validateExceptions(
         _ exceptions: [RTLResetIntent.Exception],
         request: RTLVerificationRequest
-    ) throws {
+    ) async throws {
         for exception in exceptions {
             switch exception.kind {
             case .staticDuringOperation:
@@ -85,11 +87,11 @@ public struct RTLResetIntentLoader: Sendable {
                 }
             case .externallySynchronized:
                 guard let artifactID = exception.evidenceArtifactID,
-                      let artifact = request.executionInputArtifacts.first(where: {
-                          $0.artifactID == artifactID
-                              && $0.locator.role == .input
-                              && $0.locator.kind == .evidence
-                              && $0.locator.format == .json
+                      let artifact = request.inputBindings.first(where: {
+                          $0.logicalID == artifactID
+                              && $0.descriptor.role == .input
+                              && $0.descriptor.kind == .evidence
+                              && $0.descriptor.format == .json
                       }) else {
                     throw RTLVerificationExecutionError.invalidArtifact(
                         "External reset exception \(exception.exceptionID) lacks one JSON input evidence artifact."
@@ -99,7 +101,7 @@ public struct RTLResetIntentLoader: Sendable {
                 do {
                     evidence = try JSONDecoder().decode(
                         RTLResetSynchronizationEvidence.self,
-                        from: reader.read(artifact)
+                        from: await reader.read(artifact)
                     )
                 } catch let error as RTLVerificationExecutionError {
                     throw error

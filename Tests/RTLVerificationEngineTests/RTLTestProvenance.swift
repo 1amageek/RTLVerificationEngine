@@ -29,19 +29,23 @@ func replacingRTLTestProducer(
     implementationID: String,
     implementationVersion: String
 ) throws -> RTLVerificationResult {
-    RTLVerificationResult(
+    try RTLVerificationResult(
         schemaVersion: result.schemaVersion,
         runID: result.runID,
         status: result.status,
         diagnostics: result.rtlDiagnostics,
-        artifacts: result.artifacts,
+        artifactBindings: result.artifactBindings,
         provenance: try makeRTLTestProvenance(
             engineID: result.provenance.producer.build
                 ?? result.payload.analysis.stageID,
             implementationID: implementationID,
             implementationVersion: implementationVersion,
-            startedAt: result.provenance.startedAt,
-            completedAt: result.provenance.completedAt,
+            startedAt: Date(
+                timeIntervalSince1970: result.provenance.startedAt.secondsSinceUnixEpoch
+            ),
+            completedAt: Date(
+                timeIntervalSince1970: result.provenance.completedAt.secondsSinceUnixEpoch
+            ),
             seed: result.provenance.randomSeed
         ),
         payload: result.payload

@@ -63,8 +63,8 @@ public struct NativeFormalEquivalenceChecker: FormalEquivalenceChecking {
 
         do {
             let loader = RTLVerificationDesignLoader(reader: environment.reader, parser: environment.parser)
-            let implementation = try loader.load(request)
-            let reference = try loader.loadReference(request)
+            let implementation = try await loader.load(request)
+            let reference = try await loader.loadReference(request)
             let comparison = RTLStructuralEquivalenceComparator().compare(implementation.design, reference.design)
             let unsupported = implementation.unsupportedConstructs + reference.unsupportedConstructs
             let coverage = RTLVerificationCoverage(

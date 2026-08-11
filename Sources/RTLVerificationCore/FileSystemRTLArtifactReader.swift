@@ -1,51 +1,121 @@
 import CircuiteFoundation
+import CircuiteFoundationCrypto
+import CircuiteFoundationFileSystem
 import Foundation
 
-public struct FileSystemRTLArtifactReader: RTLArtifactReading {
-    public var projectRoot: URL
-    private var verifier: LocalArtifactVerifier
+public actor FileSystemRTLArtifactReader: RTLArtifactReading {
+    public nonisolated let rootID: ArtifactRootID
 
-    public init(projectRoot: URL) {
-        self.projectRoot = projectRoot
-        self.verifier = LocalArtifactVerifier()
+    private let access: any ArtifactAccessing
+    private let budget: ArtifactAccessBudget
+    private let ownedRoot: ArtifactRootCapability?
+
+    public init(projectRoot: URL) throws {
+        try self.init(
+            projectRoot: projectRoot,
+            rootID: ArtifactRootID(rawValue: "rtl-verification-project")
+        )
     }
 
-    public func read(_ reference: ArtifactReference) throws -> Data {
-        let integrity = verifier.verify(reference, relativeTo: projectRoot)
-        guard integrity.isVerified else {
-            throw RTLVerificationExecutionError.artifactReadFailed(
-                path: reference.path,
-                reason: integrity.issues.map { String(describing: $0) }.joined(separator: "; ")
-            )
-        }
-        let url = try reference.locator.location.resolvedFileURL(relativeTo: projectRoot)
+    public init(projectRoot: URL, rootID: ArtifactRootID) throws {
+        let root = try ArtifactRootCapability(
+            rootID: rootID,
+            directoryURL: projectRoot,
+            digester: SHA256ContentDigester()
+        )
+        self.rootID = rootID
+        self.access = root
+        self.ownedRoot = root
+        self.budget = try Self.defaultBudget()
+    }
+
+    public init(
+        rootID: ArtifactRootID,
+        access: any ArtifactAccessing,
+        budget: ArtifactAccessBudget
+    ) {
+        self.rootID = rootID
+        self.access = access
+        self.budget = budget
+        self.ownedRoot = nil
+    }
+
+    public func read(_ binding: RTLArtifactBinding) async throws -> Data {
+        let intent: ArtifactAccessIntent
         do {
-            return try Data(contentsOf: url)
+            intent = try ArtifactAccessIntent(
+                expectedReference: binding.reference,
+                availability: binding.availability,
+                operation: .read,
+                budget: budget
+            )
         } catch {
             throw RTLVerificationExecutionError.artifactReadFailed(
-                path: reference.path,
-                reason: error.localizedDescription
+                path: binding.sourcePath,
+                reason: String(describing: error)
+            )
+        }
+
+        let session: any ArtifactReadSession
+        do {
+            session = try await access.open(intent)
+        } catch {
+            throw RTLVerificationExecutionError.artifactReadFailed(
+                path: binding.sourcePath,
+                reason: String(describing: error)
+            )
+        }
+
+        do {
+            var data = Data()
+            var offset: UInt64 = 0
+            while true {
+                let page = try await session.readPage(
+                    ArtifactReadPageRequest(
+                        offset: offset,
+                        maximumByteCount: budget.maximumPageByteCount
+                    )
+                )
+                page.bytes.withUnsafeBytes { bytes in
+                    data.append(contentsOf: bytes)
+                }
+                offset = page.cumulativeByteCount
+                if page.completion == .complete {
+                    break
+                }
+            }
+            _ = try await session.close().wait()
+            return data
+        } catch let primaryError {
+            do {
+                _ = try await session.close().wait()
+            } catch let closeError {
+                throw RTLVerificationExecutionError.artifactReadFailed(
+                    path: binding.sourcePath,
+                    reason: "read failed: \(primaryError); close failed: \(closeError)"
+                )
+            }
+            throw RTLVerificationExecutionError.artifactReadFailed(
+                path: binding.sourcePath,
+                reason: String(describing: primaryError)
             )
         }
     }
 
-    public func read(_ locator: ArtifactLocator) throws -> Data {
-        let url: URL
-        do {
-            url = try locator.location.resolvedFileURL(relativeTo: projectRoot)
-        } catch {
-            throw RTLVerificationExecutionError.artifactReadFailed(
-                path: locator.path,
-                reason: error.localizedDescription
-            )
+    public func shutdown() async throws {
+        guard let ownedRoot else {
+            return
         }
-        do {
-            return try Data(contentsOf: url)
-        } catch {
-            throw RTLVerificationExecutionError.artifactReadFailed(
-                path: locator.path,
-                reason: error.localizedDescription
-            )
-        }
+        try await ownedRoot.close().wait()
+    }
+
+    private static func defaultBudget() throws -> ArtifactAccessBudget {
+        try ArtifactAccessBudget(
+            maximumPageByteCount: 1_048_576,
+            maximumTotalByteCount: 1_073_741_824,
+            maximumPageCount: 1_024,
+            maximumWorkUnitCount: 4_096,
+            maximumDurationNanoseconds: 60_000_000_000
+        )
     }
 }

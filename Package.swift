@@ -63,6 +63,8 @@ let package = Package(
             name: "RTLVerificationCore",
             dependencies: [
                 .product(name: "CircuiteFoundation", package: "CircuiteFoundation"),
+                .product(name: "CircuiteFoundationCrypto", package: "CircuiteFoundation"),
+                .product(name: "CircuiteFoundationFileSystem", package: "CircuiteFoundation"),
                 .product(name: "LogicIR", package: "LogicDesign"),
                 .product(name: "PowerIntent", package: "LogicDesign"),
                 .product(name: "SystemVerilogFrontend", package: "LogicDesign"),
@@ -112,6 +114,7 @@ let package = Package(
                 "RDCAnalysis",
                 "FormalEquivalence",
                 "RTLVerificationEngine",
+                .product(name: "CircuiteFoundationCrypto", package: "CircuiteFoundation"),
                 .product(name: "ToolQualification", package: "ToolQualification"),
                 .product(name: "LogicEngineCore", package: "LogicEngine"),
                 .product(name: "LogicLowering", package: "LogicEngine"),

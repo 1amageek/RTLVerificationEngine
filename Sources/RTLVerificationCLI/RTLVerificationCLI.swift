@@ -38,7 +38,7 @@ struct RTLVerificationCLI {
     ) async throws -> RTLVerificationResult {
         let options = try Options(arguments: arguments)
         if options.help {
-            return RTLVerificationResult(
+            return try RTLVerificationResult(
                 schemaVersion: RTLVerificationRequest.currentSchemaVersion,
                 runID: "help",
                 status: .completed,
@@ -80,9 +80,9 @@ struct RTLVerificationCLI {
             throw RTLVerificationExecutionError.invalidRequest("At least one --rtl input is required.")
         }
         let design = LogicDesignReference(
-            artifact: rtlReference,
+            artifact: rtlReference.reference,
             topDesignName: options.topModule,
-            designDigest: rtlReference.digest.hexadecimalValue
+            designDigest: rtlReference.reference.digest.hexadecimalValue
         )
         let referenceReferences = try options.referencePaths.enumerated().map { index, referencePath in
             try referenceBuilder.reference(
@@ -96,14 +96,15 @@ struct RTLVerificationCLI {
         let referenceDesign: LogicDesignReference?
         if let reference = referenceReferences.first {
             referenceDesign = LogicDesignReference(
-                artifact: reference,
+                artifact: reference.reference,
                 topDesignName: options.topModule,
-                designDigest: reference.digest.hexadecimalValue
+                designDigest: reference.reference.digest.hexadecimalValue
             )
         } else {
             referenceDesign = nil
         }
-        let referenceInputs = Array(referenceReferences.dropFirst())
+        let referenceInputs = referenceReferences.dropFirst().map(\.reference)
+        let constraintBinding: RTLArtifactBinding?
         let constraintReference: RTLConstraintReference?
         if let constraintPath = options.constraintPath {
             let reference = try referenceBuilder.reference(
@@ -113,10 +114,17 @@ struct RTLVerificationCLI {
                 format: .sdc,
                 inProjectAt: options.projectRoot
             )
-            constraintReference = RTLConstraintReference(artifact: reference, modeIDs: options.constraintModes)
+            constraintBinding = reference
+            constraintReference = RTLConstraintReference(
+                artifact: reference.reference,
+                modeIDs: options.constraintModes
+            )
         } else {
+            constraintBinding = nil
             constraintReference = nil
         }
+        let resetIntentBinding: RTLArtifactBinding?
+        let powerIntentBinding: RTLArtifactBinding?
         let resetIntentReference: RTLResetIntentReference?
         let powerIntentReference: PowerIntentReference?
         if let resetIntentPath = options.resetIntentPath,
@@ -135,9 +143,11 @@ struct RTLVerificationCLI {
                 format: .json,
                 inProjectAt: options.projectRoot
             )
-            resetIntentReference = RTLResetIntentReference(artifact: resetArtifact)
+            resetIntentBinding = resetArtifact
+            powerIntentBinding = powerArtifact
+            resetIntentReference = RTLResetIntentReference(artifact: resetArtifact.reference)
             powerIntentReference = PowerIntentReference(
-                artifact: powerArtifact,
+                artifact: powerArtifact.reference,
                 designDigest: design.designDigest
             )
         } else if options.resetIntentPath != nil || options.powerIntentPath != nil {
@@ -145,6 +155,8 @@ struct RTLVerificationCLI {
                 "--reset-intent and --power-intent must be supplied together."
             )
         } else {
+            resetIntentBinding = nil
+            powerIntentBinding = nil
             resetIntentReference = nil
             powerIntentReference = nil
         }
@@ -161,12 +173,12 @@ struct RTLVerificationCLI {
                 forProjectAt: options.projectRoot
             )
         }
+        let optionalBindings = [constraintBinding, resetIntentBinding, powerIntentBinding]
+            .compactMap { $0 }
+        let inputBindings = rtlReferences + referenceReferences + optionalBindings
         let request = RTLVerificationRequest(
             runID: options.runID,
-            inputs: rtlReferences
-                + (constraintReference.map { [$0.artifact] } ?? [])
-                + (resetIntentReference.map { [$0.artifact] } ?? [])
-                + (powerIntentReference.map { [$0.artifact] } ?? []),
+            inputBindings: inputBindings,
             design: design,
             referenceDesign: referenceDesign,
             referenceInputs: referenceInputs,
@@ -190,7 +202,7 @@ struct RTLVerificationCLI {
             evidenceInput: evidenceInput
         )
         let environment = RTLVerificationEnvironment(
-            reader: FileSystemRTLArtifactReader(projectRoot: options.projectRoot),
+            reader: try FileSystemRTLArtifactReader(projectRoot: options.projectRoot),
             writer: try FileSystemRTLArtifactStore(
                 artifactRoot: options.projectRoot,
                 namespace: RTLArtifactNamespace(validating: "artifacts/rtl-verification")

@@ -14,16 +14,21 @@ public struct RTLVerificationDesignLoader: Sendable {
         self.parser = parser
     }
 
-    public func load(_ request: RTLVerificationRequest) throws -> RTLVerificationParsedDesign {
-        let designReference = request.design.artifact
-        let references = uniqueReferences(
-            [designReference] + request.inputs.filter { $0.locator.kind == .rtl }
+    public func load(_ request: RTLVerificationRequest) async throws -> RTLVerificationParsedDesign {
+        let designBinding = try request.requireBinding(for: request.design.artifact)
+        let bindings = uniqueBindings(
+            [designBinding] + request.inputBindings.filter { $0.descriptor.kind == .rtl }
         )
-        let sourceInputs = try references.map { reference in
-            RTLVerificationSourceInput(reference: reference, data: try reader.read(reference))
+        var sourceInputs: [RTLVerificationSourceInput] = []
+        for binding in bindings {
+            sourceInputs.append(RTLVerificationSourceInput(
+                reference: binding.reference,
+                path: binding.sourcePath,
+                data: try await reader.read(binding)
+            ))
         }
         if let sourceSetParser = parser as? RTLVerificationSourceSetParsing,
-           references.allSatisfy({ $0.format != .json }) {
+           bindings.allSatisfy({ $0.descriptor.format != .json }) {
             let parsed = try sourceSetParser.parse(
                 sources: sourceInputs,
                 topModuleName: request.design.topDesignName,
@@ -33,11 +38,11 @@ public struct RTLVerificationDesignLoader: Sendable {
             return try normalize(parsed, request: request)
         }
         var merged: RTLVerificationParsedDesign?
-        for (index, reference) in references.enumerated() {
+        for (index, binding) in bindings.enumerated() {
             let data = sourceInputs[index].data
             let parsed = try parse(
                 data: data,
-                reference: reference,
+                binding: binding,
                 topModuleName: request.design.topDesignName,
                 options: request.frontend
             )
@@ -104,17 +109,25 @@ public struct RTLVerificationDesignLoader: Sendable {
         }
     }
 
-    public func loadReference(_ request: RTLVerificationRequest) throws -> RTLVerificationParsedDesign {
+    public func loadReference(_ request: RTLVerificationRequest) async throws -> RTLVerificationParsedDesign {
         guard let referenceDesign = request.referenceDesign else {
             throw RTLVerificationExecutionError.invalidRequest("A reference design is required for formal equivalence.")
         }
-        let referenceReference = referenceDesign.artifact
-        let references = uniqueReferences([referenceReference] + request.referenceInputs)
-        let sourceInputs = try references.map { reference in
-            RTLVerificationSourceInput(reference: reference, data: try reader.read(reference))
+        let referenceBinding = try request.requireBinding(for: referenceDesign.artifact)
+        let referenceBindings = try request.referenceInputs.map {
+            try request.requireBinding(for: $0)
+        }
+        let bindings = uniqueBindings([referenceBinding] + referenceBindings)
+        var sourceInputs: [RTLVerificationSourceInput] = []
+        for binding in bindings {
+            sourceInputs.append(RTLVerificationSourceInput(
+                reference: binding.reference,
+                path: binding.sourcePath,
+                data: try await reader.read(binding)
+            ))
         }
         if let sourceSetParser = parser as? RTLVerificationSourceSetParsing,
-           references.allSatisfy({ $0.format != .json }) {
+           bindings.allSatisfy({ $0.descriptor.format != .json }) {
             let parsed = try sourceSetParser.parse(
                 sources: sourceInputs,
                 topModuleName: referenceDesign.topDesignName,
@@ -124,10 +137,10 @@ public struct RTLVerificationDesignLoader: Sendable {
             return try normalizeReference(parsed, request: request)
         }
         var merged: RTLVerificationParsedDesign?
-        for (index, reference) in references.enumerated() {
+        for (index, binding) in bindings.enumerated() {
             let parsed = try parse(
                 data: sourceInputs[index].data,
-                reference: reference,
+                binding: binding,
                 topModuleName: referenceDesign.topDesignName,
                 options: request.frontend
             )
@@ -187,11 +200,12 @@ public struct RTLVerificationDesignLoader: Sendable {
 
     private func parse(
         data: Data,
-        reference: ArtifactReference,
+        binding: RTLArtifactBinding,
         topModuleName: String,
         options: RTLVerificationFrontendOptions
     ) throws -> RTLVerificationParsedDesign {
-        if reference.format == .json {
+        let reference = binding.reference
+        if reference.descriptor.format == .json {
             do {
                 let snapshot = try LogicDesignSnapshotCodec.decode(data)
                 return RTLVerificationParsedDesign(
@@ -227,7 +241,7 @@ public struct RTLVerificationDesignLoader: Sendable {
                     )
                 } catch {
                     throw RTLVerificationExecutionError.parserFailed(
-                        path: reference.path,
+                        path: binding.sourcePath,
                         reason: error.localizedDescription
                     )
                 }
@@ -236,16 +250,16 @@ public struct RTLVerificationDesignLoader: Sendable {
         if let systemVerilogParser = parser as? SystemVerilogRTLParser {
             return try systemVerilogParser.parse(
                 data: data,
-                path: reference.path,
+                path: binding.sourcePath,
                 topModuleName: topModuleName,
                 options: options
             )
         }
-        return try parser.parse(data: data, path: reference.path, topModuleName: topModuleName)
+        return try parser.parse(data: data, path: binding.sourcePath, topModuleName: topModuleName)
     }
 
-    private func uniqueReferences(_ references: [ArtifactReference]) -> [ArtifactReference] {
-        var seen: Set<String> = []
-        return references.filter { seen.insert($0.path).inserted }
+    private func uniqueBindings(_ bindings: [RTLArtifactBinding]) -> [RTLArtifactBinding] {
+        var seen: Set<RTLArtifactBinding> = []
+        return bindings.filter { seen.insert($0).inserted }
     }
 }

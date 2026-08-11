@@ -9,16 +9,20 @@ struct FixtureCorpusTests {
     @Test("positive fixture is reproducible")
     func positiveFixture() async throws {
         let source = try fixtureData(named: "positive.sv")
-        let reference = makeTestArtifactReference(
+        let binding = makeTestArtifactBinding(
             path: "positive.sv",
             kind: .rtl,
             format: .systemVerilog,
             data: source
         )
-        let reader = InMemoryRTLArtifactReader(artifacts: [reference.path: source])
+        let reference = binding.reference
+        let reader = InMemoryRTLArtifactReader(
+            bindings: [binding],
+            dataByLogicalID: [binding.logicalID: source]
+        )
         let request = RTLVerificationRequest(
             runID: "corpus-positive",
-            inputs: [reference],
+            inputBindings: [binding],
             design: LogicDesignReference(
                 artifact: reference,
                 topDesignName: "top",

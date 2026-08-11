@@ -2,14 +2,14 @@ import CircuiteFoundation
 import Foundation
 
 public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable {
-    public static let currentSchemaVersion = 1
+    public static let currentSchemaVersion = 2
 
     public var schemaVersion: Int
     public var evidenceID: String
     public var evidenceSetID: String
     public var record: RTLVerificationProcessEvidenceRecord
     public var artifactIDs: [String]
-    public var artifacts: [ArtifactReference]
+    public var artifacts: [RTLArtifactBinding]
     public var provenance: String
     public var recordedAt: Date
 
@@ -18,7 +18,7 @@ public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable 
         evidenceSetID: String,
         record: RTLVerificationProcessEvidenceRecord,
         artifactIDs: [String],
-        artifacts: [ArtifactReference] = [],
+        artifacts: [RTLArtifactBinding] = [],
         provenance: String,
         recordedAt: Date = Date(),
         schemaVersion: Int = RTLVerificationProcessEvidenceBundle.currentSchemaVersion
@@ -34,30 +34,29 @@ public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable 
     }
 
     public var isAuditable: Bool {
-        !evidenceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        schemaVersion == Self.currentSchemaVersion
+            && !evidenceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && evidenceSetID == record.evidenceSetID
             && !artifactIDs.isEmpty
             && artifactIDs.allSatisfy {
                 !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             }
             && Set(artifactIDs).count == artifactIDs.count
-            && artifactIDs == artifacts.map(\.artifactID).sorted()
+            && artifactIDs == artifacts.map(\.logicalID).sorted()
             && artifacts.allSatisfy(Self.isDigestBound)
             && !provenance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && record.isComplete(at: recordedAt)
     }
 
-    private static func isDigestBound(_ artifact: ArtifactReference) -> Bool {
-        let artifactID = artifact.artifactID
-        let sha256 = artifact.digest.hexadecimalValue
+    private static func isDigestBound(_ artifact: RTLArtifactBinding) -> Bool {
+        let artifactID = artifact.logicalID
+        let sha256 = artifact.reference.digest.hexadecimalValue
         guard !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !artifact.path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !artifact.path.hasPrefix("/"),
-              !artifact.path.split(separator: "/").contains(".."),
-              artifact.digest.algorithm == .sha256,
+              !artifact.sourcePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              artifact.reference.digest.algorithm == .sha256,
               sha256.count == 64,
               sha256.allSatisfy(\.isHexDigit),
-              artifact.byteCount > 0 else {
+              artifact.reference.byteCount > 0 else {
             return false
         }
         return true
@@ -92,7 +91,7 @@ public struct RTLVerificationProcessEvidenceBundle: Sendable, Hashable, Codable 
         )
         self.artifactIDs = try container.decode([String].self, forKey: .artifactIDs)
         self.artifacts = try container.decode(
-            [ArtifactReference].self,
+            [RTLArtifactBinding].self,
             forKey: .artifacts
         )
         self.provenance = try container.decode(String.self, forKey: .provenance)

@@ -1,4 +1,5 @@
 import CircuiteFoundation
+import CircuiteFoundationCrypto
 import Foundation
 import RTLVerificationCore
 import Testing
@@ -15,7 +16,7 @@ struct FoundationBoundaryTests {
     func resultExposesDigestBoundArtifactsAndDiagnostics() throws {
         let data = Data("rtl report".utf8)
         let digest = SHA256ContentDigester().sha256(data: data)
-        let artifact = makeTestArtifactReference(
+        let artifact = makeTestArtifactBinding(
             artifactID: "rtl-report",
             path: "reports/rtl.json",
             kind: .report,
@@ -23,8 +24,8 @@ struct FoundationBoundaryTests {
             sha256: digest,
             byteCount: Int64(data.count)
         )
-        let envelope = RTLVerificationResult(
-            schemaVersion: 1,
+        let envelope = try RTLVerificationResult(
+            schemaVersion: RTLVerificationResult.currentSchemaVersion,
             runID: "run-1",
             status: .blocked,
             diagnostics: [
@@ -35,7 +36,7 @@ struct FoundationBoundaryTests {
                     entity: "top.u1"
                 )
             ],
-            artifacts: [artifact],
+            artifactBindings: [artifact],
             provenance: try makeRTLTestProvenance(
                 engineID: "rtl.lint",
                 implementationID: "native-rtl-verification",
@@ -67,12 +68,12 @@ struct FoundationBoundaryTests {
 
     @Test
     func resultAcceptsCanonicalArtifactIntegrityMetadata() throws {
-        let envelope = RTLVerificationResult(
-            schemaVersion: 1,
+        let envelope = try RTLVerificationResult(
+            schemaVersion: RTLVerificationResult.currentSchemaVersion,
             runID: "run-1",
             status: .completed,
-            artifacts: [
-                makeTestArtifactReference(
+            artifactBindings: [
+                makeTestArtifactBinding(
                     artifactID: "rtl-report",
                     path: "reports/rtl.json",
                     kind: .report,
@@ -94,8 +95,8 @@ struct FoundationBoundaryTests {
 
     @Test
     func resultStructuresInvalidDiagnosticCode() throws {
-        let result = RTLVerificationResult(
-            schemaVersion: 1,
+        let result = try RTLVerificationResult(
+            schemaVersion: RTLVerificationResult.currentSchemaVersion,
             runID: "run-invalid-code",
             status: .blocked,
             diagnostics: [

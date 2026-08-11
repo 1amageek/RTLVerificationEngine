@@ -30,14 +30,17 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
             )
         }
         do {
-            let parsed = try RTLVerificationDesignLoader(reader: environment.reader, parser: environment.parser).load(request)
+            let parsed = try await RTLVerificationDesignLoader(reader: environment.reader, parser: environment.parser).load(request)
             let constraintContext: RTLVerificationConstraintContext
             if let constraints = request.constraints {
-                constraintContext = try RTLVerificationConstraintLoader(reader: environment.reader).load(constraints)
+                constraintContext = try await RTLVerificationConstraintLoader(reader: environment.reader).load(
+                    constraints,
+                    request: request
+                )
             } else {
                 constraintContext = RTLVerificationConstraintContext()
             }
-            let intentContext = try RTLResetIntentLoader(reader: environment.reader).load(
+            let intentContext = try await RTLResetIntentLoader(reader: environment.reader).load(
                 request: request
             )
             let analysis = analyze(
@@ -51,8 +54,9 @@ public struct NativeRDCAnalyzer: RDCAnalyzing {
                 request.resetIntent?.artifact,
                 request.powerIntent?.artifact,
             ].compactMap({ $0 }) {
+                let binding = try request.requireBinding(for: reference)
                 sourceArtifacts.append(RTLVerificationSourceArtifact(
-                    path: reference.path,
+                    path: binding.sourcePath,
                     sha256: reference.digest.hexadecimalValue,
                     byteCount: Int64(clamping: reference.byteCount),
                     order: sourceArtifacts.count

@@ -6,6 +6,7 @@ import RTLLint
 import RTLVerificationCore
 import ToolQualification
 import CircuiteFoundation
+import CircuiteFoundationCrypto
 
 public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDCAnalyzing, FormalEquivalenceChecking, Sendable {
     public var descriptor: RTLExternalToolDescriptor
@@ -152,8 +153,8 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                         "A solver-backed proof result must identify at least one unique proof artifact."
                     )
                 }
-                let proofArtifacts = result.artifacts.filter { artifact in
-                    proofArtifactIDs.contains(artifact.id.rawValue)
+                let proofArtifacts = result.artifactBindings.filter { artifact in
+                    proofArtifactIDs.contains(artifact.logicalID)
                 }
                 guard proofArtifacts.count == proofArtifactIDs.count,
                       proofArtifacts.allSatisfy(Self.isProofArtifact) else {
@@ -163,10 +164,10 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
                 }
                 for artifact in proofArtifacts {
                     do {
-                        _ = try artifactReader.read(artifact)
+                        _ = try await artifactReader.read(artifact)
                     } catch {
                         throw RTLVerificationExecutionError.invalidArtifact(
-                            "External proof artifact integrity verification failed for \(artifact.path): \(error.localizedDescription)"
+                            "External proof artifact integrity verification failed for \(artifact.sourcePath): \(error.localizedDescription)"
                         )
                     }
                 }
@@ -194,19 +195,19 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
     }
 
     private static func isProofArtifact(
-        _ artifact: ArtifactReference
+        _ artifact: RTLArtifactBinding
     ) -> Bool {
-        let artifactID = artifact.artifactID
-        let sha256 = artifact.digest.hexadecimalValue
+        let artifactID = artifact.logicalID
+        let sha256 = artifact.reference.digest.hexadecimalValue
         guard !artifactID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !artifact.path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              artifact.digest.algorithm == .sha256,
+              !artifact.sourcePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              artifact.reference.digest.algorithm == .sha256,
               sha256.count == 64,
               sha256.allSatisfy(\.isHexDigit) else {
             return false
         }
-        return artifact.locator.role == .output
-            && (artifact.locator.kind == .evidence || artifact.locator.kind == .report)
+        return artifact.descriptor.role == .output
+            && (artifact.descriptor.kind == .evidence || artifact.descriptor.kind == .report)
     }
 
     private func blockedResult(
@@ -238,7 +239,7 @@ public struct ExternalRTLVerificationEngine: RTLLintExecuting, CDCAnalyzing, RDC
             proofView: request.proofView,
             assumptions: request.assumptions
         )
-        return RTLVerificationResult(
+        return try RTLVerificationResult(
             schemaVersion: RTLVerificationRequest.currentSchemaVersion,
             runID: request.runID,
             status: .blocked,

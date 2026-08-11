@@ -1,13 +1,24 @@
 import CircuiteFoundation
+import CircuiteFoundationCrypto
 import Foundation
 
 public actor FileSystemRTLArtifactStore: RTLArtifactWriting {
     public let artifactRoot: URL
     public let namespace: RTLArtifactNamespace
+    public let rootID: ArtifactRootID
+
+    public init(artifactRoot: URL, namespace: RTLArtifactNamespace) throws {
+        try self.init(
+            artifactRoot: artifactRoot,
+            namespace: namespace,
+            rootID: ArtifactRootID(rawValue: "rtl-verification-artifacts")
+        )
+    }
 
     public init(
         artifactRoot: URL,
-        namespace: RTLArtifactNamespace
+        namespace: RTLArtifactNamespace,
+        rootID: ArtifactRootID
     ) throws {
         let standardizedRoot = artifactRoot.standardizedFileURL
         if FileManager.default.fileExists(atPath: standardizedRoot.path(percentEncoded: false)) {
@@ -20,13 +31,14 @@ public actor FileSystemRTLArtifactStore: RTLArtifactWriting {
         }
         self.artifactRoot = standardizedRoot.resolvingSymlinksInPath()
         self.namespace = namespace
+        self.rootID = rootID
     }
 
     public func persist(
         _ data: Data,
         artifactID: String,
         runID: String
-    ) async throws -> ArtifactReference {
+    ) async throws -> RTLArtifactBinding {
         try prepareArtifactRoot()
         let runSegment = try RTLArtifactPathSegment(validating: runID)
         let artifactSegment = try RTLArtifactPathSegment(validating: artifactID)
@@ -70,16 +82,25 @@ public actor FileSystemRTLArtifactStore: RTLArtifactWriting {
             )
         }
 
-        return ArtifactReference(
-            id: try ArtifactID(rawValue: artifactID),
-            locator: ArtifactLocator(
-                location: try ArtifactLocation(workspaceRelativePath: relativePath),
+        let reference = try ArtifactReference(
+            digest: SHA256ContentDigester().digest(data: data),
+            byteCount: UInt64(data.count),
+            descriptor: ArtifactDescriptor(
                 role: .output,
                 kind: .report,
                 format: .json
-            ),
-            digest: try SHA256ContentDigester().digest(data: data),
-            byteCount: UInt64(data.count)
+            )
+        )
+        return try RTLArtifactBinding(
+            logicalID: artifactID,
+            reference: reference,
+            availability: .local(
+                artifactID: reference.id,
+                rootID: rootID,
+                relativePath: ArtifactRelativePath(
+                    segments: relativePath.split(separator: "/").map(String.init)
+                )
+            )
         )
     }
 
