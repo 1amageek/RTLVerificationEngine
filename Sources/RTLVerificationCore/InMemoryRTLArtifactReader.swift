@@ -10,11 +10,13 @@ public struct InMemoryRTLArtifactReader: RTLArtifactReading {
     }
 
     public init(bindings: [RTLArtifactBinding], dataByLogicalID: [String: Data]) {
-        self.artifacts = Dictionary(
-            uniqueKeysWithValues: bindings.compactMap { binding in
-                dataByLogicalID[binding.logicalID].map { (binding.reference.id, $0) }
+        var artifacts: [ArtifactID: Data] = [:]
+        for binding in bindings {
+            if let data = dataByLogicalID[binding.logicalID] {
+                artifacts[binding.reference.id] = data
             }
-        )
+        }
+        self.artifacts = artifacts
     }
 
     public func read(_ binding: RTLArtifactBinding) async throws -> Data {

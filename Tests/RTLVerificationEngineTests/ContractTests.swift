@@ -80,6 +80,41 @@ struct ContractTests {
         #expect(preprocessed.unsupportedDirectives == ["define_function_invocation:SELECT"])
     }
 
+    @Test("frontend rejects duplicate source paths with a typed failure")
+    func frontendRejectsDuplicateSourcePaths() throws {
+        let firstData = Data("module top; endmodule".utf8)
+        let secondData = Data("module other; endmodule".utf8)
+        let first = makeReference(
+            path: "duplicate.sv",
+            format: .systemVerilog,
+            data: firstData
+        )
+        let second = makeReference(
+            path: "duplicate.sv",
+            format: .systemVerilog,
+            data: secondData
+        )
+
+        #expect(throws: RTLVerificationExecutionError.self) {
+            _ = try SystemVerilogRTLParser().parse(
+                sources: [
+                    RTLVerificationSourceInput(
+                        reference: first.reference,
+                        path: first.path,
+                        data: firstData
+                    ),
+                    RTLVerificationSourceInput(
+                        reference: second.reference,
+                        path: second.path,
+                        data: secondData
+                    ),
+                ],
+                topModuleName: "top",
+                options: RTLVerificationFrontendOptions()
+            )
+        }
+    }
+
     @Test("frontend reports recursive function-like macro expansion")
     func frontendReportsRecursiveFunctionLikeMacroExpansion() throws {
         let source = """
@@ -1069,7 +1104,7 @@ struct ContractTests {
                 designDigest: "reference-digest"
             )
         )
-        request.appendInputBindings([referenceDesignReference])
+        request.appendReferenceInputBindings([referenceDesignReference])
         let envelope = try await NativeFormalEquivalenceChecker(
             reader: reader,
             writer: store
@@ -1849,8 +1884,6 @@ struct ContractTests {
             inputBindings: [
                 implementationTop,
                 implementationChild,
-                referenceTop,
-                referenceChild,
             ],
             design: LogicDesignReference(
                 artifact: implementationTop.reference,
@@ -1862,7 +1895,7 @@ struct ContractTests {
                 topDesignName: "top",
                 designDigest: "reference-digest"
             ),
-            referenceInputs: [referenceTop.reference, referenceChild.reference],
+            referenceInputBindings: [referenceTop, referenceChild],
             analysis: .formalEquivalence
         )
 
@@ -1889,7 +1922,6 @@ struct ContractTests {
             implementationTop.reference,
             implementationChild.reference,
             referenceTop.reference,
-            referenceChild.reference,
         ])
     }
 

@@ -17,7 +17,9 @@ public struct RTLVerificationDesignLoader: Sendable {
     public func load(_ request: RTLVerificationRequest) async throws -> RTLVerificationParsedDesign {
         let designBinding = try request.requireBinding(for: request.design.artifact)
         let bindings = uniqueBindings(
-            [designBinding] + request.inputBindings.filter { $0.descriptor.kind == .rtl }
+            [designBinding] + request.inputBindings.filter {
+                $0.descriptor.kind == .rtl
+            }
         )
         var sourceInputs: [RTLVerificationSourceInput] = []
         for binding in bindings {
@@ -113,11 +115,14 @@ public struct RTLVerificationDesignLoader: Sendable {
         guard let referenceDesign = request.referenceDesign else {
             throw RTLVerificationExecutionError.invalidRequest("A reference design is required for formal equivalence.")
         }
-        let referenceBinding = try request.requireBinding(for: referenceDesign.artifact)
-        let referenceBindings = try request.referenceInputs.map {
-            try request.requireBinding(for: $0)
-        }
-        let bindings = uniqueBindings([referenceBinding] + referenceBindings)
+        let referenceBinding = try request.requireReferenceBinding(
+            for: referenceDesign.artifact
+        )
+        let bindings = uniqueBindings(
+            [referenceBinding] + request.referenceInputBindings.filter {
+                $0.descriptor.kind == .rtl
+            }
+        )
         var sourceInputs: [RTLVerificationSourceInput] = []
         for binding in bindings {
             sourceInputs.append(RTLVerificationSourceInput(

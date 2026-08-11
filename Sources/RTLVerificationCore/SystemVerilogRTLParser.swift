@@ -61,15 +61,21 @@ public struct SystemVerilogRTLParser: RTLVerificationDesignParsing, RTLVerificat
                 reason: "Unsupported RTL language \(options.language)."
             )
         }
-        let includeSources = try Dictionary(uniqueKeysWithValues: sources.map { source in
+        var includeSources: [String: String] = [:]
+        for source in sources {
             guard let text = String(data: source.data, encoding: .utf8) else {
                 throw RTLVerificationExecutionError.parserFailed(
                     path: source.path,
                     reason: "The source is not valid UTF-8."
                 )
             }
-            return (source.path, text)
-        })
+            guard includeSources.updateValue(text, forKey: source.path) == nil else {
+                throw RTLVerificationExecutionError.parserFailed(
+                    path: source.path,
+                    reason: "The source set contains a duplicate path."
+                )
+            }
+        }
         var combinedSource = ""
         var linePaths: [String] = []
         var unsupportedDirectives: [String] = []

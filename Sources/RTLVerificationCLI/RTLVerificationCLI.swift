@@ -103,7 +103,6 @@ struct RTLVerificationCLI {
         } else {
             referenceDesign = nil
         }
-        let referenceInputs = referenceReferences.dropFirst().map(\.reference)
         let constraintBinding: RTLArtifactBinding?
         let constraintReference: RTLConstraintReference?
         if let constraintPath = options.constraintPath {
@@ -175,13 +174,13 @@ struct RTLVerificationCLI {
         }
         let optionalBindings = [constraintBinding, resetIntentBinding, powerIntentBinding]
             .compactMap { $0 }
-        let inputBindings = rtlReferences + referenceReferences + optionalBindings
+        let inputBindings = rtlReferences + optionalBindings
         let request = RTLVerificationRequest(
             runID: options.runID,
             inputBindings: inputBindings,
             design: design,
             referenceDesign: referenceDesign,
-            referenceInputs: referenceInputs,
+            referenceInputBindings: referenceReferences,
             constraints: constraintReference,
             resetIntent: resetIntentReference,
             powerIntent: powerIntentReference,

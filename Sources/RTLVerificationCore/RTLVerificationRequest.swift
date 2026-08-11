@@ -5,7 +5,7 @@ import PowerIntent
 import TimingCore
 
 public struct RTLVerificationRequest: RTLExecutionRequest {
-    public static let currentSchemaVersion = 2
+    public static let currentSchemaVersion = 3
 
     public private(set) var schemaVersion: Int
     public var runID: String
@@ -14,7 +14,7 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
 
     public var design: LogicDesignReference
     public var referenceDesign: LogicDesignReference?
-    public var referenceInputs: [ArtifactReference]
+    public private(set) var referenceInputBindings: [RTLArtifactBinding]
     public var constraints: RTLConstraintReference?
     public var resetIntent: RTLResetIntentReference?
     public var powerIntent: PowerIntentReference?
@@ -33,7 +33,7 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
         case inputBindings
         case design
         case referenceDesign
-        case referenceInputs
+        case referenceInputBindings
         case constraints
         case resetIntent
         case powerIntent
@@ -51,7 +51,7 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
         inputBindings: [RTLArtifactBinding],
         design: LogicDesignReference,
         referenceDesign: LogicDesignReference? = nil,
-        referenceInputs: [ArtifactReference] = [],
+        referenceInputBindings: [RTLArtifactBinding] = [],
         constraints: RTLConstraintReference? = nil,
         resetIntent: RTLResetIntentReference? = nil,
         powerIntent: PowerIntentReference? = nil,
@@ -66,10 +66,12 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
         self.schemaVersion = Self.currentSchemaVersion
         self.runID = runID
         self.inputBindings = inputBindings
-        self.inputs = Self.uniqueReferences(inputBindings.map(\.reference))
+        self.referenceInputBindings = referenceInputBindings
+        self.inputs = Self.uniqueReferences(
+            (inputBindings + referenceInputBindings).map(\.reference)
+        )
         self.design = design
         self.referenceDesign = referenceDesign
-        self.referenceInputs = referenceInputs
         self.constraints = constraints
         self.resetIntent = resetIntent
         self.powerIntent = powerIntent
@@ -93,8 +95,14 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
             )
         }
         let inputBindings = try container.decode([RTLArtifactBinding].self, forKey: .inputBindings)
+        let referenceInputBindings = try container.decode(
+            [RTLArtifactBinding].self,
+            forKey: .referenceInputBindings
+        )
         let inputs = try container.decode([ArtifactReference].self, forKey: .inputs)
-        guard inputs == Self.uniqueReferences(inputBindings.map(\.reference)) else {
+        guard inputs == Self.uniqueReferences(
+            (inputBindings + referenceInputBindings).map(\.reference)
+        ) else {
             throw DecodingError.dataCorruptedError(
                 forKey: .inputs,
                 in: container,
@@ -106,7 +114,7 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
             inputBindings: inputBindings,
             design: try container.decode(LogicDesignReference.self, forKey: .design),
             referenceDesign: try container.decodeIfPresent(LogicDesignReference.self, forKey: .referenceDesign),
-            referenceInputs: try container.decode([ArtifactReference].self, forKey: .referenceInputs),
+            referenceInputBindings: referenceInputBindings,
             constraints: try container.decodeIfPresent(RTLConstraintReference.self, forKey: .constraints),
             resetIntent: try container.decodeIfPresent(
                 RTLResetIntentReference.self,
@@ -132,7 +140,7 @@ public struct RTLVerificationRequest: RTLExecutionRequest {
 
 public extension RTLVerificationRequest {
     var executionInputArtifacts: [ArtifactReference] {
-        var references = inputs + [design.artifact] + referenceInputs
+        var references = inputs + [design.artifact]
         if let referenceDesign {
             references.append(referenceDesign.artifact)
         }
@@ -159,13 +167,38 @@ public extension RTLVerificationRequest {
         }
     }
 
+    func requireReferenceBinding(
+        for reference: ArtifactReference
+    ) throws -> RTLArtifactBinding {
+        do {
+            return try RTLArtifactBinding.require(reference, in: referenceInputBindings)
+        } catch {
+            throw RTLVerificationExecutionError.invalidRequest(
+                "Reference artifact materialization is missing for content \(reference.id.description)."
+            )
+        }
+    }
+
     mutating func replaceInputBindings(_ bindings: [RTLArtifactBinding]) {
         inputBindings = bindings
-        inputs = Self.uniqueReferences(bindings.map(\.reference))
+        updateInputs()
     }
 
     mutating func appendInputBindings(_ bindings: [RTLArtifactBinding]) {
         replaceInputBindings(inputBindings + bindings)
+    }
+
+    mutating func replaceReferenceInputBindings(
+        _ bindings: [RTLArtifactBinding]
+    ) {
+        referenceInputBindings = bindings
+        updateInputs()
+    }
+
+    mutating func appendReferenceInputBindings(
+        _ bindings: [RTLArtifactBinding]
+    ) {
+        replaceReferenceInputBindings(referenceInputBindings + bindings)
     }
 
     func designSubjectReference() throws -> DesignSubjectReference {
@@ -175,6 +208,12 @@ public extension RTLVerificationRequest {
                 kindID: DesignEntityKindID(rawValue: "design"),
                 localIdentifier: design.topDesignName
             )
+        )
+    }
+
+    private mutating func updateInputs() {
+        inputs = Self.uniqueReferences(
+            (inputBindings + referenceInputBindings).map(\.reference)
         )
     }
 }

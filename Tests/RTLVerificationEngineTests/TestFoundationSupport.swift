@@ -80,15 +80,16 @@ extension InMemoryRTLArtifactReader {
 
     init(artifacts: [String: Data]) {
         do {
-            self.init(artifacts: try Dictionary(
-                uniqueKeysWithValues: artifacts.values.map { data in
-                    let digest = try SHA256ContentDigester().digest(data: data)
-                    return (
-                        try ArtifactID(digest: digest, byteCount: UInt64(data.count)),
-                        data
-                    )
-                }
-            ))
+            var contentsByID: [ArtifactID: Data] = [:]
+            for data in artifacts.values {
+                let digest = try SHA256ContentDigester().digest(data: data)
+                let artifactID = try ArtifactID(
+                    digest: digest,
+                    byteCount: UInt64(data.count)
+                )
+                contentsByID[artifactID] = data
+            }
+            self.init(artifacts: contentsByID)
         } catch {
             preconditionFailure("Invalid in-memory test artifact: \(error)")
         }
