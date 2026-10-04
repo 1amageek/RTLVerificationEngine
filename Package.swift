@@ -13,7 +13,7 @@ let logicDesignDependency: Package.Dependency = .package(
 
 let timingEngineDependency: Package.Dependency = .package(
     url: "https://github.com/1amageek/TimingEngine.git",
-    revision: "c009525b407781e28b5d8c667e8d47b4b08c311b"
+    revision: "fc21d6abe40e2888e595bcb58ed76f2733497e1d"
 )
 
 let toolQualificationDependency: Package.Dependency = .package(
@@ -23,7 +23,7 @@ let toolQualificationDependency: Package.Dependency = .package(
 
 let logicEngineDependency: Package.Dependency = .package(
     url: "https://github.com/1amageek/LogicEngine.git",
-    revision: "66244803781da2d1d28a0d77e42e1240741cf8c4"
+    revision: "0f8874bae8ef76564460eab0c8662a4b37ed0a3a"
 )
 
 let package = Package(

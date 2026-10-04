@@ -63,3 +63,15 @@ immutability contract. Neither implementation owns `.xcircuite`, project
 manifests, run ledgers, approval, or resume state.
 
 Every execution persists a JSON report. Formal mismatches additionally persist counterexample JSON through the injected artifact writer. The report includes the canonical input references, raw findings, domain waiver matches, proof view, assumptions, raw evidence assessment, and semantic/constraint coverage. It does not encode a release verdict or an applied waiver disposition.
+
+## Exact Timing Dependency Adoption
+
+Adopt [TimingEngine](../TimingEngine/DESIGN.md) at
+`fc21d6abe40e2888e595bcb58ed76f2733497e1d` so the composing host resolves one
+exact timing dependency. TimingCore sources and the consumed public value/API
+contract are unchanged from `c009525`; this adoption changes no domain source
+or analysis behavior. Manifest decoding checks the exact pin, and Xcircuite's
+dedicated host build compiles/links the consumed products against this closure.
+
+Adopt LogicEngine `0f8874bae8ef76564460eab0c8662a4b37ed0a3a` to use the same exact closure;
+its domain source/API is unchanged by that dependency adoption.
