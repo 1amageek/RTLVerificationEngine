@@ -87,3 +87,7 @@ Transitive revisions must agree with the composing Xcircuite graph without overr
 This dependency change preserves this package's domain implementation; lower
 behavioral evidence and host identity/provenance tests establish the consumed
 contract, not process qualification or unexecuted domain test coverage.
+
+## Verification and Change Impact
+
+The package manifest consumes the [CoreSpice host deployment contract](../CoreSpice/DESIGN.md#responsibilities-and-boundaries) through its exact dependency closure. Changes to that contract require resolution and affected host-product verification.

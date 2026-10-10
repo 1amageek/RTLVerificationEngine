@@ -1,4 +1,4 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.4
 import PackageDescription
 
 let circuiteFoundationDependency: Package.Dependency = .package(
@@ -12,7 +12,7 @@ let logicDesignDependency: Package.Dependency = .package(
 )
 
 let timingEngineDependency: Package.Dependency = .package(url: "https://github.com/1amageek/TimingEngine.git",
-    revision: "b419a09995174289545132048451ac9d2acc372b"
+    revision: "bcaaa735207fa77a0b76ad8105d59100612f6c0d"
 )
 
 let toolQualificationDependency: Package.Dependency = .package(
@@ -21,12 +21,12 @@ let toolQualificationDependency: Package.Dependency = .package(
 )
 
 let logicEngineDependency: Package.Dependency = .package(url: "https://github.com/1amageek/LogicEngine.git",
-    revision: "c363c7e74ed85000b7a54f45b27bc537a6fe08ea"
+    revision: "5bef5807d40a64eaad1b9d48d4af7b84582217ce"
 )
 
 let package = Package(
     name: "RTLVerificationEngine",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS("27.0")],
     products: [
         .library(name: "RTLVerificationCore", targets: ["RTLVerificationCore"]),
         .library(name: "RTLLint", targets: ["RTLLint"]),
